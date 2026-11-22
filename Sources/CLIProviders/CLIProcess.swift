@@ -394,7 +394,7 @@ final class CLIProcess: @unchecked Sendable {
         var targets: [pid_t: ProcessIdentity] = [:]
         for process in before { targets[process.pid] = process }
         for process in currentTree() { targets[process.pid] = process }
-        lock.lock(); killRequested = true; lock.unlock()
+        lock.withLock { killRequested = true }
         if let root, ProcessTree.isRunning(root) { _ = killpg(root.pid, SIGKILL) }
         ProcessTree.signal(Array(targets.values), SIGKILL)
         if let root { ProcessTree.killGroup(of: root) }

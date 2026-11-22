@@ -265,8 +265,9 @@ final class CLIProvider: LLMProvider, @unchecked Sendable {
             }
             if result != nil || client.phase == .done { break loop }
         }
-        // The stream of inputs also ends when the consumer cancels.
-        if result == nil && client.phase != .done { result = .cancelled }
+        // The stream of inputs also ends when the consumer cancels. Once the prompt is answered the run has succeeded,
+        // whether the agent then went quiet, answered `session/delete`, or exited.
+        if result == nil && !answered { result = .cancelled }
 
         // End the process. After a tripwire it is already killed; a cancelled run is terminated at once; otherwise stdin is
         // closed and the agent gets 2 s to exit by itself.

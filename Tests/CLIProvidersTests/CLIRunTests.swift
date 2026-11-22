@@ -40,6 +40,19 @@ import TestSupport
         #expect(result.statuses.isEmpty)
     }
 
+    /// An agent that exits right after answering, before the quiet period: the answer stands and the copy is deleted
+    /// with the command.
+    @Test func grokThatExitsRightAfterAnswering() async throws {
+        let harness = try FakeCLIHarness()
+        defer { harness.cleanup() }
+        let provider = try harness.provider(GrokBuildAdapter(), ["FAKE_MODE": "ok", "FAKE_VARIANT": "exit-after-answer"])
+        let result = await collect(provider.stream(markedRequest()))
+        #expect(result.error == nil)
+        #expect(result.text == "Hello world")
+        #expect(result.finished?.0 == .endOfTurn)
+        #expect(harness.log().contains("sessions delete sess_1"))
+    }
+
     @Test func grokReportsAFailedDeletionOnce() async throws {
         let harness = try FakeCLIHarness()
         defer { harness.cleanup() }

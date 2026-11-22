@@ -230,6 +230,7 @@ enum FakeCLIScripts {
         while :; do sleep 1; chunk "tick "; done ;;
     esac
     cat "$fx/prompt-answer.jsonl" | sed "s/\"id\":4,/\"id\":$rid,/"
+    [ "$FAKE_VARIANT" = exit-after-answer ] && exit 0
     if [ "$FAKE_VARIANT" != no-delete ]; then
       read_request
       reply '{"jsonrpc":"2.0","id":'"$rid"',"result":{}}'
