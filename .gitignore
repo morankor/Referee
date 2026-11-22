@@ -1,0 +1,9 @@
+.build/
+build/
+Fixtures/private/
+*.local.json
+.env
+.DS_Store
+*.xcuserstate
+.swiftpm/
+__pycache__/
