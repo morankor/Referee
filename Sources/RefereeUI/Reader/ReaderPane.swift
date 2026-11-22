@@ -9,6 +9,10 @@ import AppCore
 // Overlays rather than popovers, because a popover is a window of its own and the snapshot mode captures only the
 // main window. The banner and the consent card are not here: they belong to the Shell.
 //
+// The overlays are opaque (the window's background colour, a hairline and a shadow): they lie over a white page in
+// light and dark mode alike, and a translucent material over white turns grey in dark mode, where secondary text
+// then all but disappears.
+//
 // The pane sets no minimum width, on purpose. With the composition of section 9.2, SwiftUI on macOS 26 adds the
 // inspector's width to whatever minimum the detail column declares: `.frame(minWidth: 480)` here makes the smallest
 // possible window 1448 points wide, and a review window can then be neither 1280 nor 1000 points wide

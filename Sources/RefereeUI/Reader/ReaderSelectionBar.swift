@@ -22,7 +22,7 @@ struct ReaderSelectionBar: View {
         .controlSize(.small)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(.regularMaterial, in: Capsule())
+        .background(Color(nsColor: .windowBackgroundColor), in: Capsule())
         .overlay(Capsule().strokeBorder(.separator))
         .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
         .fixedSize()

@@ -45,7 +45,7 @@ struct ReaderCitationCard: View {
         }
         .padding(12)
         .frame(width: Self.width, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.cardCornerRadius + 2))
+        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: Theme.cardCornerRadius + 2))
         .overlay(RoundedRectangle(cornerRadius: Theme.cardCornerRadius + 2).strokeBorder(.separator))
         .shadow(color: .black.opacity(0.2), radius: 10, y: 3)
     }

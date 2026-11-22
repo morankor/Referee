@@ -42,7 +42,7 @@ struct ReaderFindBar: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .frame(maxWidth: 420)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.cardCornerRadius))
+        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: Theme.cardCornerRadius))
         .overlay(RoundedRectangle(cornerRadius: Theme.cardCornerRadius).strokeBorder(.separator))
         .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
         .onAppear { fieldIsFocused = true }
