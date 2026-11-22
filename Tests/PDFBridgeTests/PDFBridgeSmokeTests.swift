@@ -12,7 +12,7 @@ import TestSupport
         func build(from raw: RawDocument) -> PaperText { identityPaperText(from: raw) }
     }
 
-    private static let fixtures = ["ay_nolinks", "s1_ruler", "ay_round_nolinks", "ay_links", "num_links", "num_twocol_links", "scanned"]
+    private static let fixtures = ["ay_nolinks", "s1_ruler", "ay_round_nolinks", "ay_links", "num_links", "num_twocol_links", "scanned", "ay_long"]
 
     @Test func bytesThatAreNotAPDFAreRejected() async {
         let service = PDFPaperService(builder: IdentityBuilder())

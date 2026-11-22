@@ -10,7 +10,7 @@ import TestSupport
     // MARK: - Load
 
     @Test(arguments: [("ay_nolinks", 4), ("ay_round_nolinks", 4), ("ay_links", 4), ("s1_ruler", 4), ("num_links", 4),
-                      ("num_twocol_links", 2), ("scanned", 1)])
+                      ("num_twocol_links", 2), ("scanned", 1), ("ay_long", 16)])
     func loadGivesThePagesTheHashOfTheFileAndNoEncryption(name: String, pages: Int) async throws {
         let url = Fixtures.url("pdf/\(name).pdf")
         let paper = try await PDFPaperService(builder: IdentityTextBuilder()).load(url: url)

@@ -272,7 +272,7 @@ Referee/
 | Run the app unbundled | `scripts/run.sh [app arguments]` |
 | Assemble and sign the app | `scripts/bundle.sh` → `build/Referee.app`; then `open build/Referee.app` |
 | Render UI snapshots | `scripts/snapshots.sh [--out dir] [--scene name]…` |
-| Real local-LLM end-to-end | `scripts/e2e-ollama.sh [model]` |
+| Real local-LLM end-to-end | `scripts/e2e-ollama.sh [model] [pdf] [--expect-parts]` |
 | Regenerate fixture PDFs | `scripts/make-fixtures.sh` (needs MacTeX) |
 | Fetch optional real papers | `scripts/fetch-optional-fixtures.sh` (network; public arXiv PDFs into `Fixtures/private/`) |
 
@@ -421,7 +421,7 @@ Rules: tests never read or write the user's Keychain item, `~/Library/Applicatio
 
 ### 3.6 Fixtures
 
-- **Synthetic manuscripts** are written in LaTeX (`Fixtures/tex`, sources in Appendix C), compiled with `pdflatex`, and the PDFs are committed so tests never need TeX. `scripts/make-fixtures.sh` produces all seven on this machine in about five seconds [V]. They contain invented text and invented or public references only; no real manuscript and no personal name of the user may ever be added to `Fixtures/` outside `private/`. A rebuilt PDF differs in a few bytes from the previous build (timestamps), so nothing may depend on a fixture's hash (§10.1).
+- **Synthetic manuscripts** are written in LaTeX (`Fixtures/tex`, sources in Appendix C), compiled with `pdflatex`, and the PDFs are committed so tests never need TeX. `scripts/make-fixtures.sh` produces all eight on this machine in about six seconds [V]. They contain invented text and invented or public references only; no real manuscript and no personal name of the user may ever be added to `Fixtures/` outside `private/`. A rebuilt PDF differs in a few bytes from the previous build (timestamps), so nothing may depend on a fixture's hash (§10.1).
 
 | File | Pages | What it exercises |
 |---|---|---|
@@ -432,12 +432,13 @@ Rules: tests never read or write the user's Keychain item, `~/Library/Applicatio
 | `num_links.pdf` | 4 | Single column, numeric citations with hyperref: 10 internal citation links and 2 URL links for one DOI that is broken across two lines [V]. |
 | `num_twocol_links.pdf` | 2 | Two columns, numeric, hyperref (12 links). Smoke test only: PDFKit emits page 2 as top of the left column, the whole right column, then the rest of the left column [V]. |
 | `scanned.pdf` | 1 | Image only, zero characters [V]. Built by `sips -s format png` then `sips -s format pdf`. |
+| `ay_long.pdf` | 16 | Gate 1. Invented prose of an economics paper (sixteen sections, a table, an equation), round-bracket author–year citations of the same nine references, no stamps, no links: about 33,000 characters of rendered text, so that a model with a 16,384-token window (`phi4`) reads it in two parts and a whole-paper pass while `gemma4:e4b` (capped at 32,768) reads it in one. Its abstract repeats the sentence "The effect is statistically significant but economically small." that `e2e-ollama.sh` asks about. Source `Fixtures/tex/ay_long.tex`, not printed in this plan. |
 
 What PDFKit actually returns for these files is part of the specification; the samples in §6.7 and §7.2 are copied from its output.
 
 - **Raw dumps.** `referee-cli dump-raw <pdf>` prints the `RawDocument` JSON; `scripts/make-fixtures.sh` writes one per PDF into `Fixtures/raw`. The pure libraries test against these.
 - **Fixture access.** `TestSupport.Fixtures` (§11.3) resolves the repository root in this order: the environment variable `REFEREE_REPO_ROOT` when set; in debug builds (`#if DEBUG`), from `#filePath` of its own source file; in release builds, the current directory. No `Bundle.module`. Reason for the split: `TestSupport` is linked into the app, and a `#filePath` in a release build would put the build machine's home-directory path into the bundled binary; `scripts/bundle.sh` fails if it finds one. Fixtures are only needed by a release binary in snapshot mode, which is run from the repository root.
-- **Real papers.** `scripts/fetch-optional-fixtures.sh` downloads three public arXiv PDFs into `Fixtures/private/` (git-ignored; one request every three seconds, as arXiv's terms ask). Tests that use them skip when absent. They matter: running the prototypes on one real 15-page paper exposed three errors that the synthetic files did not (§8.2). Journal-system PDFs the user supplies go in the subfolder `Fixtures/private/journal/` (Q7): they have margin numbers, so they must stay out of the "no false positives" row, which reads only the files directly in `Fixtures/private`; the "real papers" test of Gate 1 reads both.
+- **Real papers.** `scripts/fetch-optional-fixtures.sh` downloads three public arXiv PDFs into `Fixtures/private/` as `arxiv-<id>.pdf` (git-ignored; one request every three seconds, as arXiv's terms ask; https only; a paper already there is kept): 1706.03762 (numeric citations with links, 15 pages, 40 references), 1409.0473 and 1803.09015 (author–year citations with links). Tests that use them skip when absent. They matter: running the prototypes on one real 15-page paper exposed three errors that the synthetic files did not (§8.2). Journal-system PDFs the user supplies go in the subfolder `Fixtures/private/journal/` (Q7): they have margin numbers, so they must stay out of the "no false positives" row, which reads only the files directly in `Fixtures/private`; the "real papers" test of Gate 1 reads both.
 - **Model outputs and provider streams** are text files (Appendix D and `Fixtures/llm`).
 
 ### 3.7 Conventions for all code
@@ -1864,7 +1865,7 @@ All in `TestSupport`, declared in §11.3.
 
 ### 10.4 End-to-end with a real local model
 
-`scripts/e2e-ollama.sh [model]` (default `gemma4:e4b`): exits 3 if `http://127.0.0.1:11434/api/version` does not answer; builds `referee-cli`; runs `review Fixtures/pdf/ay_round_nolinks.pdf --provider ollama --model <model>`; requires exit 0, `status=completed` and `comments>=1` in the SUMMARY line; prints `anchored=`. Then runs `ask … --question "Is the claim in the abstract supported?" --quote "The effect is statistically significant but economically small."` and requires non-empty output. A local model's content is not asserted, only that the pipeline completes. Zero cost. Gate 1 runs it before any UI work starts (§11.4); it is the proof that the pieces work together.
+`scripts/e2e-ollama.sh [model] [pdf] [--expect-parts]` (default `gemma4:e4b` and `Fixtures/pdf/ay_round_nolinks.pdf`): exits 3 if `http://127.0.0.1:11434/api/version` does not answer; builds `referee-cli`; prints `referee-cli plan` for the paper; runs `review <pdf> --provider ollama --model <model>`; requires exit 0, `status=completed` and `comments>=1` in the SUMMARY line; prints `anchored=`. With `--expect-parts` it also fails unless the plan reads the paper in parts and the SUMMARY's `requests` reaches the planned count (Gate 1: `ay_round_nolinks` is too short for any model to need parts, so the phi4 run uses `ay_long.pdf`, which phi4's 16,384-token window reads in two parts and a whole-paper pass). Then runs `ask … --question "Is the claim in the abstract supported?" --quote "The effect is statistically significant but economically small."` (a sentence both fixtures contain) and requires non-empty output. A local model's content is not asserted, only that the pipeline completes. Zero cost. Gate 1 runs it before any UI work starts (§11.4); it is the proof that the pieces work together.
 
 ### 10.5 Debug transcript (off by default)
 
@@ -2672,7 +2673,7 @@ scripts/test.sh                                                                 
 "$(swift build --show-bin-path)"/referee-cli review Fixtures/pdf/ay_round_nolinks.pdf --provider mock      # ends with SUMMARY … status=completed
 "$(swift build --show-bin-path)"/referee-cli extract Fixtures/pdf/s1_ruler.pdf --stats                     # ruler 1–60 on 4 pages
 scripts/e2e-ollama.sh                                                                                       # exit 0 with gemma4:e4b
-scripts/e2e-ollama.sh phi4                                                                                  # exit 0; exercises reading in parts
+scripts/e2e-ollama.sh phi4 Fixtures/pdf/ay_long.pdf --expect-parts                                          # exit 0; read in 2 parts + whole pass (Gate 1)
 ```
 
 Wave 2 does not start until all of these pass. If `e2e-ollama.sh` cannot pass because of a model's behaviour and not the pipeline's, say so in `gate1.md` with the output and stop for the coordinator.
@@ -4505,7 +4506,7 @@ All matching is case-insensitive and on word boundaries unless noted.
 
 ## Appendix C. Fixture sources
 
-`scripts/make-fixtures.sh` builds seven PDFs from three LaTeX files; it was run as printed and produced the documents described in §3.6 [V]. The four author–year fixtures are derived from one source with `sed`, so that they share every sentence; the single-column numeric fixture is derived from the two-column one. Each file is compiled three times because the ruler fixture's "Page N of M" header needs the page count.
+`scripts/make-fixtures.sh` builds eight PDFs from four LaTeX files; it was run as printed and produced the documents described in §3.6 [V]. The fourth source, `Fixtures/tex/ay_long.tex` (Gate 1), is about 34,000 characters of invented text and is kept in the tree only; the three below are printed in full. The four author–year fixtures are derived from one source with `sed`, so that they share every sentence; the single-column numeric fixture is derived from the two-column one. Each file is compiled three times because the ruler fixture's "Page N of M" header needs the page count.
 
 `scripts/make-fixtures.sh`
 
@@ -4518,12 +4519,12 @@ TEX=Fixtures/tex; PDF=Fixtures/pdf; RAW=Fixtures/raw
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$PDF" "$RAW"
 STRIP_JOURNAL='/\\usepackage{draftwatermark}/d; /\\SetWatermarkText/d; /\\SetWatermarkScale/d; /\\linenumbers/d'
-cp "$TEX/ay_nolinks.tex" "$TEX/s1_preamble.tex" "$TEX/num_twocol_links.tex" "$WORK/"
+cp "$TEX/ay_nolinks.tex" "$TEX/s1_preamble.tex" "$TEX/num_twocol_links.tex" "$TEX/ay_long.tex" "$WORK/"
 sed -e "$STRIP_JOURNAL" -e '/\\usepackage{lineno}/d' -e 's/\\usepackage{natbib}/\\usepackage[round]{natbib}/' "$TEX/ay_nolinks.tex" > "$WORK/ay_round_nolinks.tex"
 sed -e "$STRIP_JOURNAL" -e '/\\usepackage{lineno}/d' -e 's/\\usepackage{natbib}/\\usepackage{natbib}\\usepackage[colorlinks=true,citecolor=blue]{hyperref}/' "$TEX/ay_nolinks.tex" > "$WORK/ay_links.tex"
 sed -e "$STRIP_JOURNAL" -e 's/\\usepackage{lineno}/\\input{s1_preamble}/' -e 's/\\usepackage{natbib}/\\usepackage[round]{natbib}/' "$TEX/ay_nolinks.tex" > "$WORK/s1_ruler.tex"
 sed -e 's/\[10pt,twocolumn\]/[11pt]/' -e 's/A Two-Column Numeric Fixture With Links/A Single-Column Numeric Fixture With Links/' "$TEX/num_twocol_links.tex" > "$WORK/num_links.tex"
-for name in ay_nolinks ay_round_nolinks ay_links s1_ruler num_links num_twocol_links; do
+for name in ay_nolinks ay_round_nolinks ay_links s1_ruler num_links num_twocol_links ay_long; do
   ( cd "$WORK" && for pass in 1 2 3; do pdflatex -interaction=nonstopmode -halt-on-error "$name.tex" >/dev/null; done )
   cp "$WORK/$name.pdf" "$PDF/$name.pdf"
   echo "built $PDF/$name.pdf"
@@ -5223,3 +5224,4 @@ Gate 1 merged the nine Wave 1 branches, read their notes (`docs/contract-notes/w
 | WP5 3 and 4: notes file name; `REFEREE_CLI_EXPERIMENT` | §5.6.6 names `wp5-cliproviders.md` and the outcome; §10.6 lists the variable | §5.6.6, §10.6 |
 | WP5 2, Gate 0 3: `SnapshotSupport`'s CLI rows | `claude-cli` takes the PDF (document block), `codex-cli` too ("sent as page images"); `maxPromptBytes` 9,000,000 and 4,000,000; an integration test compares every static row with the real descriptor | §5.6.6, §11.3 |
 | WP5 incident: a fake that timed out let a real Codex run | Confirmed fixed (`CLIHost.searchesDefaultLocations`); a guard test runs every adapter's real spec with a fake that fails its version check and requires failure | §10.3 |
+| WP6 (for Gate 1): `ay_round_nolinks` is too short for any model to read in parts, so `e2e-ollama.sh phi4` could not show it | A long fixture, `ay_long.pdf` (16 pages, invented text, author–year), built by `make-fixtures.sh`, with its raw dump; `e2e-ollama.sh` takes a PDF and `--expect-parts`; the phi4 acceptance line runs on `ay_long.pdf` | §3.6, Appendix C, §10.4, Gate 1 |

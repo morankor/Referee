@@ -8,7 +8,7 @@ import TestSupport
 // Shared by the WP2 tests. This target cannot import PaperText, so the two builders below stand in for the real one.
 
 /// The seven committed fixtures (Fixtures/pdf and Fixtures/raw).
-let allFixtures = ["ay_nolinks", "s1_ruler", "ay_round_nolinks", "ay_links", "num_links", "num_twocol_links", "scanned"]
+let allFixtures = ["ay_nolinks", "s1_ruler", "ay_round_nolinks", "ay_links", "num_links", "num_twocol_links", "scanned", "ay_long"]
 
 /// Every raw line as a `.body` line with `contentRange == range` (TestSupport's `identityPaperText`).
 struct IdentityTextBuilder: PaperTextBuilding {

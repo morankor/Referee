@@ -1,0 +1,202 @@
+\documentclass[12pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[round]{natbib}
+\title{Ratings, Herding and Price Discovery on a Sequential Platform: A Long Fixture}
+\author{Anonymous}
+\date{}
+\begin{document}
+\maketitle
+\begin{abstract}
+We study how buyers on a sequential platform learn from the ratings left by earlier buyers. A staggered change in how ratings are displayed lets us compare markets before and after the change. Displaying the full distribution of ratings, rather than the mean alone, raises the share of buyers who act on their own information. The effect is statistically significant but economically small, and it fades in markets with many sellers. We interpret the evidence through a model of observational learning in which the display rule controls how much of the history each buyer can read.
+\end{abstract}
+
+\section{Introduction}
+Buyers on online platforms rarely see the product before they pay for it. What they see instead is a record of what earlier buyers did and said. A large literature treats such records as a channel of observational learning, in which each agent combines a private signal with the actions of predecessors \citep{banerjee1992, bikhchandani1992}. When the public record becomes informative enough, agents stop using their own signals and an information cascade begins. The record then stops improving, because no later action reveals anything new. This paper asks whether the way a platform displays its record changes how quickly buyers fall into such a cascade.
+
+The question matters for platform design. A platform chooses what the record contains, how it is summarised and where it appears. A display that shows only the mean rating compresses the history into one number, while a display that shows the whole distribution of ratings lets a buyer see whether opinions are divided. In the language of \citet{smith2000}, the display rule changes the informativeness of the public history, and with it the conditions under which learning is complete. In the language of \citet{acemoglu2011}, it changes the network through which information flows, since a buyer who sees the distribution observes more of her predecessors than a buyer who sees the mean.
+
+We exploit a change in the display rule of an anonymised marketplace for used equipment. Over eighteen months the platform replaced the mean rating with a histogram of ratings, one product category at a time, in an order that was fixed in advance for reasons unrelated to demand. The staggered rollout gives us treated and not-yet-treated categories in every month of the sample. Our main outcome is the share of buyers whose purchase decision departs from the majority of the decisions displayed to them, a measure of how often buyers act on their own information.
+
+Three findings stand out. First, the histogram raises the share of buyers who depart from the displayed majority by 2.4 percentage points, against a pre-rollout mean of 11.8 percent. Second, the effect is concentrated in categories with few sellers; in categories with more than forty active sellers it is indistinguishable from zero. Third, prices move more after a negative rating once the histogram is shown, which suggests that sellers respond to the information buyers now read. Taken together, the results indicate that the display rule matters for learning, but less than the literature on cascades might lead one to expect.
+
+\section{Institutional background}
+The marketplace began as a bulletin board on which laboratories sold surplus instruments to one another. It became a platform with posted prices, payments held in escrow and a rating system about a decade before our sample begins. Sellers list items one at a time, and most listings are unique: a particular centrifuge with a particular history of use. Buyers therefore cannot learn about the item from other buyers of the same item, only from other buyers of the same seller. The rating record attached to a listing is the record of the seller, and it accumulates across all of that seller's listings.
+
+Ratings take five levels, from one to five stars, and a buyer may rate a purchase only after the escrow period has ended. Before the change we study, the product page showed the mean of the seller's ratings rounded to one decimal place, next to the number of ratings. After the change, it showed five horizontal bars, one for each level, with the count of ratings at that level. Neither display showed the text of reviews on the product page; the text was one click away on the seller's profile, and the platform's logs show that fewer than one visitor in twenty opened it.
+
+The platform charges a commission on each sale and earns nothing from visits that end without a purchase. Its stated reason for the change was to reduce disputes over items that did not match their description, which had risen in the year before the rollout. Disputes are costly for the platform because staff mediate them. A display that helps buyers avoid sellers with divided records could reduce disputes even if it reduced sales, and the platform appears to have accepted that trade-off.
+
+\section{Related literature}
+The theory of observational learning begins with \citet{banerjee1992} and \citet{bikhchandani1992}, who show that rational agents who observe only the actions of predecessors can herd on the wrong action with positive probability. \citet{smith2000} show that the result depends on the strength of private signals: with unbounded signals, learning is eventually complete, while bounded signals allow cascades that never break. \citet{acemoglu2011} extend the analysis to agents who observe only some predecessors and characterise the network structures under which learning is asymptotically efficient. Our display rule can be read as a change in the observation structure that these papers study.
+
+A second strand studies markets in which prices respond to the history of trades. \citet{avery1998} show that a market maker who updates prices after each trade can prevent herding when there is a single dimension of uncertainty, but that herding returns when traders are uncertain about more than one dimension of the asset. The platform we study has posted prices set by sellers rather than a market maker, yet sellers revise prices after ratings arrive, and the question of whether price adjustment undoes herding arises in a similar form. \citet{kogan2020} studies learning from reviews when sellers act strategically, and \citet{lee2021} studies observational learning when buyers hold heterogeneous priors. Both mechanisms appear in our setting.
+
+A third strand concerns the procedures through which a sequence of agents aggregates information. \citet{dekel2000} compare sequential and simultaneous voting in symmetric binary elections and show that the two procedures can support the same equilibrium outcomes. Their analysis suggests that the order in which information becomes public need not matter as much as its content, a point we return to when we discuss why the histogram has a smaller effect than a simple model predicts. Equilibrium notions throughout follow the textbook treatment of \citet{osborne1994}.
+
+\section{Model}
+A sequence of buyers $t = 1, 2, \ldots$ arrives at a product page. The product is of high quality with prior probability $\pi$ and of low quality otherwise. Each buyer receives a private signal $s_t$ whose distribution depends on the quality, and observes a public display $d_t$ that summarises the decisions and ratings of earlier buyers. Buyer $t$ purchases when her posterior belief that the product is of high quality exceeds a threshold $c$ that reflects the price and her outside option. After purchasing she leaves a rating that is informative about quality but noisy.
+
+The display rule determines what $d_t$ contains. Under the mean rule, $d_t$ is the average rating among earlier purchasers together with their number. Under the histogram rule, $d_t$ is the count of each rating level. The posterior belief of buyer $t$ satisfies
+\begin{equation}
+\mu_t = \frac{\pi \, g(d_t \mid H) f(s_t \mid H)}{\pi g(d_t \mid H) f(s_t \mid H) + (1-\pi) g(d_t \mid L) f(s_t \mid L)} , \label{eq:posterior}
+\end{equation}
+where $g$ is the likelihood of the display and $f$ the likelihood of the signal. The histogram is a finer summary of the same history than the mean, so the likelihood ratio of the display is weakly more informative under the histogram rule.
+
+Ratings are left by purchasers only. A buyer who declines to purchase leaves no trace on the page beyond a small increase in the count of visits, which the platform does not display. This selection is central to the model. When early purchasers are enthusiastic, later buyers see a favourable display and purchase too, and the ratings they leave are drawn from the population of buyers who were willing to purchase given a favourable display. The display therefore overstates quality in a predictable way, and a sophisticated buyer discounts it. We assume buyers are sophisticated in this sense, which makes the model a variant of the standard sequential learning model with a selected public history.
+
+We make two assumptions that keep the analysis tractable. First, private signals are bounded, so that there exist public histories after which no private signal can overturn the public belief. Second, the price is fixed within a spell of the page and is revised by the seller only between spells. The second assumption is restrictive, and we relax it in the empirical work by allowing prices to respond to ratings with a lag.
+
+\subsection{Ratings and selection}
+Ratings are informative only about the buyers who chose to purchase. To see what this implies, consider a seller whose items are of high quality with probability one half. If the first two buyers draw favourable signals and purchase, both leave ratings, and the third buyer sees two ratings drawn from the population of purchasers. If instead the first buyer draws an unfavourable signal and declines, the record stays empty, and the second buyer faces the prior alone. The record is thus a censored sample of experiences, and its informativeness depends on the history of decisions as much as on the quality of the item.
+
+The histogram changes the censoring problem in one respect. Under the mean rule a buyer cannot tell a record of uniformly mediocre ratings from a record that mixes delight and disappointment. Under the histogram rule she can, and the second kind of record is far more likely when purchasers differ in how well the item suits them. The model captures this through a match component in each purchaser's experience, so that ratings vary even for a seller whose quality is known. The variance of ratings is then informative about the importance of match, and only the histogram reveals it.
+
+\section{Equilibrium}
+Proposition 1 states that under either display rule a cascade begins with positive probability, and that the probability of a cascade on the wrong action is lower under the histogram rule. The intuition is that the histogram reveals disagreement among earlier purchasers. A product whose ratings are split between the highest and the lowest levels has the same mean as a product whose ratings are all in the middle, yet the two histories have different likelihoods under high and low quality. A buyer who sees the split knows that the public belief is less certain than the mean suggests, and her own signal regains weight.
+
+The proof follows the argument of \citet{bikhchandani1992} with minor modifications. It is easy to see that the inequality is preserved when both sides are multiplied by the likelihood ratio of the display. Because the histogram rule refines the mean rule, every history that starts a cascade under the histogram rule also starts one under the mean rule, while the converse fails for histories with dispersed ratings. The set of histories that start a cascade is therefore smaller under the histogram rule.
+
+Proposition 2 concerns the number of sellers. When several sellers offer close substitutes, a buyer who declines one product often purchases another, and her rating then informs the record of the second product. Competition among sellers thus spreads information across pages and weakens the link between any single display and the decision of any single buyer. The model predicts that the effect of the display rule falls with the number of active sellers in a category, a prediction we take to the data in the section on heterogeneity.
+
+\subsection{Comparative statics}
+Two comparative statics guide the empirical work. First, the effect of the display rule on the probability of a cascade is larger when private signals are less precise. With precise signals, buyers seldom defer to the record under either rule, and a finer record changes few decisions. With imprecise signals, the record carries most of the weight, and a record that reveals disagreement can restore the weight of private information for many buyers. We measure signal precision by how often buyers ask sellers questions before purchasing.
+
+Second, the effect falls as the number of substitutes rises. When a buyer can choose among many sellers of similar items, her decision at any one page is less consequential, and the information she reveals by declining is spread thinly across alternatives. The model therefore predicts the smallest effects in the densest categories. A third prediction, that the effect should be larger for sellers with more ratings, follows because the histogram and the mean differ more when there are more ratings to summarise; we find mixed support for it.
+
+\section{Data}
+The data come from an anonymised marketplace for used laboratory and workshop equipment. Sellers are small firms and individuals; buyers are firms, universities and hobbyists. Each listing has a product page with a description, photographs, a posted price and the rating record of earlier buyers of the same seller. A buyer can message the seller before purchasing, and about a third of purchases follow such a message. We observe every page visit, every purchase and every rating between the first month of the sample and the twenty-fourth.
+
+Our unit of observation is a visit by a registered buyer to a product page. We keep visits by buyers who had not purchased from the seller before, so that the rating record is the main source of public information. We drop pages with fewer than three ratings, for which the two display rules are almost identical, and pages whose seller changed the price during the visit. The resulting sample contains 1.9 million visits to 214,000 pages in 46 product categories. The median page has eleven ratings at the time of the visit, and the median category has 27 active sellers.
+
+The outcome we focus on is whether the visit ends in a decision that departs from the majority of the decisions displayed. A purchase departs from the majority when most earlier visitors whose decisions the display reveals did not purchase, and a decision not to purchase departs from the majority in the opposite case. Because the display reveals decisions only through ratings, we construct the majority from the ratings and the count of visits that the platform records internally, which buyers cannot see. The measure is therefore defined from information the buyer could not fully observe, which biases our estimates toward zero if anything.
+
+\subsection{Descriptive statistics}
+Before the rollout, 64 percent of visits to a page with at least three ratings ended without a purchase, and 11.8 percent of visits ended in a decision that departed from the displayed majority. Departures were more common on pages whose mean rating was between three and four stars, where the record is least decisive, and least common on pages with a mean above four and a half. The share of departures also fell with the number of ratings, from 15 percent on pages with three to five ratings to 8 percent on pages with more than fifty.
+
+Prices are posted by sellers and revised infrequently: the median listing changes its price once during its life on the platform. Price revisions cluster in the two days after a new rating arrives, and about two thirds of revisions after a rating of one or two stars are reductions. Sellers with many listings revise prices more often than sellers with few, which suggests that revising is costly in attention and that large sellers have routines for it.
+
+\section{Empirical strategy}
+Our identification strategy exploits the staggered rollout of the histogram display. The platform introduced the histogram in two or three categories at a time, following a schedule set at the start of the project by the engineering team, which ordered categories by the size of their page templates. Internal documents describe the schedule as a matter of software maintenance. We verify that categories treated early and late do not differ in pre-rollout trends of purchases, ratings or prices.
+
+We estimate event-study regressions of the departure indicator on leads and lags of the rollout date, with category and month fixed effects and controls for the number of ratings displayed. Because treatment effects may vary across cohorts, we use an estimator that compares each treated cohort only with categories not yet treated. Standard errors are clustered by category. With 46 categories the number of clusters is modest, and we report wild bootstrap confidence intervals alongside conventional ones.
+
+The main threat to identification is that the platform changed something else at the same time as the display. Two changes coincided with parts of the rollout: a redesign of the search page and a new policy on returns. The search redesign was introduced in all categories at once and is absorbed by the month fixed effects. The returns policy applied to a subset of sellers, and we show that the results are unchanged when we drop the categories in which those sellers are active.
+
+\subsection{Event-study evidence}
+The event-study coefficients trace the path of the effect around the rollout. In the six months before the rollout the coefficients fluctuate around zero, with no trend and no single coefficient larger than half a percentage point in absolute value. The effect appears in the first month after the rollout, reaches its full size by the third month and remains stable thereafter. The gradual onset is consistent with buyers learning to read the new display, and with the record of each page filling up with ratings left by buyers who saw the histogram.
+
+We also estimate the event study separately for cohorts treated in the first and second halves of the rollout. The two paths are similar, which suggests that the effect did not depend on the season in which a category was treated or on what buyers had learnt from the categories treated earlier. A test of equal post-rollout coefficients across cohorts does not reject at conventional levels.
+
+\section{Results}
+Table~\ref{tab:main} reports the estimates; the posterior in (\ref{eq:posterior}) motivates the specifications, which differ in how they treat the number of ratings on the page.
+\begin{table}[h]
+\centering
+\caption{Effect of the histogram display on departures from the majority}\label{tab:main}
+\begin{tabular}{lcc}
+\hline
+Specification & Estimate & 95\% interval \\
+\hline
+Baseline & 0.024 & [0.015, 0.033] \\
+Cohort-robust & 0.021 & [0.011, 0.031] \\
+Page fixed effects & 0.026 & [0.016, 0.036] \\
+Few sellers only & 0.041 & [0.027, 0.055] \\
+\hline
+\end{tabular}
+\end{table}
+The baseline estimate implies that the histogram raises the share of departures by 2.4 percentage points, about one fifth of the pre-rollout mean. The cohort-robust estimate is slightly smaller, and the estimate with page fixed effects slightly larger; the three are statistically indistinguishable. The event-study coefficients for the months before the rollout are small and jointly insignificant, which supports the assumption of parallel trends.
+
+The coefficient in the baseline specification is 0.024 with a confidence interval that excludes zero, but its magnitude is modest by the standards of the theoretical literature, which would predict large changes in the probability of a cascade from a change in the observation structure. We read the modest size as evidence that most buyers were not in a cascade to begin with. When the public record is not yet decisive, a richer display has little to add, because buyers already weight their own signals heavily.
+
+Prices respond to the display as well. After a negative rating, sellers in treated categories lower their posted price by 1.3 percent more than sellers in untreated categories, and the gap persists for about two weeks. The response is consistent with sellers anticipating that buyers now see disagreement in the record and revising prices to compensate. It is also consistent with the mechanism in \citet{avery1998}, in which price adjustment absorbs part of the information that would otherwise drive herding.
+
+\subsection{Dynamics}
+The effect on departures is largest for buyers who arrive soon after a rating that breaks the pattern of earlier ratings. When a page with mostly favourable ratings receives an unfavourable one, buyers in the following week depart from the displayed majority 5.1 percentage points more often under the histogram display than under the mean display. Under the mean display, a single unfavourable rating moves the mean only slightly and is easy to overlook; under the histogram it adds a visible bar at the bottom of the scale.
+
+The response decays as further ratings arrive. After three more favourable ratings, the difference between the two displays falls to about one percentage point. This decay is what the model predicts if buyers treat a single dissenting rating as a signal of match rather than of quality, so that its weight in the posterior declines as the record grows. It also limits the welfare effect of the change, since the extra information arrives mostly on pages whose record is short.
+
+\section{Heterogeneity}
+Following \citet{smith2000}, we allow unbounded signals in a variant of the model and ask whether the effect should vary with the informativeness of private information. We proxy for the strength of private signals with the share of buyers who message the seller before purchasing, since a message gives the buyer information that the rating record does not contain. The histogram has a larger effect in categories where few buyers send messages, as the model predicts: when private signals are weak, the public record carries more weight, and a finer record changes more decisions.
+
+The effect also varies with the number of sellers. In categories with fewer than fifteen active sellers the estimate is 0.041, while in categories with more than forty it is 0.003 with a standard error of 0.006. This pattern matches Proposition 2. With many sellers, a buyer who is unconvinced by one page moves to another, and the display of any single page matters less for her final decision. The finding cautions against extrapolating the average effect to markets with dense competition.
+
+\section{Mechanisms}
+Three mechanisms could produce the main result: better information about quality, better information about match, and greater salience of the ratings. The model emphasises the first two, which we try to separate by looking at returns. A buyer who departs from a favourable majority because she infers poor quality should avoid the item altogether, while a buyer who departs because she infers poor match should look for a similar item from another seller. The data favour the match channel: most buyers who decline a page with a divided record purchase a similar item within a week.
+
+Salience is harder to rule out, because any display that adds information also changes how the page looks. The design change discussed in the section on robustness, which enlarged the mean rating without adding information, offers one test, and it suggests that salience alone does not move decisions. A second test uses buyers who visit a page more than once. If the histogram worked through salience, its effect should be largest on the first visit and fade on later ones; instead the effect is similar on first and repeat visits.
+
+Seller responses form a fourth channel. If sellers with divided records lower their prices after the rollout, some buyers who would otherwise depart from a favourable majority may purchase at the lower price. Price responses therefore dampen the measured effect on departures, and the estimates in Table~\ref{tab:main} combine the direct effect of the display with the indirect effect of prices. A model-based decomposition attributes about a fifth of the direct effect to offsetting price changes.
+
+\section{Robustness}
+We examine five threats to the interpretation of the main estimate. First, the composition of buyers might have changed with the rollout, for example if the histogram attracted more experienced buyers. We find no change in the share of first-time buyers or in the distribution of buyer tenure around the rollout dates. Second, sellers might have responded by changing the descriptions or photographs on their pages. A text comparison of descriptions before and after the rollout shows no systematic change, and the results are unchanged when we restrict the sample to pages whose description did not change.
+
+Third, the departure measure might be mechanically related to the number of ratings, since pages with more ratings have more stable majorities. We control flexibly for the number of ratings and obtain the same estimates; the results also hold within bins of the rating count. Fourth, the platform's internal visit counts might be measured with error. We repeat the analysis with a majority defined from ratings alone and find a smaller but still significant effect, as expected if the measurement error is classical.
+
+Fifth, we consider whether the effect reflects attention rather than information. A histogram occupies more space on the page than a single number, so buyers might simply notice the ratings more often. To separate the two channels we use a design change that enlarged the mean rating in some categories without adding information. The enlargement had no effect on departures, which suggests that the histogram works through the information it adds and not through its size on the screen.
+
+A final robustness check concerns the timing of the rollout within each month. The platform deployed each change on a Tuesday, and visits early in the week differ from visits at the weekend in the mix of buyers. Defining treatment by the exact deployment date rather than by calendar month leaves the estimates unchanged. We also obtain similar results when we drop the month of the rollout entirely, which removes visits that saw both displays.
+
+We have also checked that the results do not depend on the definition of a product category. The platform's own categories are broad, and some contain items as different as microscopes and soldering stations. Re-estimating with finer categories constructed from listing titles gives an estimate of 0.022 with a slightly wider interval. Results are similar when we weight categories equally rather than by the number of visits.
+
+\section{Welfare}
+Whether the display rule improves welfare depends on whether the additional departures lead to better purchases. We measure the quality of a purchase by the rating the buyer leaves and by whether she returns the product. Buyers who depart from the majority under the histogram display leave higher ratings and return products less often than buyers who depart under the mean display, which indicates that the additional departures are informed rather than random. A back-of-the-envelope calculation suggests that the histogram reduces the share of purchases that end in a return by 0.4 percentage points.
+
+The gains are not evenly shared. Sellers with polarised records lose sales under the histogram display, while sellers whose ratings cluster near the mean gain. Because polarised records are more common among new sellers, the histogram may make entry harder. We find that the number of new sellers in treated categories falls by about three percent in the six months after the rollout, although the estimate is imprecise.
+
+\section{External validity}
+How far do the results travel? Three features of the setting are unusual. Items are unique, so the record describes the seller rather than the item; buyers are often professionals; and prices are posted rather than negotiated. On platforms where many buyers purchase the same item, the record describes the item directly, and a histogram may matter more because ratings accumulate faster. On platforms where buyers are consumers with weaker private information, the model predicts larger effects, since the record then carries more weight.
+
+The modest average effect should also be read against the background of a mature platform. Buyers in our sample had seen thousands of rating displays before the change and had formed habits of reading them. A platform that introduced a histogram from its start might find larger effects, because buyers would never have learnt to discount the mean. Conversely, the effects we measure in the months after the rollout may overstate the long-run effect if buyers eventually learn to read the histogram as they had learnt to read the mean.
+
+\section{Discussion and limitations}
+Our setting has features that limit how far the results generalise. The marketplace sells durable equipment to buyers who are often professionals, and such buyers may rely on private information more than consumers buying inexpensive goods. The display rule we study is also only one of many design choices; platforms vary in whether they show the text of reviews, the identity of reviewers and the dates of ratings. Each of these choices changes what a buyer can learn from the record, and the interactions among them are not identified by our design.
+
+A further limitation concerns the model. We assume that buyers are sophisticated about the selection of ratings, but evidence from other settings suggests that many buyers take ratings at face value. If buyers are naive, the histogram may help them by making the dispersion of opinions visible, even if it adds nothing for a sophisticated buyer. Distinguishing between these interpretations would require data on beliefs, which we do not have.
+
+\section{Extensions of the model}
+The model can be extended in two directions that the data suggest. First, buyers may differ in how much they read. Some read only the summary, while others open the seller's profile and read the text of reviews. A mixture of the two types predicts that the histogram matters most for buyers who read little, since buyers who read the text already know when opinions are divided. Our data on profile visits are consistent with this prediction: the effect is concentrated among buyers who never open a seller's profile.
+
+Second, sellers may choose which items to list in response to the record. A seller whose record is divided might specialise in items for which match matters less, so as to attract buyers whose experiences are more uniform. Over a longer horizon than our sample, this response could reduce the dispersion of ratings and with it the information the histogram adds. Studying such responses would require following sellers for several years after the change.
+
+A third extension concerns the platform's choice of display. If the platform cares about disputes and commissions, it faces a trade-off between informing buyers and maximising sales, and the optimal display may reveal some but not all of the history. Characterising that optimum is beyond the scope of this paper, but the estimates here provide the elasticities such an analysis would need.
+
+\section{Conclusion}
+Displaying the distribution of ratings rather than their mean makes buyers on a sequential platform act on their own information somewhat more often. The effect is clearly present but small, it is concentrated in thin markets, and it is accompanied by faster price responses to bad news. These findings support the view that the observation structure shapes learning on platforms, while suggesting that most buyers in most markets are far from the cascades that dominate the theory. Future work could combine display experiments with direct measures of beliefs to separate the information a display adds from the attention it draws.
+
+\bibliographystyle{plainnat}
+\begin{thebibliography}{9}
+\bibitem[Acemoglu et~al.(2011)Acemoglu, Dahleh, Lobel, and Ozdaglar]{acemoglu2011}
+Acemoglu, D., Dahleh, M.~A., Lobel, I., and Ozdaglar, A. (2011).
+\newblock Bayesian learning in social networks.
+\newblock {\em Review of Economic Studies}, 78(4):1201--1236.
+\bibitem[Avery and Zemsky(1998)]{avery1998}
+Avery, C. and Zemsky, P. (1998).
+\newblock Multidimensional uncertainty and herd behavior in financial markets.
+\newblock {\em American Economic Review}, 88(4):724--748.
+\bibitem[Banerjee(1992)]{banerjee1992}
+Banerjee, A.~V. (1992).
+\newblock A simple model of herd behavior.
+\newblock {\em Quarterly Journal of Economics}, 107(3):797--817.
+\bibitem[Bikhchandani et~al.(1992)Bikhchandani, Hirshleifer, and Welch]{bikhchandani1992}
+Bikhchandani, S., Hirshleifer, D., and Welch, I. (1992).
+\newblock A theory of fads, fashion, custom, and cultural change as informational cascades.
+\newblock {\em Journal of Political Economy}, 100(5):992--1026.
+\bibitem[Dekel and Piccione(2000)]{dekel2000}
+Dekel E, Piccione M (2000) Sequential voting procedures in symmetric binary elections.\\
+J Polit Econ 108(1):34--55
+\bibitem[Kogan(2020)]{kogan2020}
+Kogan, D. (2020).
+\newblock Learning from reviews with strategic sellers.
+\newblock Working paper.
+\bibitem[Lee(2021)]{lee2021}
+Lee, J. (2021).
+\newblock Observational learning with heterogeneous priors.
+\newblock {\em Games and Economic Behavior}, 125:1--20.
+\bibitem[Osborne and Rubinstein(1994)]{osborne1994}
+Osborne, M.~J. and Rubinstein, A. (1994).\\
+\newblock {\em A Course in Game Theory}. MIT Press.
+\bibitem[Smith and S{\o}rensen(2000)]{smith2000}
+Smith, L. and S{\o}rensen, P. (2000).
+\newblock Pathological outcomes of observational learning.
+\newblock {\em Econometrica}, 68(2):371--398.
+\end{thebibliography}
+\end{document}

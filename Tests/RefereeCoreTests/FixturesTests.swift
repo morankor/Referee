@@ -10,6 +10,7 @@ import TestSupport
     /// Fixture name and page count, as section 3.6 lists them.
     static let manuscripts: [(name: String, pages: Int)] = [
         ("ay_nolinks", 4), ("s1_ruler", 4), ("ay_round_nolinks", 4), ("ay_links", 4), ("num_links", 4), ("num_twocol_links", 2), ("scanned", 1),
+        ("ay_long", 16),                     // Gate 1: long enough for a small local model to read in parts
     ]
     /// The four fixtures made from one LaTeX source: they share every sentence.
     static let sameText = ["ay_nolinks", "s1_ruler", "ay_round_nolinks", "ay_links"]

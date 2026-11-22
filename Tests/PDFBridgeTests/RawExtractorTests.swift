@@ -90,7 +90,8 @@ import TestSupport
         #expect(links.allSatisfy { !$0.text.isEmpty })
     }
 
-    @Test(arguments: [("num_twocol_links", 12), ("ay_links", 36), ("ay_nolinks", 0), ("ay_round_nolinks", 0), ("s1_ruler", 0), ("scanned", 0)])
+    @Test(arguments: [("num_twocol_links", 12), ("ay_links", 36), ("ay_nolinks", 0), ("ay_round_nolinks", 0), ("s1_ruler", 0), ("scanned", 0),
+                      ("ay_long", 0)])
     func linkCount(name: String, count: Int) throws {
         let raw = RawExtractor.extract(from: try fixtureDocument(name))
         #expect(raw.links.count == count)
