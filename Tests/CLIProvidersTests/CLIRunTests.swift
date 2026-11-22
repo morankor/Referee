@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import CLIProviders
 import RefereeCore
+import TestSupport
 
 /// Runs through the fake CLIs: the documented streams end to end, and the rows "no manuscript in arguments",
 /// "environment", "working directory" and "stdin".
@@ -184,6 +185,51 @@ import RefereeCore
             return
         }
         #expect(harness.recordedPIDs("run").isEmpty)
+    }
+
+    /// The `.documentBlock` delivery (section 5.6.6, C1) end to end: no prompt argument, stream-json input, the PDF on
+    /// stdin, nothing but the system prompt in the working directory.
+    @Test func claudeDocumentBlockThroughTheFake() async throws {
+        let harness = try FakeCLIHarness()
+        defer { harness.cleanup() }
+        let copy = harness.root.appendingPathComponent("stdin-copy")
+        let provider = try harness.provider(ClaudeCodeAdapter(), ["FAKE_MODE": "echo-bytes", "FAKE_STDIN_COPY": copy.path]) { $0.pdfDelivery = .documentBlock }
+        let pdf = try Data(contentsOf: Fixtures.url("pdf/ay_round_nolinks.pdf"))
+        let result = await collect(provider.stream(markedRequest(pdf: pdf)))
+        #expect(result.error == nil)
+        let stdin = try Data(contentsOf: copy)
+        #expect(result.text == String(stdin.count))
+        let line = try #require(try JSONSerialization.jsonObject(with: stdin) as? [String: Any])
+        let content = try #require((line["message"] as? [String: Any])?["content"] as? [[String: Any]])
+        #expect(((content.first?["source"] as? [String: Any])?["data"] as? String) == pdf.base64EncodedString())
+        #expect(content.last?["text"] as? String == "USER-MARKER-7Q2 Please review.")
+
+        let printing = try harness.provider(ClaudeCodeAdapter(), ["FAKE_MODE": "print-env"]) { $0.pdfDelivery = .documentBlock }
+        #expect(await collect(printing.stream(markedRequest(pdf: pdf))).error == nil)
+        let lines = harness.out().split(separator: "\n").map(String.init)
+        let arguments = lines.filter { $0.hasPrefix("ARG=") }.map { String($0.dropFirst(4)) }
+        #expect(arguments.first == "-p")
+        #expect(!arguments.contains(ClaudeCodeAdapter.promptArgument))
+        #expect(arguments.suffix(2) == ["--input-format", "stream-json"])
+        #expect(lines.contains("LS=system.txt "))
+    }
+
+    /// The `.pageImages` delivery (section 5.6.6, X1) end to end: four PNGs in the working directory, one `-i` each.
+    @Test func codexPageImagesThroughTheFake() async throws {
+        let harness = try FakeCLIHarness()
+        defer { harness.cleanup() }
+        let provider = try harness.provider(CodexAdapter(), ["FAKE_MODE": "print-env"]) { $0.pdfDelivery = .pageImages }
+        let pdf = try Data(contentsOf: Fixtures.url("pdf/ay_round_nolinks.pdf"))
+        let result = await collect(provider.stream(markedRequest(pdf: pdf)))
+        #expect(result.error == nil)
+        #expect(result.text == "Hello world")
+        let lines = harness.out().split(separator: "\n").map(String.init)
+        let cwd = try #require(lines.first { $0.hasPrefix("CWD=") }).dropFirst(4)
+        #expect(lines.contains("LS=p001.png p002.png p003.png p004.png "))
+        let arguments = lines.filter { $0.hasPrefix("ARG=") }.map { String($0.dropFirst(4)) }
+        let images = arguments.indices.filter { arguments[$0] == "-i" }.map { arguments[$0 + 1] }
+        #expect(images == (1...4).map { "\(cwd)/" + String(format: "p%03d.png", $0) })
+        #expect(!FileManager.default.fileExists(atPath: String(cwd)))
     }
 
     /// The stream is cold: nothing is started until it is iterated.
