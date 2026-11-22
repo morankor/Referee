@@ -9,8 +9,9 @@ struct ClaudeCodeAdapter: CLIAdapter {
     static let systemPromptFile = "system.txt"
     /// stdin is capped at 10 MB by Claude Code [D]; 9,000,000 leaves room.
     static let maxPromptBytes = 9_000_000
-    /// Set by the delivery experiment of section 5.6.6 (see docs/contract-notes/wp5-cliproviders.md).
-    static let delivery: CLIPDFDelivery = .none
+    /// Set by the delivery experiment of section 5.6.6: variant C1 (the PDF as a document block on stdin) passed on
+    /// 2026-11-22 with Claude Code 2.1.330 (docs/contract-notes/wp5-cliproviders.md).
+    static let delivery: CLIPDFDelivery = .documentBlock
 
     var pdfDelivery: CLIPDFDelivery { Self.delivery }
 

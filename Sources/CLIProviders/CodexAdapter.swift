@@ -5,8 +5,9 @@ import RefereeCore
 struct CodexAdapter: CLIAdapter {
     static let id: ProviderID = "codex-cli"
     static let maxPromptBytes = 4_000_000
-    /// Set by the delivery experiment of section 5.6.6 (see docs/contract-notes/wp5-cliproviders.md).
-    static let delivery: CLIPDFDelivery = .none
+    /// Set by the delivery experiment of section 5.6.6: variant X1 (page images at 110 dpi, `-i` once per page) passed
+    /// on 2026-11-22 with codex-cli 0.167.0-alpha.3.2 (docs/contract-notes/wp5-cliproviders.md).
+    static let delivery: CLIPDFDelivery = .pageImages
     /// Planning's limit for page images [A]; the adapter refuses more.
     static let maxPageImages = 40
     static let pageImagesPreamble = "The attached images are the pages of a manuscript, in order."
