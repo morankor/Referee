@@ -64,7 +64,7 @@ Things the plan left open, decided inside this step's files.
      | How are the standard errors computed? | pending | question | 3 | page only (the quote is not in the paper) |
      | There is no discussion of related work | pending, category `literature` | minor | none | unanchored (the quote is not in the paper) |
 
-     The plan asks for quotes that occur in the fixtures; two deliberately do not, because the scene `sidebar-states` needs a page-only and an unanchored card and a quote that occurs would be anchored on load. The fuzzy quote and the two absent ones were checked on all four same-text dumps with a literal reading of §6.7 step 4 (it reproduces the plan's own fuzzy example at 0.90). The similar pair lies on page 1, so `reader-highlights` shows two yellow highlights on one passage, a green one with the dashed border and a blue one.
+     The plan asks for quotes that occur in the fixtures; two deliberately do not, because the scene `sidebar-states` needs a page-only and an unanchored card and a quote that occurs would be anchored on load. The fuzzy quote and the two absent ones were checked on all four same-text dumps with a literal reading of §6.7 step 4 (it reproduces the plan's own fuzzy example at 0.90). The similar pair lies on page 1, so page 1 of `reader-highlights` will have two yellow highlights on one passage, a green one with the dashed border of a fuzzy anchor, and a blue one.
    - `Fixtures/raw` holds exactly what `referee-cli dump-raw` prints: sorted keys, pretty-printed, slashes not escaped, one final line break.
 6. **Raw extraction.** A line selection without a range on its page is skipped; CR, LF, U+2028 and U+2029 are trimmed from the end of a range; top-level outline items have depth 0. `load` reports a missing or unreadable file without naming it.
 7. **`referee-cli`.** `dump-raw <pdf>` only; exit 2 for anything else, 1 for a file that is not a PDF or is locked.
@@ -125,7 +125,7 @@ Things the plan left open, decided inside this step's files.
 
 ## Acceptance
 
-Run on Command Line Tools 26.6 (Swift 6.3.3) after deleting `.build` and `build`, once on the tree as it was about to be committed and once more on the last commit; the build time in the first line is that of the first run.
+Run on Command Line Tools 26.6 (Swift 6.3.3) after deleting `.build` and `build`, once on the tree as it was about to be committed and again on the last commit; the build time in the first line is that of the first run.
 
 | Command | Result | Final line |
 | --- | --- | --- |
