@@ -2,7 +2,7 @@ import Foundation
 
 // The variants, error bodies and model lists that plan.md Appendix D.1-D.4 names next to each recorded stream. Where
 // Appendix D says "the same with …", the variant is derived from the recorded body in `AppendixD`, so that it differs
-// in that one place only. Swift sources rather than data files, for the reason given in AppendixDStreams.swift.
+// in that one place only. Swift literals, as in LLMKitAppendixDStreams.swift.
 
 enum AppendixDVariants {
     // ---- D.1 Anthropic ----

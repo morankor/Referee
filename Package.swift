@@ -31,7 +31,7 @@ let package = Package(
         .testTarget(name: "CitationKitTests", dependencies: ["CitationKit", "RefereeCore", "TestSupport"]),
         .testTarget(name: "LLMKitTests", dependencies: ["LLMKit", "RefereeCore", "TestSupport"]),
         .testTarget(name: "CLIProvidersTests", dependencies: ["CLIProviders", "RefereeCore", "TestSupport"]),
-        .testTarget(name: "ReviewEngineTests", dependencies: ["ReviewEngine", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "ReviewEngineTests", dependencies: ["ReviewEngine", "RefereeCore", "TestSupport"], exclude: ["Fixtures"]),
         .testTarget(name: "ScholarKitTests", dependencies: ["ScholarKit", "RefereeCore", "TestSupport"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence", "RefereeCore", "TestSupport"]),
         .testTarget(name: "AppCoreTests", dependencies: ["AppCore", "RefereeCore", "TestSupport"]),

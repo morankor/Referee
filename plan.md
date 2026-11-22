@@ -227,7 +227,7 @@ let package = Package(
         .testTarget(name: "CitationKitTests", dependencies: ["CitationKit", "RefereeCore", "TestSupport"]),
         .testTarget(name: "LLMKitTests", dependencies: ["LLMKit", "RefereeCore", "TestSupport"]),
         .testTarget(name: "CLIProvidersTests", dependencies: ["CLIProviders", "RefereeCore", "TestSupport"]),
-        .testTarget(name: "ReviewEngineTests", dependencies: ["ReviewEngine", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "ReviewEngineTests", dependencies: ["ReviewEngine", "RefereeCore", "TestSupport"], exclude: ["Fixtures"]),
         .testTarget(name: "ScholarKitTests", dependencies: ["ScholarKit", "RefereeCore", "TestSupport"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence", "RefereeCore", "TestSupport"]),
         .testTarget(name: "AppCoreTests", dependencies: ["AppCore", "RefereeCore", "TestSupport"]),
@@ -238,7 +238,7 @@ let package = Package(
 )
 ```
 
-Manifest rules: no `resources:` anywhere (reason: `Bundle.module` does not resolve inside a hand-assembled `.app`; prompts and templates are Swift string literals, tests find fixtures by path, see §3.6); no `unsafeFlags`; no dependencies. A target imports only modules it declares: an undeclared transitive `import` happens to compile on this toolchain [V, reviewer] and must not be relied on. That is why every test target declares `RefereeCore` (no test can avoid naming the shared types), `RefereeUITests` declares `AppCore` and `PDFBridge`, and `IntegrationTests` declares every library (Appendix G.4). This manifest, with every declaration of §11.3 as a stub, builds from clean [V].
+Manifest rules: no `resources:` anywhere (reason: `Bundle.module` does not resolve inside a hand-assembled `.app`; prompts and templates are Swift string literals, tests find fixtures by path, see §3.6); no `unsafeFlags`; no dependencies; a test target that keeps data files in `Tests/<Target>Tests/Fixtures/` lists `exclude: ["Fixtures"]`, and only such a target (today `ReviewEngineTests`; rule in §3.7). A target imports only modules it declares: an undeclared transitive `import` happens to compile on this toolchain [V, reviewer] and must not be relied on. That is why every test target declares `RefereeCore` (no test can avoid naming the shared types), `RefereeUITests` declares `AppCore` and `PDFBridge`, and `IntegrationTests` declares every library (Appendix G.4). This manifest, with every declaration of §11.3 as a stub, builds from clean [V].
 
 ### 3.3 Repository layout
 
@@ -255,7 +255,7 @@ Referee/
     llm/          model outputs for parser tests and the mock provider
     private/      git-ignored; real PDFs: public papers fetched by scripts/fetch-optional-fixtures.sh, and any journal-system PDFs the user adds
   Sources/<Target>/…
-  Tests/<Target>Tests/…          (a test target may keep its own data under Tests/<Target>Tests/Fixtures/)
+  Tests/<Target>Tests/…          (a test target may keep its own data files under Tests/<Target>Tests/Fixtures/, excluded in the manifest: §3.7)
   build/          git-ignored output: Referee.app, snapshots, icon
 ```
 
@@ -447,8 +447,10 @@ What PDFKit actually returns for these files is part of the specification; the s
 - Every public struct in `RefereeCore` has the explicit public memberwise initialiser printed in Appendix A (parameters in declaration order, optionals default to `nil`, collections to empty).
 - No `print` in libraries; use `Log.event`. `referee-cli` and tests may print.
 - No file outside your owned paths may be edited (§11.2).
-- Dates are encoded ISO 8601; JSON written to disk uses `[.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]`.
+- Dates are encoded ISO 8601 in whole seconds (`JSONEncoder.DateEncodingStrategy.iso8601`); JSON written to disk uses `[.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]`. A value read back from a file therefore equals the saved one except that its dates are cut to the second; nothing compares a reloaded session with the unsaved one by `==` (tests compare after a round trip, or use whole-second dates).
 - UTF-16 offsets into `PDFPage.string` are the only text coordinates (`TextRange`); never store `String.Index` or grapheme offsets.
+- **`TextRange` needs one alias per module.** `import Foundation` also brings the Apple Events C struct `TextRange` (CoreServices), so outside `RefereeCore` the bare name is "ambiguous for type lookup" in a type annotation (an initialiser call such as `TextRange(location:length:)` still resolves). Every module that names the type, library or test target, has exactly one file with `typealias TextRange = RefereeCore.TextRange` (internal); a declaration in the module shadows both imports, and also an alias that `@testable import` brings in. The file is `TextRangeAlias.swift`, in `RefereeUI` and `RefereeUITests` `Common/CommonTextRangeAlias.swift` (Gate 1 wrote them all); a second alias in the same module is a redeclaration error, so Wave 2 adds none. A public declaration cannot use an internal alias: write `RefereeCore.TextRange` there. Qualified uses elsewhere may stay.
+- **Test data.** A test target keeps its data either as Swift string literals in ordinary source files, or as data files in `Tests/<Target>Tests/Fixtures/`, which the manifest then excludes (`exclude: ["Fixtures"]`, §3.2) and which holds no Swift file; tests find those files by path from `Fixtures.root`. A data file anywhere else in a target's folder, or in a target without that exclusion, makes SwiftPM warn "found N file(s) which are unhandled", which the acceptance of every package forbids. Hidden files and folders are not used to get round the warning. Today `ReviewEngineTests` has data files; `LLMKitTests`, `CLIProvidersTests` and `ScholarKitTests` keep theirs as literals. A Wave 2 test target uses literals, since the manifest is frozen for Wave 2.
 
 ---
 
@@ -1854,7 +1856,7 @@ All in `TestSupport`, declared in §11.3.
 
 - `MockLLMProvider` and the mock scripts (§5.9) for engines, the model, snapshots and the CLI; `StaticProvider` and `SnapshotSupport` for the snapshot mode.
 - `StubURLProtocol`: a handler maps a request to a status, headers and a body delivered in chunks with optional delays, so stream parsers see realistic chunk boundaries; `StubURLProtocol.session()` returns a `URLSession` wired to it.
-- Fake CLIs (`Tests/CLIProvidersTests/FakeCLI/claude`, `codex`, `agy`, `grok`): executable shell scripts selected through `REFEREE_CLI_PATH_<NAME>`. They answer `--version` and `--help` (printing the protected flags, or omitting one when `FAKE_HELP=missing-flag`), read stdin, and print canned stream lines (Appendix D). `FAKE_MODE` selects `ok`, `auth`, `quota`, `garbage`, `hang` (sleep 600), `slow` (one line per second), `tool` (a stream in which a tool appears), `tools-on` (an init line that does not show tools off), `echo-bytes` (print the stdin byte count) and `print-env` (print the environment and argument list, for the scrubbing and no-manuscript-in-arguments tests). The fake `grok` speaks enough JSON-RPC to answer the four requests of §5.6.4 in order.
+- Fake CLIs (`claude`, `codex`, `agy`, `grok`): shell scripts kept as Swift string literals in `Tests/CLIProvidersTests/FakeCLIScripts.swift` and installed once per test process into a temporary folder by `FakeCLIHarness` (a new executable is assessed by macOS on its first run, which took up to 8 s under load), selected through `REFEREE_CLI_PATH_<NAME>`; a test chooses a fake's behaviour through `$HOME/fake.env` in a home folder of its own, and the harness's host never searches the built-in candidate locations or the PATH, so a fake that fails can never let a real CLI run (WP5, Gate 1). They answer `--version` and `--help` (printing the protected flags, or omitting one when `FAKE_HELP=missing-flag`), read stdin, and print canned stream lines (Appendix D). `FAKE_MODE` selects `ok`, `auth`, `quota`, `garbage`, `hang` (sleep 600), `slow` (one line per second), `tool` (a stream in which a tool appears), `tools-on` (an init line that does not show tools off), `echo-bytes` (print the stdin byte count) and `print-env` (print the environment and argument list, for the scrubbing and no-manuscript-in-arguments tests). The fake `grok` speaks enough JSON-RPC to answer the four requests of §5.6.4 in order.
 - In-memory `SessionStoring`, `SettingsStoring`, `SecretStoring` (with `failReads`); `FakePaperService`, `FakeQuoteMatcher`, `FakeResolver`, `ScriptedReviewEngine` for `AppCore` and UI tests.
 - `Log.addTestSink` and `Log.removeTestSink` (Appendix A.8) let a test see every logged event. The tests of all targets run in parallel in one process, so several sinks can be active at once and a sink sees the events of every test running at that moment: a test filters by its own event names, or asserts only what must hold for every event, and removes only its own sink.
 
@@ -1936,7 +1938,7 @@ All in `TestSupport`, declared in §11.3.
 | WP11 | Wave 2 | Shell and settings | `Sources/RefereeUI/Shell/`, `Tests/RefereeUITests/Shell/`, `Fixtures/sessions/` (additions only) |
 | WP13 | Wave 3, alone, on `main` | Final integration | everything |
 
-Every step also owns `docs/contract-notes/<its id>-<name>.md`. Test data private to a target goes in `Tests/<Target>Tests/Fixtures/`. There is no WP12: its work is Gate 1.
+Every step also owns `docs/contract-notes/<its id>-<name>.md`. Test data private to a target is a Swift literal, or a data file in `Tests/<Target>Tests/Fixtures/`, which the manifest then excludes (§3.7). There is no WP12: its work is Gate 1.
 
 Wave 1 has nine agents, Wave 2 three.
 
@@ -4599,7 +4601,7 @@ Table 1 reports a BLEU score of 28.4 for the base model. \lipsum[7-8]
 
 ## Appendix D. Recorded streams and model-output fixtures
 
-Save each block as a file under the named test target's `Fixtures/` directory. Lines are shown exactly as received or as documented; `…` inside JSON means "other fields, ignore".
+Save each block under the named test target: as a data file in its `Fixtures/` folder (excluded in the manifest), or as a Swift string literal (§3.7; WP4 and WP5 chose literals, WP6 files). Lines are shown exactly as received or as documented; `…` inside JSON means "other fields, ignore".
 
 ### D.1 Anthropic Messages stream [D]
 
@@ -5089,3 +5091,12 @@ WP0b reported six contract problems (`docs/contract-notes/wp0b-testsupport.md`).
 | §11.3 did not say when `MockLLMProvider` records a request | "when `stream(_:)` is called" in the comment on `recordedRequests` | §11.3 |
 | `Tests/RefereeUITests/Common/` was neither frozen nor owned (Gate 0 question 1) | Frozen with the other Wave 0 paths; only Gate 1 and Wave 3 change it | §11.2 |
 | §2.1 left out two frameworks the snapshot runner imports (Gate 0 question 2) | CryptoKit and ImageIO added to the `RefereeUI` row | §2.1 |
+
+### G.6 Amendments at Gate 1
+
+Gate 1 merged the nine Wave 1 branches, read their notes (`docs/contract-notes/wp1-…` to `wp8b-…`) and applied the coordinator's decisions and its own (`docs/contract-notes/gate1.md`, which has the reasons). Every change below is in the code and in the sections named, in the same commit.
+
+| Problem | Decision | Where |
+|---|---|---|
+| WP1 1, WP8b 6: `TextRange` is ambiguous in type position outside `RefereeCore` (Apple Events' C struct of the same name comes with Foundation) | One internal `typealias TextRange = RefereeCore.TextRange` per module that uses the type, in `TextRangeAlias.swift` (`CommonTextRangeAlias.swift` in `RefereeUI` and `RefereeUITests`), written by Gate 1 for every such module and for `RefereeUI`; Wave 2 adds none | §3.7 |
+| WP4 1, WP5 1, WP6 1: data files in a test target make SwiftPM warn, and the three packages each got round it differently | One rule: Swift literals, or data files in `Tests/<Target>Tests/Fixtures/` with `exclude: ["Fixtures"]` for that target and no Swift file in the folder. `ReviewEngineTests` is excluded and its four files left the hidden `.llm` folder; LLMKit's two literal files left its `Fixtures/` folder; the fake CLIs stay literals | §3.2, §3.3, §3.7, §10.3, §11.2, Appendix D |

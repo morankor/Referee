@@ -37,8 +37,7 @@ extension QuoteIndex {
         return (firstLine ? touched.first : touched.last)?.marginNumber
     }
 
-    /// (`RefereeCore.` because Foundation on macOS 26 has a `TextRange` of its own.)
-    private static func meets(_ span: RefereeCore.TextRange, _ line: RefereeCore.TextRange) -> Bool {
+    private static func meets(_ span: TextRange, _ line: TextRange) -> Bool {
         if span.length <= 0 { return span.location >= line.location && span.location <= line.upperBound }
         return max(span.location, line.location) < min(span.upperBound, line.upperBound)
     }

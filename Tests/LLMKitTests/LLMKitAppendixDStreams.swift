@@ -1,8 +1,8 @@
 // The five recorded stream bodies of plan.md Appendix D.1-D.4, byte for byte, as Swift raw strings.
 //
-// They are Swift sources and not data files because SwiftPM warns about every file in a target folder that the
-// manifest neither declares as a resource nor excludes, and the manifest is frozen (see docs/contract-notes/wp4-llmkit.md).
-// Each literal ends with the body's final line break: the empty line before the closing delimiter.
+// Test data is either a Swift literal like these or a data file in the target's excluded `Fixtures/` folder (plan.md
+// section 3.7); WP4 chose literals. Each literal ends with the body's final line break: the empty line before the
+// closing delimiter.
 
 enum AppendixD {
     /// D.1 Anthropic Messages stream.
