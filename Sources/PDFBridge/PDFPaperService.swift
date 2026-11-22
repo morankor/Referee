@@ -68,16 +68,16 @@ public actor PDFPaperService: PaperService {
     /// is not loaded, on a page it does not have, or outside every line give nothing; so does a part that holds only
     /// blank characters.
     public func rects(for spans: [TextSpan], in document: DocumentRef) async -> [PageRect] {
-        guard let open = documents[document.sha256] else {
+        guard let entry = documents[document.sha256] else {
             Log.event("pdf.rects.notLoaded", ["spans": .int(spans.count)])
             return []
         }
         var rects: [PageRect] = []
         for span in spans {
-            guard let page = Self.page(span.pageIndex, of: open.document), let string = open.strings[span.pageIndex],
-                  let position = open.pagePositions[span.pageIndex],
+            guard let page = Self.page(span.pageIndex, of: entry.document), let string = entry.strings[span.pageIndex],
+                  let position = entry.pagePositions[span.pageIndex],
                   let wanted = PageGeometry.clamped(span.range.nsRange, toLength: string.length) else { continue }
-            for line in open.text.pages[position].lines {
+            for line in entry.text.pages[position].lines {
                 guard let content = PageGeometry.clamped(line.contentRange.nsRange, toLength: string.length) else { continue }
                 let piece = NSIntersectionRange(wanted, content)
                 guard piece.length > 0, let box = PageGeometry.bounds(of: piece, on: page, in: string),
@@ -90,9 +90,9 @@ public actor PDFPaperService: PaperService {
 
     /// Releases one load of the document; the extraction document and its text go when every load has been released.
     public func unload(_ document: DocumentRef) async {
-        guard var open = documents[document.sha256] else { return }
-        open.loads -= 1
-        documents[document.sha256] = open.loads > 0 ? open : nil
+        guard var entry = documents[document.sha256] else { return }
+        entry.loads -= 1
+        documents[document.sha256] = entry.loads > 0 ? entry : nil
     }
 
     // MARK: - Loading
@@ -137,7 +137,7 @@ public actor PDFPaperService: PaperService {
     }
 
     /// Plan section 7.2: the data is a PDF only if `%PDF-` starts at one of its first 1,024 bytes.
-    static func startsAsAPDF(_ data: Data) -> Bool {
+    private static func startsAsAPDF(_ data: Data) -> Bool {
         let marker = Data("%PDF-".utf8)
         guard let found = data.prefix(1_024 + marker.count - 1).range(of: marker) else { return false }
         return found.lowerBound - data.startIndex < 1_024

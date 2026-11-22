@@ -149,6 +149,37 @@ import TestSupport
         #expect(try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date == modified)
     }
 
+    // MARK: - Nothing about the manuscript is logged (section 12.2)
+
+    @Test func theLogNamesNeitherTheFileNorItsText() async throws {
+        let events = LoggedEvents()
+        let sink = Log.addTestSink { name, fields in events.append(name, fields) }
+        defer { Log.removeTestSink(sink) }
+
+        let folder = try TemporaryFolder()
+        defer { folder.remove() }
+        let url = folder.url.appendingPathComponent("confidential-manuscript-4711.pdf")
+        try Data(contentsOf: Fixtures.url("pdf/ay_nolinks.pdf")).write(to: url)
+        let service = PDFPaperService(builder: TrailingDigitsBuilder())
+        let paper = try await service.load(url: url)
+        _ = await service.rects(for: contentSpans(of: paper.text), in: paper.ref)
+        await service.unload(paper.ref)
+        _ = await service.rects(for: contentSpans(of: paper.text), in: paper.ref)            // no longer loaded
+        _ = try? await service.load(url: folder.url.appendingPathComponent("missing-manuscript-4711.pdf"))
+        _ = try? await service.load(data: Data("not a manuscript".utf8), fileName: "renamed-manuscript-4711.pdf")
+
+        // The sink also sees the events of every other test running now; this holds for all of them.
+        let ours = events.all.filter { $0.name.hasPrefix("pdf.") }
+        #expect(ours.contains { $0.name == "pdf.load.done" } && ours.contains { $0.name == "pdf.load.failed" })
+        #expect(ours.contains { $0.name == "pdf.rects.notLoaded" })
+        for event in ours {
+            for value in event.fields.values {
+                guard case .id(let id) = value else { continue }
+                #expect(!id.contains("4711") && !id.contains("manuscript") && !id.contains("Herding"), "\(event.name): \(id)")
+            }
+        }
+    }
+
     // MARK: - Off the main thread
 
     @Test func loadAndRectsCompleteFromDetachedTasks() async throws {

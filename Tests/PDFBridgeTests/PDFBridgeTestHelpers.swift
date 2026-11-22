@@ -68,6 +68,21 @@ func shasum256(of url: URL) throws -> String {
     return try #require(process.terminationStatus == 0 ? hash : nil, "shasum failed")
 }
 
+/// What a log sink received, kept behind a lock because sinks are called from every thread that logs.
+final class LoggedEvents: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [(name: String, fields: [String: LogValue])] = []
+
+    func append(_ name: String, _ fields: [String: LogValue]) {
+        lock.lock(); events.append((name, fields)); lock.unlock()
+    }
+
+    var all: [(name: String, fields: [String: LogValue])] {
+        lock.lock(); defer { lock.unlock() }
+        return events
+    }
+}
+
 /// A folder of its own in the temporary directory, for the files a test writes. Fixtures are never written.
 struct TemporaryFolder {
     let url: URL
