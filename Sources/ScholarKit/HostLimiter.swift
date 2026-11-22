@@ -82,6 +82,12 @@ actor HostLimiter {
         gates[host, default: Gate()].nextStart = max(current, until)
     }
 
+    /// Slots held and tasks waiting for one (for tests, which wait on this instead of on time).
+    func occupancy(_ host: ServiceHost) -> (inFlight: Int, waiting: Int) {
+        let gate = gates[host, default: Gate()]
+        return (gate.inFlight, gate.waiters.count)
+    }
+
     // ---- slots ----
 
     private func takeSlot(_ host: ServiceHost) async throws {
