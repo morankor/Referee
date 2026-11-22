@@ -10,7 +10,7 @@ import TestSupport
 // read. They live here, in the test target, and nowhere else.
 
 /// A clock the test moves by hand. A wait ends when the clock reaches its deadline, or with `CancellationError`.
-final class ManualClock: ModelClock, @unchecked Sendable {
+final class ManualModelClock: ModelClock, @unchecked Sendable {
     private let lock = NSLock()
     private var current: Date
     private var waiters: [UUID: (deadline: Date, continuation: CheckedContinuation<Void, Error>)] = [:]
@@ -54,7 +54,7 @@ final class ManualClock: ModelClock, @unchecked Sendable {
 }
 
 /// A provider with a scripted status, model list and answer, which counts its `listModels()` calls.
-final class CountingProvider: LLMProvider, @unchecked Sendable {
+final class CountingModelProvider: LLMProvider, @unchecked Sendable {
     let descriptor: ProviderDescriptor
     private let lock = NSLock()
     private var listCalls = 0
@@ -102,7 +102,7 @@ final class CountingProvider: LLMProvider, @unchecked Sendable {
 }
 
 /// A paper service whose `load` always fails with the given error.
-struct FailingPaperService: PaperService {
+struct FailingModelPaperService: PaperService {
     let error: PaperError
     func load(url: URL) async throws -> LoadedPaper { throw error }
     func load(data: Data, fileName: String) async throws -> LoadedPaper { throw error }
@@ -111,7 +111,7 @@ struct FailingPaperService: PaperService {
 }
 
 /// A session store that cannot read the stored session and counts what it is asked to write.
-final class UnreadableSessionStore: SessionStoring, @unchecked Sendable {
+final class UnreadableModelSessionStore: SessionStoring, @unchecked Sendable {
     private let error: StoreError
     private let lock = NSLock()
     private var saved = 0
@@ -124,12 +124,12 @@ final class UnreadableSessionStore: SessionStoring, @unchecked Sendable {
 }
 
 /// Everything one review-model test works with.
-@MainActor struct Harness {
+@MainActor struct ModelHarness {
     let model: ReviewSessionModel
     let engine: ScriptedReviewEngine
     let store: InMemorySessionStore
     let resolver: FakeResolver
-    let clock: ManualClock
+    let clock: ManualModelClock
     let paper: LoadedPaper
     let url: URL
 
@@ -158,7 +158,7 @@ final class UnreadableSessionStore: SessionStoring, @unchecked Sendable {
     }
 }
 
-enum Sample {
+enum ModelSample {
     static let localPlan = SendPlan(sendsPDF: false, requestCount: 1, estimatedInputTokens: 12_000, destination: "this Mac", isLocal: true)
     static let remotePlan = SendPlan(sendsPDF: false, requestCount: 1, estimatedInputTokens: 12_000, destination: "mock.example.org",
                                      isLocal: false)
@@ -210,11 +210,12 @@ enum Sample {
 
 /// A model on fakes. `seed` is put in the session store before the model exists, as a session saved earlier.
 /// `wrap` puts something in front of the scripted engine (the report tests make lint depend on the text).
-@MainActor func makeHarness(paper: LoadedPaper? = nil, settings: AppSettings = Sample.settings(), providers: [any LLMProvider] = Sample.providers(),
-                            engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: Sample.localPlan),
-                            wrap: ((ScriptedReviewEngine) -> any ReviewEngineProtocol)? = nil, index: CitationIndex? = nil,
-                            seed: ReviewSession? = nil, sessions: (any SessionStoring)? = nil, paperService: (any PaperService)? = nil,
-                            clock: ManualClock = ManualClock()) async throws -> Harness {
+@MainActor func makeModelHarness(paper: LoadedPaper? = nil, settings: AppSettings = ModelSample.settings(),
+                                 providers: [any LLMProvider] = ModelSample.providers(),
+                                 engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: ModelSample.localPlan),
+                                 wrap: ((ScriptedReviewEngine) -> any ReviewEngineProtocol)? = nil, index: CitationIndex? = nil,
+                                 seed: ReviewSession? = nil, sessions: (any SessionStoring)? = nil, paperService: (any PaperService)? = nil,
+                                 clock: ManualModelClock = ManualModelClock()) async throws -> ModelHarness {
     let paper = try paper ?? makeSamplePaper()
     let store = InMemorySessionStore()
     if let seed { try await store.save(seed) }
@@ -225,13 +226,13 @@ enum Sample {
                                        secrets: InMemorySecretStore())
     let model = ReviewSessionModel(dependencies: dependencies, settings: settings, clock: clock)
     // The fake paper service never reads the file; the URL only names where the model believes the PDF is.
-    return Harness(model: model, engine: engine, store: store, resolver: resolver, clock: clock, paper: paper,
-                   url: FileManager.default.temporaryDirectory.appendingPathComponent(paper.ref.fileName))
+    return ModelHarness(model: model, engine: engine, store: store, resolver: resolver, clock: clock, paper: paper,
+                        url: FileManager.default.temporaryDirectory.appendingPathComponent(paper.ref.fileName))
 }
 
 /// Lets the main actor run until the condition holds, for ten seconds at most. Returns whether it held.
 @MainActor @discardableResult
-func waitUntil(_ condition: () -> Bool) async -> Bool {
+func waitForModel(_ condition: () -> Bool) async -> Bool {
     let clock = ContinuousClock()
     let deadline = clock.now + .seconds(10)
     while !condition() {

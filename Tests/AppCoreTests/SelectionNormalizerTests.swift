@@ -103,7 +103,7 @@ import TestSupport
     // ---- through the model ----
 
     @Test @MainActor func theModelPublishesTheNormalisedSelectionAtOnceThenItsRectangles() async throws {
-        let harness = try await makeHarness(paper: Self.paper)
+        let harness = try await makeModelHarness(paper: Self.paper)
         await harness.open()
         harness.model.readerSelectionChanged(Self.twoLineRawSelection)
         let published = try #require(harness.model.selection)

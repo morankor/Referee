@@ -31,7 +31,7 @@ final class SettingsNotificationCounter: @unchecked Sendable {
         let model: SettingsModel
         let store: InMemorySettingsStore
         let secrets: InMemorySecretStore
-        let clock: ManualClock
+        let clock: ManualModelClock
     }
 
     @MainActor static func make(settings: AppSettings = DefaultSettings.make(), providers: [any LLMProvider] = [],
@@ -40,10 +40,10 @@ final class SettingsNotificationCounter: @unchecked Sendable {
         let paper = LoadedPaper(ref: DocumentRef(sha256: String(repeating: "0", count: 64), fileName: "none.pdf", byteCount: 0, pageCount: 0),
                                 data: Data(), isEncrypted: false, text: PaperText(hasTextLayer: false, hasMarginLineNumbers: false))
         let dependencies = AppDependencies(paperService: FakePaperService(paper: paper), matcherFactory: { FakeQuoteMatcher(paper: $0) },
-                                           citationIndexer: FakeCitationIndexer(), engine: ScriptedReviewEngine(plan: Sample.localPlan),
+                                           citationIndexer: FakeCitationIndexer(), engine: ScriptedReviewEngine(plan: ModelSample.localPlan),
                                            resolver: FakeResolver(), sessions: InMemorySessionStore(), settings: store,
                                            providers: ProviderRegistry(providers), secrets: secrets)
-        let clock = ManualClock()
+        let clock = ManualModelClock()
         return Parts(model: SettingsModel(dependencies: dependencies, settings: settings, clock: clock), store: store, secrets: secrets, clock: clock)
     }
 
@@ -111,8 +111,8 @@ final class SettingsNotificationCounter: @unchecked Sendable {
     }
 
     @Test @MainActor func refreshAvailabilityAsksEveryProviderAndReadsWhichKeysAreStored() async throws {
-        let api = CountingProvider(id: "anthropic-api", isLocal: false, authMode: .apiKey, status: .ready(detail: "Key set"))
-        let local = CountingProvider(id: "ollama", status: .unavailable(reason: "Ollama is not running"))
+        let api = CountingModelProvider(id: "anthropic-api", isLocal: false, authMode: .apiKey, status: .ready(detail: "Key set"))
+        let local = CountingModelProvider(id: "ollama", status: .unavailable(reason: "Ollama is not running"))
         let parts = try Self.make(providers: [api, local], secrets: InMemorySecretStore(["anthropic-api": "stored"]))
         await parts.model.refreshAvailability(of: nil)
         #expect(parts.model.availability["anthropic-api"] == .ready(detail: "Key set"))
@@ -128,9 +128,9 @@ final class SettingsNotificationCounter: @unchecked Sendable {
 
     @Test @MainActor func refreshModelsFillsTheListAndTheCacheOrTheError() async throws {
         let models = [ModelInfo(id: "first", displayName: "First", contextWindow: 200_000), ModelInfo(id: "second", displayName: "Second")]
-        let good = CountingProvider(id: "anthropic-api", isLocal: false, authMode: .apiKey, models: models)
-        let bad = CountingProvider(id: "openai-api", isLocal: false, authMode: .apiKey, listFailure: .auth("invalid key"))
-        let cli = CountingProvider(id: "codex-cli", isLocal: false, authMode: .subscriptionCLI, models: models)
+        let good = CountingModelProvider(id: "anthropic-api", isLocal: false, authMode: .apiKey, models: models)
+        let bad = CountingModelProvider(id: "openai-api", isLocal: false, authMode: .apiKey, listFailure: .auth("invalid key"))
+        let cli = CountingModelProvider(id: "codex-cli", isLocal: false, authMode: .subscriptionCLI, models: models)
         let parts = try Self.make(providers: [good, bad, cli])
         let model = parts.model
         let counter = SettingsNotificationCounter(for: model)
@@ -171,7 +171,7 @@ final class SettingsNotificationCounter: @unchecked Sendable {
 
     @Test @MainActor func aSuccessfulTestPromptStoresVerifiedAt() async throws {
         let mock = MockLLMProvider(id: "mock")                           // answers a .ping with "OK"
-        let failing = CountingProvider(id: "grok-cli", isLocal: false, authMode: .subscriptionCLI, streamFailure: .cliExited(code: 1, stderrTail: "no"))
+        let failing = CountingModelProvider(id: "grok-cli", isLocal: false, authMode: .subscriptionCLI, streamFailure: .cliExited(code: 1, stderrTail: "no"))
         let parts = try Self.make(providers: [mock, failing])
         let model = parts.model
         let result = await model.sendTestPrompt(to: "mock")
@@ -190,7 +190,7 @@ final class SettingsNotificationCounter: @unchecked Sendable {
     }
 
     @Test @MainActor func localOnlyKeepsRemoteProvidersQuiet() async throws {
-        let remote = CountingProvider(id: "anthropic-api", isLocal: false, authMode: .apiKey, models: [ModelInfo(id: "m", displayName: "m")])
+        let remote = CountingModelProvider(id: "anthropic-api", isLocal: false, authMode: .apiKey, models: [ModelInfo(id: "m", displayName: "m")])
         let parts = try Self.make(settings: { var s = DefaultSettings.make(); s.privacy.localOnly = true; return s }(), providers: [remote])
         await parts.model.refreshModels(of: "anthropic-api")
         #expect(remote.listModelsCalls == 0)

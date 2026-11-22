@@ -6,21 +6,21 @@ import TestSupport
 
 /// Acceptance row "consent" (plan.md section 11.4, WP8b; section 9.7), and the banners of a job that has no provider.
 @Suite struct ReviewSessionModelConsentTests {
-    static let review: [ReviewEvent] = [.started(Sample.run(.review, .running, provider: "mock-remote")),
-                                        .finished(Sample.run(.review, .completed, provider: "mock-remote"))]
+    static let review: [ReviewEvent] = [.started(ModelSample.run(.review, .running, provider: "mock-remote")),
+                                        .finished(ModelSample.run(.review, .completed, provider: "mock-remote"))]
 
     /// "mock-remote" (not local) is the review default; the engine's plan is the remote one.
-    @MainActor static func remoteHarness(_ change: (inout AppSettings) -> Void = { _ in }, seed comments: [ReviewComment] = []) async throws -> Harness {
-        let settings = Sample.settings { settings in
+    @MainActor static func remoteHarness(_ change: (inout AppSettings) -> Void = { _ in }, seed comments: [ReviewComment] = []) async throws -> ModelHarness {
+        let settings = ModelSample.settings { settings in
             settings.defaults.review = ProviderRef(providerID: "mock-remote", model: nil)
             change(&settings)
         }
-        let reply = ThreadMessage(id: UUID(), role: .assistant, text: "Fine.", createdAt: Sample.start)
-        let engine = ScriptedReviewEngine(plan: Sample.remotePlan, review: review,
-                                          reply: [.finished(reply: reply, proposal: nil, run: Sample.run(.discussion, .completed, provider: "mock-remote"))])
+        let reply = ThreadMessage(id: UUID(), role: .assistant, text: "Fine.", createdAt: ModelSample.start)
+        let engine = ScriptedReviewEngine(plan: ModelSample.remotePlan, review: review,
+                                          reply: [.finished(reply: reply, proposal: nil, run: ModelSample.run(.discussion, .completed, provider: "mock-remote"))])
         let paper = try makeSamplePaper()
-        let harness = try await makeHarness(paper: paper, settings: settings, engine: engine,
-                                            seed: comments.isEmpty ? nil : Sample.session(for: paper, comments: comments))
+        let harness = try await makeModelHarness(paper: paper, settings: settings, engine: engine,
+                                                 seed: comments.isEmpty ? nil : ModelSample.session(for: paper, comments: comments))
         await harness.open()
         return harness
     }
@@ -33,7 +33,7 @@ import TestSupport
         #expect(request.provider.id == "mock-remote")
         #expect(request.provider.isLocal == false)
         #expect(request.model == "mock")
-        #expect(request.plan == Sample.remotePlan)
+        #expect(request.plan == ModelSample.remotePlan)
         #expect(harness.calls(of: "review") == 0)
         #expect(harness.model.runState == .idle)
         #expect(harness.model.session == before)
@@ -41,7 +41,7 @@ import TestSupport
     }
 
     @Test @MainActor func yesRecordsConsentStartsTheJobAndTheNextJobDoesNotAsk() async throws {
-        let comment = Sample.comment("Discussed", page: nil)
+        let comment = ModelSample.comment("Discussed", page: nil)
         let harness = try await Self.remoteHarness(seed: [comment])
         harness.model.startReview()
         #expect(harness.model.consentRequest != nil)
@@ -89,8 +89,8 @@ import TestSupport
     }
 
     @Test @MainActor func aLocalProviderNeverAsks() async throws {
-        let review: [ReviewEvent] = [.started(Sample.run(.review, .running)), .finished(Sample.run(.review, .completed))]
-        let harness = try await makeHarness(engine: ScriptedReviewEngine(plan: Sample.localPlan, review: review))
+        let review: [ReviewEvent] = [.started(ModelSample.run(.review, .running)), .finished(ModelSample.run(.review, .completed))]
+        let harness = try await makeModelHarness(engine: ScriptedReviewEngine(plan: ModelSample.localPlan, review: review))
         await harness.open()
         #expect(harness.model.activeProvider?.isLocal == true)
         harness.model.startReview()
@@ -125,20 +125,20 @@ import TestSupport
     }
 
     @Test @MainActor func aJobWithoutAnEnabledProviderAsksForSetUp() async throws {
-        let harness = try await makeHarness(settings: Sample.settings { $0.defaults.review = nil })
+        let harness = try await makeModelHarness(settings: ModelSample.settings { $0.defaults.review = nil })
         await harness.open()
         harness.model.startReview()
         #expect(harness.model.banner?.message == "Set up an AI provider")
         #expect(harness.model.banner?.action == .openSettings)
         #expect(harness.calls(of: "review") == 0)
 
-        let disabled = try await makeHarness(settings: Sample.settings { $0.providers["mock"]?.enabled = false })
+        let disabled = try await makeModelHarness(settings: ModelSample.settings { $0.providers["mock"]?.enabled = false })
         await disabled.open()
         disabled.model.startReview()
         #expect(disabled.model.banner?.message == "Set up an AI provider")
 
         // A provider the settings know but the registry does not is not usable either.
-        let unknown = try await makeHarness(settings: Sample.settings { $0.defaults.review = ProviderRef(providerID: "mock-fail", model: nil) })
+        let unknown = try await makeModelHarness(settings: ModelSample.settings { $0.defaults.review = ProviderRef(providerID: "mock-fail", model: nil) })
         await unknown.open()
         #expect(unknown.model.activeProvider == nil)
         unknown.model.startReview()
@@ -146,14 +146,14 @@ import TestSupport
     }
 
     @Test @MainActor func aChatJobAsksForItsOwnProviderWithThatProvidersPlan() async throws {
-        let comment = Sample.comment("Discussed", page: nil)
+        let comment = ModelSample.comment("Discussed", page: nil)
         let harness = try await Self.remoteHarness({ settings in
             settings.defaults.review = ProviderRef(providerID: "mock", model: nil)            // the review stays on this Mac
             settings.defaults.chat = ProviderRef(providerID: "mock-remote", model: nil)
         }, seed: [comment])
         let plans = harness.calls(of: "plan")
         harness.model.sendDiscussionMessage("Is this fair?", commentID: comment.id)
-        #expect(await waitUntil { harness.model.consentRequest != nil })   // after a plan for that provider
+        #expect(await waitForModel { harness.model.consentRequest != nil })   // after a plan for that provider
         #expect(harness.model.consentRequest?.provider.id == "mock-remote")
         #expect(harness.calls(of: "plan") == plans + 1)
         #expect(harness.lastContext(of: "plan")?.provider.providerID == "mock-remote")

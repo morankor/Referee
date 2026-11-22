@@ -49,24 +49,24 @@ final class TextLintEngine: ReviewEngineProtocol, @unchecked Sendable {
 /// Acceptance row "report" (plan.md section 11.4, WP8b; sections 6.10 and 9.8).
 @Suite struct ReviewSessionModelReportTests {
     static let firstReport = "## Summary assessment\n\nThe paper overstates its result \u{2014} the interval includes one.\n\n## Recommendation\n\nMajor revision.\n"
-    static let draft = ReportDraft(markdown: firstReport, recommendation: .majorRevision, generatedAt: Sample.start,
+    static let draft = ReportDraft(markdown: firstReport, recommendation: .majorRevision, generatedAt: ModelSample.start,
                                    provider: ProviderRef(providerID: "mock", model: "mock"), userEdited: false)
 
     static func events(_ draft: ReportDraft, _ status: RunStatus = .completed) -> [ReportEvent] {
-        [.started(Sample.run(.report, .running)), .textDelta("## Summary assessment\n"), .textDelta("…"), .finished(draft, run: Sample.run(.report, status))]
+        [.started(ModelSample.run(.report, .running)), .textDelta("## Summary assessment\n"), .textDelta("…"), .finished(draft, run: ModelSample.run(.report, status))]
     }
 
-    @MainActor static func harness(comments: [ReviewComment] = [Sample.comment("Approved", page: nil, status: .approved)],
-                                   report: [ReportEvent] = events(draft), existing: ReportDraft? = nil) async throws -> (Harness, TextLintEngine) {
+    @MainActor static func harness(comments: [ReviewComment] = [ModelSample.comment("Approved", page: nil, status: .approved)],
+                                   report: [ReportEvent] = events(draft), existing: ReportDraft? = nil) async throws -> (ModelHarness, TextLintEngine) {
         let paper = try makeSamplePaper()
         var lintEngine: TextLintEngine?
-        let harness = try await makeHarness(paper: paper, engine: ScriptedReviewEngine(plan: Sample.localPlan, report: report),
-                                            wrap: { scripted in
-                                                let wrapped = TextLintEngine(scripted)
-                                                lintEngine = wrapped
-                                                return wrapped
-                                            },
-                                            seed: Sample.session(for: paper, comments: comments, report: existing))
+        let harness = try await makeModelHarness(paper: paper, engine: ScriptedReviewEngine(plan: ModelSample.localPlan, report: report),
+                                                 wrap: { scripted in
+                                                     let wrapped = TextLintEngine(scripted)
+                                                     lintEngine = wrapped
+                                                     return wrapped
+                                                 },
+                                                 seed: ModelSample.session(for: paper, comments: comments, report: existing))
         await harness.open()
         return (harness, try #require(lintEngine))
     }
@@ -92,8 +92,8 @@ final class TextLintEngine: ReviewEngineProtocol, @unchecked Sendable {
     }
 
     @Test @MainActor func withoutAnApprovedCommentTheReportDoesNotRun() async throws {
-        let (harness, _) = try await Self.harness(comments: [Sample.comment("Pending", page: nil),
-                                                             Sample.comment("Approved but left out", page: nil, status: .approved, includeInReport: false)])
+        let (harness, _) = try await Self.harness(comments: [ModelSample.comment("Pending", page: nil),
+                                                             ModelSample.comment("Approved but left out", page: nil, status: .approved, includeInReport: false)])
         harness.model.generateReport()
         await harness.finishJobs()
         #expect(harness.calls(of: "report") == 0)
@@ -169,7 +169,7 @@ final class TextLintEngine: ReviewEngineProtocol, @unchecked Sendable {
 
     @Test @MainActor func aVoiceRevisionReplacesTheTextAndKeepsTheOldOne() async throws {
         let revised = ReportDraft(markdown: "## Summary assessment\n\nThe interval includes one.\n", userEdited: false)
-        let existing = ReportDraft(markdown: Self.firstReport, recommendation: .majorRevision, generatedAt: Sample.start,
+        let existing = ReportDraft(markdown: Self.firstReport, recommendation: .majorRevision, generatedAt: ModelSample.start,
                                    basedOnCommentIDs: [UUID()], userEdited: true)
         let (harness, _) = try await Self.harness(report: Self.events(revised), existing: existing)
         let model = harness.model

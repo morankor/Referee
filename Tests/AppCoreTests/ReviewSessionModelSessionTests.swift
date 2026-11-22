@@ -25,7 +25,7 @@ import TestSupport
     // ---- citations ----
 
     @Test @MainActor func lookingUpAMentionResolvesEveryCandidate() async throws {
-        let harness = try await makeHarness(index: Self.index)
+        let harness = try await makeModelHarness(index: Self.index)
         await harness.open()
         let model = harness.model
         model.lookUpCitation(mentionID: 0)
@@ -43,7 +43,7 @@ import TestSupport
     }
 
     @Test @MainActor func lookingUpAnEntryResolvesThatEntry() async throws {
-        let harness = try await makeHarness(index: Self.index)
+        let harness = try await makeModelHarness(index: Self.index)
         await harness.open()
         harness.model.lookUpEntry(entryID: 2)
         #expect(harness.model.citationLookup == .resolving(target: .entry(2)))
@@ -53,7 +53,7 @@ import TestSupport
     }
 
     @Test @MainActor func aClickInThePDFLooksTheMentionUp() async throws {
-        let harness = try await makeHarness(index: Self.index)
+        let harness = try await makeModelHarness(index: Self.index)
         await harness.open()
         harness.model.readerClickedCitation(mentionID: 1)                // a mention without candidates
         await harness.model.waitForBackgroundWork()
@@ -69,7 +69,7 @@ import TestSupport
     }
 
     @Test @MainActor func theReferencePDFComesFromTheResolver() async throws {
-        let harness = try await makeHarness(index: Self.index)
+        let harness = try await makeModelHarness(index: Self.index)
         await harness.open()
         let reference = await harness.resolver.resolve(Self.entries[2], documentSHA256: harness.paper.ref.sha256)
         let file = try await harness.model.fetchReferencePDF(reference)
@@ -80,7 +80,7 @@ import TestSupport
 
     @Test @MainActor func deletingReviewDataRemovesTheSessionAndTheLookupCache() async throws {
         let paper = try makeSamplePaper()
-        let harness = try await makeHarness(paper: paper, seed: Sample.session(for: paper, comments: [Sample.comment("Gone", page: nil)]))
+        let harness = try await makeModelHarness(paper: paper, seed: ModelSample.session(for: paper, comments: [ModelSample.comment("Gone", page: nil)]))
         await harness.open()
         harness.model.updateMeta(ManuscriptMeta(title: "Unsaved change", reviewerNotes: ""))   // pending: must not be written afterwards
         #expect(try await harness.store.loadSession(sha256: paper.ref.sha256) != nil)
@@ -98,12 +98,12 @@ import TestSupport
 
     @Test @MainActor func deletingCancelsARunningJob() async throws {
         let paper = try makeSamplePaper()
-        let review: [ReviewEvent] = [.started(Sample.run(.review, .running)), .comment(Sample.comment("Late", page: nil), replacesDraft: UUID()),
-                                     .finished(Sample.run(.review, .completed))]
-        let harness = try await makeHarness(paper: paper, engine: ScriptedReviewEngine(plan: Sample.localPlan, review: review, delayPerEvent: .seconds(1)))
+        let review: [ReviewEvent] = [.started(ModelSample.run(.review, .running)), .comment(ModelSample.comment("Late", page: nil), replacesDraft: UUID()),
+                                     .finished(ModelSample.run(.review, .completed))]
+        let harness = try await makeModelHarness(paper: paper, engine: ScriptedReviewEngine(plan: ModelSample.localPlan, review: review, delayPerEvent: .seconds(1)))
         await harness.open()
         harness.model.startReview()
-        #expect(await waitUntil { harness.calls(of: "review") == 1 })
+        #expect(await waitForModel { harness.calls(of: "review") == 1 })
         await harness.model.deleteReviewData()
         #expect(harness.model.runState == .idle)
         #expect(harness.model.reviewLaneTask == nil)
@@ -115,8 +115,8 @@ import TestSupport
 
     @Test @MainActor func severalChangesWithinTheDebounceGiveOneSave() async throws {
         let paper = try makeSamplePaper()
-        let comment = Sample.comment("Edited", page: nil)
-        let harness = try await makeHarness(paper: paper, seed: Sample.session(for: paper, comments: [comment]))
+        let comment = ModelSample.comment("Edited", page: nil)
+        let harness = try await makeModelHarness(paper: paper, seed: ModelSample.session(for: paper, comments: [comment]))
         await harness.open()
         await harness.model.flushPendingSave()                           // the new file path, written once
         let start = harness.store.saveCount
@@ -144,7 +144,7 @@ import TestSupport
     }
 
     @Test @MainActor func flushSavesAtOnce() async throws {
-        let harness = try await makeHarness()
+        let harness = try await makeModelHarness()
         await harness.open()
         await harness.model.flushPendingSave()
         let start = harness.store.saveCount
@@ -159,7 +159,7 @@ import TestSupport
     }
 
     @Test @MainActor func aChangeThatChangesNothingIsNotSaved() async throws {
-        let harness = try await makeHarness()
+        let harness = try await makeModelHarness()
         await harness.open()
         await harness.model.flushPendingSave()
         let start = harness.store.saveCount
@@ -175,10 +175,10 @@ import TestSupport
 
     @Test @MainActor func aQuestionAboutASelectionStartsAnAnchoredConversation() async throws {
         let paper = SyntheticPaper.lineNumbered
-        let answer = ThreadMessage(id: UUID(), role: .assistant, text: "The interval crosses one, so the effect is not robust.", createdAt: Sample.start)
-        let replies: [ReplyEvent] = [.started(Sample.run(.question, .running)), .textDelta("The interval"),
-                                     .finished(reply: answer, proposal: nil, run: Sample.run(.question, .completed))]
-        let harness = try await makeHarness(paper: paper, engine: ScriptedReviewEngine(plan: Sample.localPlan, reply: replies))
+        let answer = ThreadMessage(id: UUID(), role: .assistant, text: "The interval crosses one, so the effect is not robust.", createdAt: ModelSample.start)
+        let replies: [ReplyEvent] = [.started(ModelSample.run(.question, .running)), .textDelta("The interval"),
+                                     .finished(reply: answer, proposal: nil, run: ModelSample.run(.question, .completed))]
+        let harness = try await makeModelHarness(paper: paper, engine: ScriptedReviewEngine(plan: ModelSample.localPlan, reply: replies))
         await harness.open()
         let model = harness.model
         model.readerSelectionChanged(SelectionNormalizerTests.twoLineRawSelection)
@@ -222,14 +222,14 @@ import TestSupport
     }
 
     @Test @MainActor func aQuestionCanBeStoppedAndRetried() async throws {
-        let answer = ThreadMessage(id: UUID(), role: .assistant, text: "Slow answer.", createdAt: Sample.start)
-        let replies: [ReplyEvent] = [.started(Sample.run(.question, .running)), .textDelta("Slow"),
-                                     .finished(reply: answer, proposal: nil, run: Sample.run(.question, .completed))]
-        let harness = try await makeHarness(engine: ScriptedReviewEngine(plan: Sample.localPlan, reply: replies, delayPerEvent: .milliseconds(300)))
+        let answer = ThreadMessage(id: UUID(), role: .assistant, text: "Slow answer.", createdAt: ModelSample.start)
+        let replies: [ReplyEvent] = [.started(ModelSample.run(.question, .running)), .textDelta("Slow"),
+                                     .finished(reply: answer, proposal: nil, run: ModelSample.run(.question, .completed))]
+        let harness = try await makeModelHarness(engine: ScriptedReviewEngine(plan: ModelSample.localPlan, reply: replies, delayPerEvent: .milliseconds(300)))
         await harness.open()
         let model = harness.model
         model.ask("What is the main claim?", about: nil, in: nil)
-        #expect(await waitUntil { model.streamingReplyText == "Slow" })
+        #expect(await waitForModel { model.streamingReplyText == "Slow" })
         let conversation = try #require(model.session?.conversations.first)
         #expect(model.streamingTargetID == conversation.id)
         model.cancelReply()
@@ -241,7 +241,7 @@ import TestSupport
 
         // Deleting the conversation while its answer streams stops the answer.
         model.ask("Again?", about: nil, in: conversation.id)
-        #expect(await waitUntil { model.streamingTargetID == conversation.id })
+        #expect(await waitForModel { model.streamingTargetID == conversation.id })
         model.deleteConversation(conversation.id)
         await harness.finishJobs()
         #expect(model.session?.conversations.isEmpty == true)
@@ -250,7 +250,7 @@ import TestSupport
 
     @Test @MainActor func aConversationsPassageCanBeRevealed() async throws {
         let paper = SyntheticPaper.lineNumbered
-        let harness = try await makeHarness(paper: paper, engine: ScriptedReviewEngine(plan: Sample.localPlan))
+        let harness = try await makeModelHarness(paper: paper, engine: ScriptedReviewEngine(plan: ModelSample.localPlan))
         await harness.open()
         let model = harness.model
         model.readerSelectionChanged(SelectionNormalizerTests.twoLineRawSelection)
@@ -265,7 +265,7 @@ import TestSupport
     }
 
     @Test @MainActor func theReviewerNotesAndVenueAreKept() async throws {
-        let harness = try await makeHarness()
+        let harness = try await makeModelHarness()
         await harness.open()
         let meta = ManuscriptMeta(title: "Title", targetVenue: "Journal of Examples", manuscriptID: "JOE-2026-001", reviewerNotes: "Be brief.")
         harness.model.updateMeta(meta)

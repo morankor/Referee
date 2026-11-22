@@ -12,13 +12,13 @@ import TestSupport
     /// A comment on line `line` of page `page` of the two-page paper.
     static func on(_ title: String, page: Int, line: Int, offset: Int = 0, created: TimeInterval, kind: CommentKind = .minor,
                    status: CommentStatus = .pending) -> ReviewComment {
-        Sample.comment(title, page: page, range: SyntheticPaper.span(paper, page: page, line: line, offset: offset), kind: kind,
-                       status: status, created: created)
+        ModelSample.comment(title, page: page, range: SyntheticPaper.span(paper, page: page, line: line, offset: offset), kind: kind,
+                            status: status, created: created)
     }
 
-    @MainActor static func harness(_ comments: [ReviewComment], settings: AppSettings = Sample.settings(),
-                                   engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: Sample.localPlan)) async throws -> Harness {
-        let harness = try await makeHarness(paper: paper, settings: settings, engine: engine, seed: Sample.session(for: paper, comments: comments))
+    @MainActor static func harness(_ comments: [ReviewComment], settings: AppSettings = ModelSample.settings(),
+                                   engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: ModelSample.localPlan)) async throws -> ModelHarness {
+        let harness = try await makeModelHarness(paper: paper, settings: settings, engine: engine, seed: ModelSample.session(for: paper, comments: comments))
         await harness.open()
         return harness
     }
@@ -28,11 +28,11 @@ import TestSupport
     @Test @MainActor func visibleCommentsFollowTheOneOrderingRule() async throws {
         let secondPage = Self.on("Page 2, line 2", page: 1, line: 1, created: 1)
         let lineSix = Self.on("Page 1, line 6", page: 0, line: 5, created: 2)
-        let pageOnly = Sample.comment("Page 1, no passage", page: 0, quote: "A sentence that is not in the paper at all.", created: 3)
-        let unanchored = Sample.comment("No page", page: nil, quote: "Nor is this one, anywhere.", created: 0)
+        let pageOnly = ModelSample.comment("Page 1, no passage", page: 0, quote: "A sentence that is not in the paper at all.", created: 3)
+        let unanchored = ModelSample.comment("No page", page: nil, quote: "Nor is this one, anywhere.", created: 0)
         let lineThreeLater = Self.on("Page 1, line 3, written later", page: 0, line: 2, offset: 0, created: 5)
         let lineThreeEarlier = Self.on("Page 1, line 3, written earlier", page: 0, line: 2, offset: 30, created: 4)
-        let unanchoredLater = Sample.comment("No page either", page: nil, created: 6)
+        let unanchoredLater = ModelSample.comment("No page either", page: nil, created: 6)
         let harness = try await Self.harness([secondPage, lineSix, pageOnly, unanchored, lineThreeLater, lineThreeEarlier, unanchoredLater])
         #expect(harness.model.visibleComments.map(\.title) == [
             "Page 1, no passage",                // page only: first on its page
@@ -74,7 +74,7 @@ import TestSupport
         var second = Self.on("Second", page: 0, line: 1, created: 2)
         second.includeInReport = false
         let third = Self.on("Third", page: 0, line: 2, created: 3)
-        let harness = try await Self.harness([first, second, third], settings: Sample.settings { $0.ui.autoAdvanceAfterTriage = false })
+        let harness = try await Self.harness([first, second, third], settings: ModelSample.settings { $0.ui.autoAdvanceAfterTriage = false })
         let model = harness.model
         #expect(model.triage == (decided: 0, total: 3))
         model.setStatus(.approved, for: second.id)
@@ -166,8 +166,8 @@ import TestSupport
 
     @Test @MainActor func revealingUsesTheRectanglesOrThePage() async throws {
         let anchored = Self.on("Anchored", page: 1, line: 2, created: 1)
-        let pageOnly = Sample.comment("Page only", page: 1, quote: "Not a sentence of this paper.", created: 2)
-        let unanchored = Sample.comment("Nowhere", page: nil, created: 3)
+        let pageOnly = ModelSample.comment("Page only", page: 1, quote: "Not a sentence of this paper.", created: 2)
+        let unanchored = ModelSample.comment("Nowhere", page: nil, created: 3)
         let harness = try await Self.harness([anchored, pageOnly, unanchored])
         let model = harness.model
         model.selectedCommentID = anchored.id
@@ -188,11 +188,11 @@ import TestSupport
 
     @Test @MainActor func clickingAHighlightSelectsItsCard() async throws {
         let comment = Self.on("Clicked", page: 0, line: 0, created: 1)
-        let conversation = Conversation(id: UUID(), anchor: nil, createdAt: Sample.start)
+        let conversation = Conversation(id: UUID(), anchor: nil, createdAt: ModelSample.start)
         let paper = Self.paper
-        var seed = Sample.session(for: paper, comments: [comment])
+        var seed = ModelSample.session(for: paper, comments: [comment])
         seed.conversations = [conversation]
-        let harness = try await makeHarness(paper: paper, seed: seed)
+        let harness = try await makeModelHarness(paper: paper, seed: seed)
         await harness.open()
         harness.model.sidebarTab = .report
         harness.model.readerClickedComment(comment.id)
@@ -291,9 +291,9 @@ import TestSupport
     @Test @MainActor func aDiscussionReplyCanProposeARevision() async throws {
         let comment = Self.on("Discussed", page: 0, line: 0, created: 1)
         let proposal = CommentRevision(kind: .minor, title: "Revised", body: "Revised body.", withdraw: false)
-        let reply = ThreadMessage(id: UUID(), role: .assistant, text: "You are right.", createdAt: Sample.start)
-        let engine = ScriptedReviewEngine(plan: Sample.localPlan, reply: [.started(Sample.run(.discussion, .running)), .textDelta("You are right."),
-                                                                          .finished(reply: reply, proposal: proposal, run: Sample.run(.discussion, .completed))])
+        let reply = ThreadMessage(id: UUID(), role: .assistant, text: "You are right.", createdAt: ModelSample.start)
+        let engine = ScriptedReviewEngine(plan: ModelSample.localPlan, reply: [.started(ModelSample.run(.discussion, .running)), .textDelta("You are right."),
+                                                                               .finished(reply: reply, proposal: proposal, run: ModelSample.run(.discussion, .completed))])
         let harness = try await Self.harness([comment], engine: engine)
         harness.model.sendDiscussionMessage("  Is this too strong?  ", commentID: comment.id)
         await harness.finishJobs()
@@ -311,9 +311,9 @@ import TestSupport
 
     @Test @MainActor func aFailedReplyKeepsTheMessageAndRetrySendsItOnce() async throws {
         let comment = Self.on("Discussed", page: 0, line: 0, created: 1)
-        let reply = ThreadMessage(id: UUID(), role: .assistant, text: "", createdAt: Sample.start)
-        let engine = ScriptedReviewEngine(plan: Sample.localPlan, reply: [.started(Sample.run(.discussion, .running)),
-                                                                          .finished(reply: reply, proposal: nil, run: Sample.run(.discussion, .failed("Rate limited: slow down")))])
+        let reply = ThreadMessage(id: UUID(), role: .assistant, text: "", createdAt: ModelSample.start)
+        let engine = ScriptedReviewEngine(plan: ModelSample.localPlan, reply: [.started(ModelSample.run(.discussion, .running)),
+                                                                               .finished(reply: reply, proposal: nil, run: ModelSample.run(.discussion, .failed("Rate limited: slow down")))])
         let harness = try await Self.harness([comment], engine: engine)
         harness.model.sendDiscussionMessage("Why?", commentID: comment.id)
         await harness.finishJobs()
@@ -332,7 +332,7 @@ import TestSupport
 
     @Test @MainActor func anOwnCommentWithASelectionIsAnchoredToTheNormalisedText() async throws {
         let paper = SyntheticPaper.lineNumbered
-        let harness = try await makeHarness(paper: paper)
+        let harness = try await makeModelHarness(paper: paper)
         await harness.open()
         let model = harness.model
         model.readerSelectionChanged(SelectionNormalizerTests.twoLineRawSelection)
@@ -365,7 +365,7 @@ import TestSupport
     }
 
     @Test @MainActor func anOwnCommentWithoutASelectionHasNoPassage() async throws {
-        let harness = try await makeHarness(paper: SyntheticPaper.lineNumbered)
+        let harness = try await makeModelHarness(paper: SyntheticPaper.lineNumbered)
         await harness.open()
         harness.model.beginComposingComment()
         #expect(harness.model.composing == ComposingComment(selection: nil))
@@ -384,8 +384,8 @@ import TestSupport
 
     @Test @MainActor func reanchoringAttachesAnUnanchoredCommentToTheSelection() async throws {
         let paper = SyntheticPaper.lineNumbered
-        let lost = Sample.comment("Passage not found", page: nil, quote: "Something the model invented.")
-        let harness = try await makeHarness(paper: paper, seed: Sample.session(for: paper, comments: [lost]))
+        let lost = ModelSample.comment("Passage not found", page: nil, quote: "Something the model invented.")
+        let harness = try await makeModelHarness(paper: paper, seed: ModelSample.session(for: paper, comments: [lost]))
         await harness.open()
         #expect(harness.model.session?.comments.first?.anchor.confidence == AnchorConfidence.none)
         harness.model.reanchorComment(lost.id, to: SelectionNormalizerTests.twoLineRawSelection)
@@ -404,10 +404,10 @@ import TestSupport
 
     @Test @MainActor func escapeClosesOneThingAtATime() async throws {
         let paper = SyntheticPaper.lineNumbered
-        let comment = Sample.comment("Card", page: nil)
+        let comment = ModelSample.comment("Card", page: nil)
         let index = CitationIndex(style: .authorYear, entries: [BibEntry(id: 0, rawText: "Lee (2021).", parsed: ParsedReference())],
                                   mentions: [CitationMention(id: 0, pageIndex: 0, text: "Lee [2021]", entryIDs: [0], source: .textPattern)])
-        let harness = try await makeHarness(paper: paper, index: index, seed: Sample.session(for: paper, comments: [comment]))
+        let harness = try await makeModelHarness(paper: paper, index: index, seed: ModelSample.session(for: paper, comments: [comment]))
         await harness.open()
         let model = harness.model
         model.readerSelectionChanged(SelectionNormalizerTests.twoLineRawSelection)
