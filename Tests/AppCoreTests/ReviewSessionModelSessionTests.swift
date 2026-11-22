@@ -221,6 +221,49 @@ import TestSupport
         #expect(model.session?.conversations.count == 1)
     }
 
+    @Test @MainActor func aQuestionCanBeStoppedAndRetried() async throws {
+        let answer = ThreadMessage(id: UUID(), role: .assistant, text: "Slow answer.", createdAt: Sample.start)
+        let replies: [ReplyEvent] = [.started(Sample.run(.question, .running)), .textDelta("Slow"),
+                                     .finished(reply: answer, proposal: nil, run: Sample.run(.question, .completed))]
+        let harness = try await makeHarness(engine: ScriptedReviewEngine(plan: Sample.localPlan, reply: replies, delayPerEvent: .milliseconds(300)))
+        await harness.open()
+        let model = harness.model
+        model.ask("What is the main claim?", about: nil, in: nil)
+        #expect(await waitUntil { model.streamingReplyText == "Slow" })
+        let conversation = try #require(model.session?.conversations.first)
+        #expect(model.streamingTargetID == conversation.id)
+        model.cancelReply()
+        await harness.finishJobs()
+        #expect(model.streamingTargetID == nil)
+        #expect(model.session?.conversations.first?.messages.map(\.role) == [.user])
+        #expect(model.session?.runs.last?.status == .cancelled)
+        #expect(model.banner == nil)
+
+        // Deleting the conversation while its answer streams stops the answer.
+        model.ask("Again?", about: nil, in: conversation.id)
+        #expect(await waitUntil { model.streamingTargetID == conversation.id })
+        model.deleteConversation(conversation.id)
+        await harness.finishJobs()
+        #expect(model.session?.conversations.isEmpty == true)
+        #expect(model.streamingTargetID == nil)
+    }
+
+    @Test @MainActor func aConversationsPassageCanBeRevealed() async throws {
+        let paper = SyntheticPaper.lineNumbered
+        let harness = try await makeHarness(paper: paper, engine: ScriptedReviewEngine(plan: Sample.localPlan))
+        await harness.open()
+        let model = harness.model
+        model.readerSelectionChanged(SelectionNormalizerTests.twoLineRawSelection)
+        await model.waitForBackgroundWork()
+        model.ask("Why?", about: model.selection, in: nil)
+        await harness.finishJobs()
+        let conversation = try #require(model.session?.conversations.first)
+        model.selectedCommentID = conversation.id
+        model.revealSelectedCommentInPDF()
+        #expect(model.readerCommand?.command == .reveal(rects: conversation.anchor?.rects ?? [], flash: true))
+        #expect(conversation.anchor?.rects.isEmpty == false)
+    }
+
     @Test @MainActor func theReviewerNotesAndVenueAreKept() async throws {
         let harness = try await makeHarness()
         await harness.open()

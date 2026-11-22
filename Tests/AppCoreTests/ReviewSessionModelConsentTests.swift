@@ -145,6 +145,29 @@ import TestSupport
         #expect(unknown.model.banner?.action == .openSettings)
     }
 
+    @Test @MainActor func aChatJobAsksForItsOwnProviderWithThatProvidersPlan() async throws {
+        let comment = Sample.comment("Discussed", page: nil)
+        let harness = try await Self.remoteHarness({ settings in
+            settings.defaults.review = ProviderRef(providerID: "mock", model: nil)            // the review stays on this Mac
+            settings.defaults.chat = ProviderRef(providerID: "mock-remote", model: nil)
+        }, seed: [comment])
+        let plans = harness.calls(of: "plan")
+        harness.model.sendDiscussionMessage("Is this fair?", commentID: comment.id)
+        #expect(await waitUntil { harness.model.consentRequest != nil })   // after a plan for that provider
+        #expect(harness.model.consentRequest?.provider.id == "mock-remote")
+        #expect(harness.calls(of: "plan") == plans + 1)
+        #expect(harness.lastContext(of: "plan")?.provider.providerID == "mock-remote")
+        #expect(harness.model.session?.comments.first?.thread.isEmpty == true)              // nothing joins the thread before the answer
+        harness.model.answerConsent(granted: true)
+        await harness.finishJobs()
+        #expect(harness.calls(of: "discuss") == 1)
+        #expect(harness.model.session?.comments.first?.thread.map(\.role) == [.user, .assistant])
+        harness.model.startReview()                                                       // local: no card
+        #expect(harness.model.consentRequest == nil)
+        await harness.finishJobs()
+        #expect(harness.calls(of: "review") == 1)
+    }
+
     @Test @MainActor func closingAnswersAPendingCardWithNo() async throws {
         let harness = try await Self.remoteHarness()
         harness.model.startReview()

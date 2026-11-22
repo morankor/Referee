@@ -83,7 +83,8 @@ public enum SelectionNormalizer {
         }
         let length = (end - start) - leading - trailing
         guard length > 0 else { return nil }
-        let range = TextRange(location: start + leading, length: length)
+        // Qualified: a file that also imports AppKit sees CoreServices' C struct TextRange as well.
+        let range = RefereeCore.TextRange(location: start + leading, length: length)
         return Piece(span: TextSpan(pageIndex: page.index, range: range), text: string.substring(with: range.nsRange))
     }
 
