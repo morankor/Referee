@@ -103,7 +103,7 @@ One SwiftPM package, zero third-party dependencies. Reason: everything needed is
 | `Persistence` | library | RefereeCore | Session and settings files, paths. |
 | `Composition` | library | all libraries above | The one place that constructs real implementations: `LiveDependencies.make()`, including the HTTP session and the snapshot-mode stand-ins. |
 | `AppCore` | library | RefereeCore, AppKit (for export only), Observation | `ReviewSessionModel`, `SettingsModel`, selection normalisation, report export. Depends on protocols only. No SwiftUI, no PDFKit. |
-| `RefereeUI` | library | AppCore, RefereeCore, PDFBridge, TestSupport (snapshot mode only), SwiftUI, AppKit, PDFKit | Views, window management, menus, snapshot mode. |
+| `RefereeUI` | library | AppCore, RefereeCore, PDFBridge, TestSupport (snapshot mode only), SwiftUI, AppKit, PDFKit, CryptoKit and ImageIO (snapshot runner) | Views, window management, menus, snapshot mode. |
 | `Referee` | executable | RefereeUI, Composition | `main.swift`: one call to `AppMain.run` (§9.1). |
 | `referee-cli` | executable | Composition, RefereeCore, PDFBridge, PaperText | Command-line entry point to the same pipeline (§10.2); it calls `RawExtractor` and `PaperRenderer` directly, hence the two extra dependencies. |
 
@@ -1920,7 +1920,7 @@ All in `TestSupport`, declared in §11.3.
 |---|---|---|---|
 | WP0a | alone, on `main` | Scaffold and contracts | everything |
 | WP0b | alone, on `main`, after 0a | Test support, fixtures, composition, snapshot runner | everything |
-| Gate 0 | alone, on `main`, a different agent | Review of Wave 0 | everything; afterwards **frozen**: `Package.swift`, `Makefile`, `scripts/`, `.gitignore`, `Sources/RefereeCore/`, `Sources/TestSupport/`, `Sources/Composition/`, `Sources/Referee/`, `Sources/RefereeUI/Common/`, `Tests/RefereeCoreTests/`, `Fixtures/` |
+| Gate 0 | alone, on `main`, a different agent | Review of Wave 0 | everything; afterwards **frozen**: `Package.swift`, `Makefile`, `scripts/`, `.gitignore`, `Sources/RefereeCore/`, `Sources/TestSupport/`, `Sources/Composition/`, `Sources/Referee/`, `Sources/RefereeUI/Common/`, `Tests/RefereeCoreTests/`, `Tests/RefereeUITests/Common/`, `Fixtures/` |
 | WP1 | Wave 1 | PaperText | `Sources/PaperText/`, `Tests/PaperTextTests/` |
 | WP2 | Wave 1 | PDFBridge | `Sources/PDFBridge/`, `Tests/PDFBridgeTests/` |
 | WP3 | Wave 1 | CitationKit | `Sources/CitationKit/`, `Tests/CitationKitTests/` |
@@ -5087,3 +5087,5 @@ WP0b reported six contract problems (`docs/contract-notes/wp0b-testsupport.md`).
 | `TestSupport` imports CryptoKit | Added to the table | §2.1 |
 | §11.3 did not say that `StubURLProtocol`'s handler belongs to the calling test's task (WP0b decision 2) | A comment on `setHandler` | §11.3 |
 | §11.3 did not say when `MockLLMProvider` records a request | "when `stream(_:)` is called" in the comment on `recordedRequests` | §11.3 |
+| `Tests/RefereeUITests/Common/` was neither frozen nor owned (Gate 0 question 1) | Frozen with the other Wave 0 paths; only Gate 1 and Wave 3 change it | §11.2 |
+| §2.1 left out two frameworks the snapshot runner imports (Gate 0 question 2) | CryptoKit and ImageIO added to the `RefereeUI` row | §2.1 |
