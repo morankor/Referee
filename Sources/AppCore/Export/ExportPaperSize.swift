@@ -1,11 +1,15 @@
 import Foundation
 
-// Written in Wave 0 (plan.md section 11.4, WP0a) from the one-line rule of section 11.3. WP8a owns and tests it.
-
+/// The paper of an exported PDF or Word document (plan.md section 6.10).
 public enum PaperSize: Sendable {
     case letter, a4
     public static var current: PaperSize {       // letter when the locale's region is US, CA or MX, otherwise A4
-        switch Locale.current.region?.identifier {
+        forRegion(Locale.current.region?.identifier)
+    }
+
+    /// The rule of `current` for a given region code (testable without changing the process's locale).
+    static func forRegion(_ identifier: String?) -> PaperSize {
+        switch identifier?.uppercased() {
         case "US", "CA", "MX": return .letter
         default: return .a4
         }
