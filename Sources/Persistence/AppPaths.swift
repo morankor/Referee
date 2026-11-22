@@ -2,8 +2,10 @@ import Foundation
 import RefereeCore
 
 // Written in Wave 0 (plan.md section 11.4, WP0a) in its final shape, because every later step relies on REFEREE_HOME
-// keeping tests, the command-line tool and snapshot runs out of the user's Library. WP8a owns and tests it.
+// keeping tests, the command-line tool and snapshot runs out of the user's Library; kept by WP8a and tested in
+// Tests/PersistenceTests/AppPathsTests.swift. Both functions only compute URLs: nothing is created or read here.
 
+/// Where Referee keeps its data (plan.md sections 4.2 and 10.6). An empty REFEREE_HOME counts as unset.
 public enum AppPaths {                                   // honours REFEREE_HOME: data = $REFEREE_HOME, caches = $REFEREE_HOME/Caches
     /// Settings and sessions: $REFEREE_HOME when it is set, otherwise "Application Support/Referee" in the user's Library.
     public static func dataDirectory(environment: [String: String]) -> URL {

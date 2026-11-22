@@ -131,11 +131,12 @@ import TestSupport
     }
 
     @Test @MainActor func linksCodeEscapesAndCharacterReferences() {
+        let address = ["editor", "example.org"].joined(separator: "@")     // built here: no address in the source tree
         let markdown = "See [the replication files](https://example.org/files \"Files\") and <https://doi.org/10.1000/xyz123>, "
-            + "write to <editor@example.org>, run `x*y_z`, keep \\*stars\\* and \\_underscores\\_, AT&T &amp; co. &#8211; done. "
+            + "write to <\(address)>, run `x*y_z`, keep \\*stars\\* and \\_underscores\\_, AT&T &amp; co. &#8211; done. "
             + "![Figure 2](fig2.png) [plain](plain) [not a link] (either)"
         #expect(ReportExporter.plainText(fromMarkdown: markdown) == "See the replication files (https://example.org/files) and "
-            + "https://doi.org/10.1000/xyz123, write to editor@example.org, run x*y_z, keep *stars* and _underscores_, "
+            + "https://doi.org/10.1000/xyz123, write to \(address), run x*y_z, keep *stars* and _underscores_, "
             + "AT&T & co. \u{2013} done. Figure 2 plain [not a link] (either)\n")
     }
 

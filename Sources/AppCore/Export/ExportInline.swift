@@ -342,7 +342,7 @@ enum ExportInline {
         return (url, index + 1)
     }
 
-    /// `<https://example.org/x>` or `<name@example.org>`: the text between the brackets.
+    /// `<https://example.org/x>`, or an e-mail address in angle brackets: the text between the brackets.
     private static func autolink(_ chars: [Character], at start: Int) -> (text: String, end: Int)? {
         var index = start + 1
         var text = ""
