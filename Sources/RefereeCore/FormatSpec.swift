@@ -4,8 +4,10 @@ import Foundation
 /// (plan.md Appendix B.2). They are constants in code, never settings, so editing the rubric or the system prompts
 /// cannot break parsing.
 ///
-/// Every value is the text printed in Appendix B.2, character for character, with no final line break. Text in
-/// braces is a placeholder for ReviewEngine's PromptBuilder. Three kinds occur:
+/// Every value is the text printed in Appendix B.2, character for character, with no final line break. Two things
+/// printed there are not prompt text and are not here: the "← only when …" notes beside the optional lines, and the
+/// shorthand `{same optional lines}`, which is written out. Text in braces is a placeholder for ReviewEngine's
+/// PromptBuilder. Three kinds occur:
 ///
 /// - **Values.** `{paper text}`, `{text of the part}`, `{i}`, `{n}`, `{a}`, `{b}`, `{notes}` and `{titles}` are
 ///   replaced by the value they name.

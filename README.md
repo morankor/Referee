@@ -15,7 +15,7 @@ A macOS PDF reader for peer review: the manuscript on the left, AI-drafted refer
 Run them from the repository root. These are the only commands used in this project (plan §3.4).
 
 | Purpose | Command |
-|---|---|
+| --- | --- |
 | Build everything (debug) | `scripts/build.sh` |
 | Build one product | `scripts/build.sh --product referee-cli` |
 | Run all tests | `scripts/test.sh` |

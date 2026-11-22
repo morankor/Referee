@@ -17,7 +17,7 @@ public enum DefaultSettings {
             ui: UISettings(autoAdvanceAfterTriage: true, showRejectedHighlights: false, sidebarWidth: 380, stripMarginLineNumbers: true))
     }
 
-    /// The ten provider ids of plan section 5.2, in the order of its table.
+    /// The ten provider ids of plan section 5.2, in the order of its table, the mock included.
     static let providerIDs: [ProviderID] = [
         "anthropic-api", "openai-api", "gemini-api", "xai-api", "ollama",
         "claude-cli", "codex-cli", "antigravity-cli", "grok-cli", "mock",
