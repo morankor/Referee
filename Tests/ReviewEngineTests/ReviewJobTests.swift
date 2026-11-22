@@ -468,6 +468,21 @@ import TestSupport
         #expect(events.comments.allSatisfy { $0.body.count <= ParserFallbacks.unstructuredBodyLength })
     }
 
+    @Test func anEmptyAnswerSaysSoAndADoneOnlyAnswerDoesNot() async throws {
+        let paper = try makeSamplePaper()
+        let empty = MockLLMProvider(script: EngineTest.script(.review, [MockResponse(text: "  \n")]))
+        let events = try await EngineTest.collect(EngineTest.engine([empty], paper: paper).review(paper: paper, existing: [], context: EngineTest.context()))
+        #expect(events.notices == ["The model returned an empty answer."])
+        #expect(events.comments.isEmpty)
+        #expect(events.finishedRun?.status == .completed)
+
+        // "If you have nothing to add, write only @@DONE": no comment, no notice, no fallback.
+        let done = MockLLMProvider(script: EngineTest.script(.review, [MockResponse(text: "@@DONE\n")]))
+        let quiet = try await EngineTest.collect(EngineTest.engine([done], paper: paper).review(paper: paper, existing: [], context: EngineTest.context()))
+        #expect(quiet.notices.isEmpty)
+        #expect(quiet.comments.isEmpty)
+    }
+
     @Test func anUnknownProviderFailsTheRunWithoutARequest() async throws {
         let paper = try makeSamplePaper()
         let events = try await EngineTest.collect(EngineTest.engine([], paper: paper).review(paper: paper, existing: [], context: EngineTest.context(provider: "gone")))

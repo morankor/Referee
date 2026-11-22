@@ -8,8 +8,9 @@ import RefereeCore
 /// can no longer turn into a marker or a field line, so a draft shown while streaming only grows.
 ///
 /// Bounded on any input: a line is matched on its first 256 characters, a line longer than a million characters is cut,
-/// a field keeps at most 20,000 characters per line and a block 100,000 in all, and an unfinished line longer than
-/// 8 KB no longer updates the draft. Random bytes or a 5 MB line cannot make it crash or stall.
+/// a field keeps at most 20,000 characters per line and a block 100,000 in all, and the draft stops updating for an
+/// unfinished line longer than 8 KB or a block longer than 16,000 characters. Random bytes or a 5 MB line cannot make
+/// it crash or stall.
 struct CommentStreamParser {
     enum Output: Equatable {
         case draftStarted(UUID)
@@ -291,8 +292,12 @@ struct CommentStreamParser {
 
     // ---- the live draft ----
 
+    /// Beyond this many stored characters a block's draft stops updating (its closed block still has everything), so
+    /// that a huge block streamed one character at a time costs linear, not quadratic, time.
+    static let maxLiveDraftSize = 16_000
+
     private mutating func liveUpdate() -> Output? {
-        guard let current = block else { return nil }
+        guard let current = block, current.size <= Self.maxLiveDraftSize else { return nil }
         let draft = liveDraft(current)
         guard draft != lastDraft else { return nil }
         lastDraft = draft

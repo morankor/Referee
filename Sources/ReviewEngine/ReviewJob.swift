@@ -25,6 +25,7 @@ final class ReviewJob {
     private var notices: Set<String> = []
     private var matcher: (any QuoteMatching)?
     private var budget: TokenBudget?
+    private var rendered = ""                            // the whole paper as text mode sends it
     private var parser = CommentStreamParser()
 
     static let maxStrengths = 2
@@ -48,7 +49,7 @@ final class ReviewJob {
             return finish(.failed(book.missingProvider.userMessage))
         }
         sink.send(.phase(.preparing))
-        let rendered = dependencies.renderer.render(paper.text, pages: nil)
+        rendered = dependencies.renderer.render(paper.text, pages: nil)
         var plan = Planner.review(descriptor: provider.descriptor, context: context, paper: paper, rendered: rendered,
                                   renderer: dependencies.renderer, physicalMemoryBytes: dependencies.physicalMemoryBytes)
         Log.event("engine.review.planned", ["provider": .id(provider.descriptor.id), "pdf": .bool(plan.sendsPDF),
@@ -95,8 +96,7 @@ final class ReviewJob {
                 let prefix: [LLMPart] = [.pdf(data: paper.data, fileName: PromptBuilder.manuscriptFileName), .cacheBoundary]
                 _ = try await chain(prefix: prefix, task: PromptBuilder.pdfModeReviewTask(meta: context.meta, existingTitles: titlesSoFar))
             } else {
-                let text = PromptBuilder.textModeReview(paper: dependencies.renderer.render(paper.text, pages: nil), meta: context.meta,
-                                                        existingTitles: titlesSoFar)
+                let text = PromptBuilder.textModeReview(paper: rendered, meta: context.meta, existingTitles: titlesSoFar)
                 _ = try await chain(prefix: [.text(text.paper), .cacheBoundary], task: text.task)
             }
             return nil
@@ -203,8 +203,13 @@ final class ReviewJob {
 
     // ---- fallbacks (section 6.5) ----
 
+    static let emptyAnswerNotice = "The model returned an empty answer."
+
     private func fallback(_ raw: String) async {
-        guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            notice(Self.emptyAnswerNotice)
+            return
+        }
         let drafts = ParserFallbacks.jsonComments(in: raw, categories: categories)
         if !drafts.isEmpty {
             Log.event("engine.review.fallback", ["kind": .id("json"), "comments": .int(drafts.count)])
@@ -212,10 +217,9 @@ final class ReviewJob {
             return
         }
         Log.event("engine.review.fallback", ["kind": .id("unstructured")])
+        // Not one of `accepted`: it has no quote for the rules, and its title is no comment to list in a later task.
         let draft = ParserFallbacks.unstructuredDraft(from: raw)
-        let comment = makeComment(draft, anchor: Anchor(quote: "", confidence: .none, locationLabel: ""))
-        accepted.append(comment)
-        sink.send(.comment(comment, replacesDraft: draft.id))
+        sink.send(.comment(makeComment(draft, anchor: Anchor(quote: "", confidence: .none, locationLabel: "")), replacesDraft: draft.id))
         notice(ParserFallbacks.unstructuredNotice)
     }
 
