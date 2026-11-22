@@ -154,6 +154,9 @@ final class AttemptReader: @unchecked Sendable {
             }
             guard let line else {
                 done = true
+                // The line stream of a cancelled consumer ends without an error (AsyncThrowingStream(unfolding:) stops
+                // calling its closure): a cancellation, not a body that ended early (Gate 1, seen under load).
+                if Task.isCancelled { throw LLMError.cancelled }
                 pending = try adapter.finish(state: state)
                 continue
             }
