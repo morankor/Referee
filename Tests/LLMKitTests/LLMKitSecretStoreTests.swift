@@ -135,6 +135,27 @@ final class FakeKeychain: KeychainBackend, @unchecked Sendable {
         #expect(throws: SecretError.writeFailed(status: errSecNotAvailable)) { try store(missing).setSecret("a", for: "anthropic-api") }
     }
 
+    @Test func readsAreKeptButEveryWriteReadsTheItemAfresh() throws {
+        let backend = FakeKeychain(secrets: ["openai-api": "o"])
+        let secrets = store(backend)
+        #expect(try secrets.secret(for: "openai-api") == "o")
+        #expect(try secrets.secret(for: "gemini-api") == nil)
+        #expect(backend.calls == [.read])                               // one Keychain read for both answers
+        try secrets.setSecret("a", for: "anthropic-api")
+        #expect(backend.calls.filter { $0 == .read }.count == 2)        // the write read the item again first
+        #expect(try secrets.secret(for: "anthropic-api") == "a")        // and what it wrote is known
+        #expect(backend.calls.filter { $0 == .read }.count == 2)
+
+        // A read that fails is not kept: the next call asks the Keychain again.
+        let locked = FakeKeychain(secrets: ["openai-api": "o"])
+        locked.readStatus = -25293
+        let lockedStore = store(locked)
+        #expect(throws: SecretError.unreadable(status: -25293)) { try lockedStore.secret(for: "openai-api") }
+        locked.readStatus = nil                                         // the user approved
+        #expect(try lockedStore.secret(for: "openai-api") == "o")
+        #expect(locked.calls == [.read, .read])
+    }
+
     @Test func concurrentWritesOfDifferentKeysAreAllKept() async throws {
         let backend = FakeKeychain()
         let secrets = store(backend)

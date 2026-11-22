@@ -7,14 +7,17 @@ import Security
 /// because macOS asks before releasing each item to a rebuilt ad-hoc-signed app.
 ///
 /// Read-modify-write never destroys keys: after a rebuild, reading fails with errSecAuthFailed (−25293) until the user
-/// approves, while an update would succeed without approval. So `setSecret` writes only after the item was read
-/// (then it updates) or is known not to exist (then it adds); on any other status it throws
+/// approves, while an update would succeed without approval. So `setSecret` reads the item afresh and writes only when
+/// it was read (then it updates) or is known not to exist (then it adds); on any other status it throws
 /// `SecretError.unreadable` and writes nothing. The same holds for an item whose value is not such a JSON object.
+///
+/// `secret(for:)` keeps what it last read or wrote, so that the providers, which ask for their key on every request and
+/// every availability check, do not make macOS ask the user again and again.
 public final class KeychainSecretStore: SecretStoring {
     private let service: String
     private let account: String
     private let backend: any KeychainBackend
-    private let lock = NSLock()                    // one read-modify-write at a time within the app
+    private let memory = SecretsMemory()
 
     public convenience init(service: String = "local.referee.app", account: String = "secrets-v1") {
         self.init(service: service, account: account, backend: SecurityKeychainBackend())
@@ -27,30 +30,38 @@ public final class KeychainSecretStore: SecretStoring {
     }
 
     public func secret(for key: String) throws -> String? {
-        try lock.withLock {
-            try storedSecrets()?[key]
+        try memory.lock.withLock {
+            if let known = memory.secrets { return known[key] }
+            let stored = try storedSecrets() ?? [:]
+            memory.secrets = stored
+            return stored[key]
         }
     }
 
     /// nil (or an empty string) deletes the key; every other key is kept.
     public func setSecret(_ value: String?, for key: String) throws {
-        try lock.withLock {
+        try memory.lock.withLock {
             let newValue = (value?.isEmpty ?? true) ? nil : value
             guard var secrets = try storedSecrets() else {
                 // errSecItemNotFound: there is nothing to lose.
+                memory.secrets = [:]
                 guard let newValue else { return }
                 try write(add: true, [key: newValue])
+                memory.secrets = [key: newValue]
                 return
             }
+            memory.secrets = secrets
             guard secrets[key] != newValue else { return }
             secrets[key] = newValue
             try write(add: false, secrets)
+            memory.secrets = secrets
         }
     }
 
     /// Removes the whole item. Only the opt-in test of the real Keychain uses it, to clean up after itself.
     func removeItem() throws {
-        try lock.withLock {
+        try memory.lock.withLock {
+            memory.secrets = nil
             let status = backend.delete(service: service, account: account)
             guard status == errSecSuccess || status == errSecItemNotFound else { throw SecretError.writeFailed(status: status) }
         }
@@ -58,7 +69,7 @@ public final class KeychainSecretStore: SecretStoring {
 
     // ---- private ----
 
-    /// The stored secrets; nil when the item does not exist. Throws `.unreadable` for every other outcome.
+    /// The stored secrets, read now; nil when the item does not exist. Throws `.unreadable` for every other outcome.
     private func storedSecrets() throws -> [String: String]? {
         let (status, data) = backend.read(service: service, account: account)
         switch status {
@@ -93,4 +104,11 @@ public final class KeychainSecretStore: SecretStoring {
             throw SecretError.writeFailed(status: status)
         }
     }
+}
+
+/// The lock that makes the store's read-modify-write one at a time within the app, and the secrets as last read or
+/// written (nil = not read yet). `secrets` is only touched under `lock`.
+private final class SecretsMemory: @unchecked Sendable {
+    let lock = NSLock()
+    var secrets: [String: String]?
 }
