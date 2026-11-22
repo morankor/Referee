@@ -15,8 +15,8 @@ public final class FakeResolver: ReferenceResolving, @unchecked Sendable {
 
     public init() {}
 
-    /// Not in plan.md section 11.3: the documents `forget` was called for, in order. A test of "delete review data"
-    /// has to see that the resolver was told to forget (section 11.4, WP8b), and the protocol offers no way to ask.
+    /// The documents `forget` was called for, in order. Not part of `ReferenceResolving`: a test of "delete review data"
+    /// has to see that the resolver was told to forget (plan.md section 11.4, WP8b), and the protocol offers no way to ask.
     public var forgottenDocuments: [String] {
         lock.withLock { forgotten }
     }

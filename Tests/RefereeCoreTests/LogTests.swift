@@ -2,13 +2,12 @@ import Foundation
 import Testing
 import RefereeCore
 
-/// Log (Appendix A.8): the test sink sees every event, with identifiers already filtered.
+/// Log (Appendix A.8): test sinks see every event, with identifiers already filtered.
 ///
-/// The sink is one per process, and tests run in parallel. Three precautions follow from that. Every test here uses
-/// an event name of its own and looks only at events with that name, because other tests log too. The suite is
-/// serialized, because two of its tests cannot hold the sink at once. And an event that did not arrive is logged
-/// again, because a test of another target may have installed its own sink in the same instant.
-@Suite(.serialized) struct LogTests {
+/// Tests of all targets run in parallel in one process, and every sink sees the events of every test running at that
+/// moment. So each test here logs under an event name of its own and looks only at events with that name; that is
+/// the rule for any test that adds a sink (WP6's privacy test included).
+@Suite struct LogTests {
     /// What a sink collected, readable from any thread.
     private final class Collected: @unchecked Sendable {
         private let lock = NSLock()
@@ -17,29 +16,23 @@ import RefereeCore
         func fields(named name: String) -> [[String: LogValue]] { lock.withLock { events.filter { $0.name == name }.map(\.fields) } }
     }
 
-    /// Installs a sink, logs the event once, removes the sink, and returns the fields the sink saw under that name.
-    /// Empty means the event went to somebody else's sink; the caller's attempt is then repeated a few times.
-    private func deliver(_ name: StaticString, _ fields: [String: LogValue]) async -> [[String: LogValue]] {
-        for _ in 0..<50 {
-            let collected = Collected()
-            Log.setTestSink { event, values in collected.add(event, values) }
-            Log.event(name, fields)
-            Log.setTestSink(nil)
-            let seen = collected.fields(named: name.description)
-            if !seen.isEmpty { return seen }
-            try? await Task.sleep(for: .milliseconds(2))
-        }
-        return []
+    /// Adds a sink, logs the event once, removes the sink, and returns the fields the sink saw under that name.
+    private func deliver(_ name: StaticString, _ fields: [String: LogValue]) -> [[String: LogValue]] {
+        let collected = Collected()
+        let sink = Log.addTestSink { event, values in collected.add(event, values) }
+        Log.event(name, fields)
+        Log.removeTestSink(sink)
+        return collected.fields(named: name.description)
     }
 
-    @Test func theSinkReceivesTheEventWithItsFields() async {
+    @Test func theSinkReceivesTheEventWithItsFields() {
         let fields: [String: LogValue] = ["provider": .id("anthropic-api"), "bytes": .int(1_024), "pdf": .bool(true), "seconds": .double(1.5)]
-        #expect(await deliver("test.log.fields", fields) == [fields])
-        #expect(await deliver("test.log.empty", [:]) == [[:]])
+        #expect(deliver("test.log.fields", fields) == [fields])
+        #expect(deliver("test.log.empty", [:]) == [[:]])
     }
 
-    @Test func identifiersThatCouldCarryTextAreReplaced() async {
-        let seen = await deliver("test.log.filter", [
+    @Test func identifiersThatCouldCarryTextAreReplaced() {
+        let seen = deliver("test.log.filter", [
             "allowed": .id("gemma4:e4b/Q4_K_M-1.0"),
             "longest": .id(String(repeating: "a", count: 64)),
             "tooLong": .id(String(repeating: "a", count: 65)),
@@ -59,12 +52,50 @@ import RefereeCore
         #expect(seen?["number"] == .int(7))
     }
 
-    @Test func afterTheSinkIsRemovedNothingArrives() async {
-        #expect(await deliver("test.log.removed", ["n": .int(1)]) == [["n": .int(1)]])
-        let removed = Collected()
-        Log.setTestSink { event, values in removed.add(event, values) }
-        Log.setTestSink(nil)
+    @Test func afterItsSinkIsRemovedATestSeesNothingMore() {
+        let collected = Collected()
+        let sink = Log.addTestSink { event, values in collected.add(event, values) }
+        Log.event("test.log.removed", ["n": .int(1)])
+        Log.removeTestSink(sink)
         Log.event("test.log.removed", ["n": .int(2)])
-        #expect(removed.fields(named: "test.log.removed").isEmpty)
+        #expect(collected.fields(named: "test.log.removed") == [["n": .int(1)]])
+        Log.removeTestSink(sink)                    // removing it again changes nothing
+        Log.removeTestSink(UUID())                  // nor does an id that was never handed out
+    }
+
+    /// Two tests that add sinks at the same time both see every event, and each removes only its own sink.
+    @Test func severalSinksSeeTheSameEventsAndEachIsRemovedAlone() {
+        let first = Collected()
+        let second = Collected()
+        let firstSink = Log.addTestSink { event, values in first.add(event, values) }
+        let secondSink = Log.addTestSink { event, values in second.add(event, values) }
+        #expect(firstSink != secondSink)
+        Log.event("test.log.shared", ["n": .int(1)])
+        Log.removeTestSink(firstSink)
+        Log.event("test.log.shared", ["n": .int(2)])
+        Log.removeTestSink(secondSink)
+        Log.event("test.log.shared", ["n": .int(3)])
+        #expect(first.fields(named: "test.log.shared") == [["n": .int(1)]])
+        #expect(second.fields(named: "test.log.shared") == [["n": .int(1)], ["n": .int(2)]])
+    }
+
+    /// Eight "tests" with a sink each log at the same time: every sink sees every event, which is why a test that
+    /// asserts something of the events it sees must first keep only its own.
+    @Test func aSinkSeesTheEventsOfEveryTestRunningAtThatMoment() async {
+        let workers = 8
+        let collected = (0..<workers).map { _ in Collected() }
+        let sinks = collected.map { box in Log.addTestSink { event, values in box.add(event, values) } }
+        await withTaskGroup(of: Void.self) { group in
+            for worker in 0..<workers {
+                group.addTask { Log.event("test.log.concurrent", ["worker": .int(worker)]) }
+            }
+        }
+        for sink in sinks { Log.removeTestSink(sink) }
+        for box in collected {
+            let seen = box.fields(named: "test.log.concurrent").compactMap { fields -> Int? in
+                if case .int(let worker)? = fields["worker"] { return worker } else { return nil }
+            }
+            #expect(seen.sorted() == Array(0..<workers))
+        }
     }
 }

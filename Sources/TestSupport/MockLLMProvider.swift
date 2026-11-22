@@ -58,11 +58,12 @@ public struct MockScript: Sendable {
         return MockScript(responses: responses)
     }
 
-    /// review: two complete blocks of review_clean, half of the third, then .overloaded. Other purposes as in `sample`.
+    /// review: two complete blocks of review_clean, the third up to its quote line, then .overloaded. Other purposes as in `sample`.
     ///
-    /// "Half of the third" is the first half of that block's lines: its kind, category, page and quote, and neither
-    /// title nor body. The parser of plan section 6.5 drops such a block when the stream ends, so a review through
-    /// this script keeps exactly two comments, as the scenes of section 10.1 expect.
+    /// The cut is counted in lines: the first half of the third block's lines (five of its nine), which are its
+    /// "@@COMMENT", kind, category, page and quote lines, and neither title nor body. The parser of plan section 6.5
+    /// drops such a block when the stream ends (rule 5), so a review through this script keeps exactly two comments,
+    /// as the scenes of section 10.1 expect.
     public static var failsAfterTwoComments: MockScript {
         interruptedReview { response in
             response.failAfterChunks = response.deltas.count
@@ -70,7 +71,8 @@ public struct MockScript: Sendable {
         }
     }
 
-    /// review: the same text, then silence. Other purposes as in `sample`.
+    /// review: the same text, then silence. Other purposes as in `sample`. While it is silent, the third block is a
+    /// draft that has its kind, category, page and quote.
     public static var stallsAfterTwoComments: MockScript {
         interruptedReview { response in
             response.stallAfterChunks = response.deltas.count
@@ -87,9 +89,9 @@ public struct MockScript: Sendable {
         return script
     }
 
-    /// The first two "@@COMMENT" blocks of `text` and the first half of the third block's lines (five of nine, say),
-    /// each line with its line break. A block runs from one "@@COMMENT" line to the next, the last one to the "@@DONE"
-    /// line. A text with fewer than three blocks comes back whole.
+    /// The first two "@@COMMENT" blocks of `text` and the first half of the third block's lines, rounded up (five of
+    /// nine in review_clean: up to its quote line), each line with its line break. A block runs from one "@@COMMENT"
+    /// line to the next, the last one to the "@@DONE" line. A text with fewer than three blocks comes back whole.
     static func twoBlocksAndHalfOfTheThird(of text: String) -> String {
         var lines: [Substring] = []                     // every line of the text, with its line break
         var blockStarts: [Int] = []                     // positions in `lines` of the "@@COMMENT" lines

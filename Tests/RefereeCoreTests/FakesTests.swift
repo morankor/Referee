@@ -75,6 +75,23 @@ import TestSupport
         #expect(await store.listSessions().map(\.id) == ["bbbb"])
     }
 
+    /// What WP8b's autosave test reads: every call of `save(_:)` counts, also one that saves an unchanged session;
+    /// nothing else does.
+    @Test func theSessionStoreCountsEverySave() async throws {
+        let store = InMemorySessionStore()
+        #expect(store.saveCount == 0)
+        let first = session("aaaa", updatedAt: moment)
+        try await store.save(first)
+        try await store.save(first)
+        try await store.save(session("bbbb", updatedAt: moment))
+        #expect(store.saveCount == 3)
+        _ = try await store.loadSession(sha256: "aaaa")
+        _ = await store.listSessions()
+        try await store.deleteSession(sha256: "aaaa")
+        #expect(store.saveCount == 3)
+        #expect(InMemorySessionStore().saveCount == 0)                     // one count per store
+    }
+
     @Test func theSettingsStoreReturnsWhatWasSavedLast() async throws {
         #expect(await InMemorySettingsStore().load() == DefaultSettings.make())
 

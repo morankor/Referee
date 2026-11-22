@@ -3848,10 +3848,18 @@ public enum LogValue: Sendable, Equatable {
 public enum Log {
     private static let logger = Logger(subsystem: "local.referee.app", category: "app")
     private static let sinkLock = NSLock()
-    nonisolated(unsafe) private static var sink: (@Sendable (String, [String: LogValue]) -> Void)?
-    /// Tests install a sink to inspect what is logged (it receives the sanitised fields); nil removes it.
-    public static func setTestSink(_ newSink: (@Sendable (String, [String: LogValue]) -> Void)?) {
-        sinkLock.lock(); sink = newSink; sinkLock.unlock()
+    nonisolated(unsafe) private static var sinks: [UUID: @Sendable (String, [String: LogValue]) -> Void] = [:]
+    /// Tests add a sink to inspect what is logged (it receives the sanitised fields) and remove it with the id returned.
+    /// Tests of all targets run in parallel in one process, so several sinks can be active at once, and a sink sees the
+    /// events of every test running at that moment: a test filters by its own event names, or asserts only what must
+    /// hold for every event. A test removes only its own sink.
+    public static func addTestSink(_ sink: @escaping @Sendable (String, [String: LogValue]) -> Void) -> UUID {
+        let id = UUID()
+        sinkLock.lock(); sinks[id] = sink; sinkLock.unlock()
+        return id
+    }
+    public static func removeTestSink(_ id: UUID) {
+        sinkLock.lock(); sinks[id] = nil; sinkLock.unlock()
     }
     static func sanitised(_ value: LogValue) -> LogValue {
         guard case .id(let s) = value else { return value }
@@ -3863,8 +3871,8 @@ public enum Log {
         let clean = fields.mapValues(sanitised)
         let rendered = clean.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
         logger.info("\(name.description, privacy: .public) \(rendered, privacy: .public)")
-        sinkLock.lock(); let current = sink; sinkLock.unlock()
-        current?(name.description, clean)
+        sinkLock.lock(); let current = Array(sinks.values); sinkLock.unlock()
+        for sink in current { sink(name.description, clean) }
     }
 }
 ```

@@ -7,15 +7,25 @@ import RefereeCore
 public final class InMemorySessionStore: SessionStoring, @unchecked Sendable {
     private let lock = NSLock()
     private var sessions: [String: ReviewSession] = [:]         // by document sha256
+    private var saves = 0
 
     public init() {}
+
+    /// How many times `save(_:)` has been called, whatever was saved. Not part of `SessionStoring`: it lets a test of
+    /// the model's autosave see that several changes within the debounce gave one save (plan.md section 11.4, WP8b).
+    public var saveCount: Int {
+        lock.withLock { saves }
+    }
 
     public func loadSession(sha256: String) async throws -> ReviewSession? {
         lock.withLock { sessions[sha256] }
     }
 
     public func save(_ session: ReviewSession) async throws {
-        lock.withLock { sessions[session.document.sha256] = session }
+        lock.withLock {
+            sessions[session.document.sha256] = session
+            saves += 1
+        }
     }
 
     /// Newest first (by `updatedAt`).
