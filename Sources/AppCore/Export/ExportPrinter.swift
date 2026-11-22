@@ -18,7 +18,7 @@ enum ExportPrinter {
         do {
             return try text.data(from: NSRange(location: 0, length: text.length), documentAttributes: attributes)
         } catch {
-            throw StoreError.io("the Word document could not be created: \(error.localizedDescription)")
+            throw ExportError.couldNotCreate("the Word document could not be created: \(error.localizedDescription)")
         }
     }
 
@@ -72,14 +72,14 @@ enum ExportPrinter {
         operation.showsPrintPanel = false
         operation.showsProgressPanel = false
         operation.jobTitle = documentTitle
-        guard operation.run() else { throw StoreError.io("the PDF could not be created") }
+        guard operation.run() else { throw ExportError.couldNotCreate("the PDF could not be created") }
         let data: Data
         do {
             data = try Data(contentsOf: file)
         } catch {
-            throw StoreError.io("the PDF could not be read back: \(error.localizedDescription)")
+            throw ExportError.couldNotCreate("the PDF could not be read back: \(error.localizedDescription)")
         }
-        guard data.starts(with: Data("%PDF-".utf8)) else { throw StoreError.io("the printing system did not write a PDF") }
+        guard data.starts(with: Data("%PDF-".utf8)) else { throw ExportError.couldNotCreate("the printing system did not write a PDF") }
         return data
     }
 }

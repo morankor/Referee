@@ -65,13 +65,15 @@ public enum LiveDependencies {
 
         let paperService = PDFPaperService(builder: PaperTextBuilder(stripMarginLineNumbers: { current.get().ui.stripMarginLineNumbers }))
         let matcherFactory: @Sendable (PaperText) -> any QuoteMatching = { QuoteMatcher(paper: $0) }
-        let engine = ReviewEngine(providers: registry, paperService: paperService, matcherFactory: matcherFactory, renderer: PaperRenderer())
+        let dump = environment["REFEREE_DEBUG_DUMP"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }   // section 10.5
+        let engine = ReviewEngine(providers: registry, paperService: paperService, matcherFactory: matcherFactory, renderer: PaperRenderer(),
+                                  debugDumpDirectory: dump)
         let resolver: any ReferenceResolving = snapshot
             ? FakeResolver()
             : ReferenceResolver(settings: { current.get().references }, urlSession: session, dataDirectory: data, cacheDirectory: caches)
         return AppDependencies(paperService: paperService, matcherFactory: matcherFactory, citationIndexer: CitationIndexer(), engine: engine,
                                resolver: resolver, sessions: FileSessionStore(directory: data.appendingPathComponent("sessions")),
-                               settings: settings, providers: registry, secrets: secrets)
+                               settings: settings, providers: registry, secrets: secrets, dataDirectory: data)
     }
 
     /// The one URLSession for providers and reference lookups (section 5.3).

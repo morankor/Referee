@@ -139,9 +139,16 @@ public protocol LLMProvider: Sendable {
     /// Cheap, no model tokens spent. For CLI providers: resolve binary, run `--version` (20 s cap) and the auth-status command.
     func availability() async -> ProviderAvailability
     func listModels() async throws -> [ModelInfo]
+    /// includeHidden: true = the whole list, without the filters of sections 5.4.2 and 5.4.4 (Settings' "Show all").
+    /// Default: listModels(), for providers that filter nothing.
+    func listModels(includeHidden: Bool) async throws -> [ModelInfo]
     /// Cold stream: work starts when iterated; cancelling the consuming Task cancels the HTTP request / kills the process.
     /// Throws only LLMError.
     func stream(_ request: LLMRequest) -> AsyncThrowingStream<LLMEvent, Error>
+}
+
+extension LLMProvider {
+    public func listModels(includeHidden: Bool) async throws -> [ModelInfo] { try await listModels() }
 }
 
 public protocol ProviderResolving: Sendable {

@@ -46,18 +46,19 @@ struct CLIHost: Sendable {
     }
 
     /// The environment of every process started for an adapter (section 5.6.2).
-    func childEnvironment(extra: [String: String]) async -> [String: String] {
+    func childEnvironment(extra: [String: String], passThrough: [String] = []) async -> [String: String] {
         let loginShellPath: String?
         switch loginPath {
         case .fixed(let value): loginShellPath = value
         case .loginShell: loginShellPath = await LoginShellPath.shared.path(for: processEnvironment, temporaryRoot: temporaryRoot)
         }
-        return ChildEnvironment.make(from: processEnvironment, loginPath: loginShellPath, extra: extra)
+        return ChildEnvironment.make(from: processEnvironment, loginPath: loginShellPath, extra: extra, passThrough: passThrough)
     }
 
     /// Runs a short command of an adapter's binary, with the adapter's child environment.
-    func command(_ binary: ResolvedBinary, _ arguments: [String], extraEnvironment: [String: String]) async -> Result<CommandResult, LLMError> {
-        let environment = await childEnvironment(extra: extraEnvironment)
+    func command(_ binary: ResolvedBinary, _ arguments: [String], extraEnvironment: [String: String],
+                 passThrough: [String] = []) async -> Result<CommandResult, LLMError> {
+        let environment = await childEnvironment(extra: extraEnvironment, passThrough: passThrough)
         return await CLICommand.run(binary.path, arguments, environment: environment, temporaryRoot: temporaryRoot, timeout: probeTimeout)
     }
 }

@@ -155,9 +155,9 @@ private final class ConsumerEngine: ReviewEngineProtocol {
         return Self.play([.started(run), .textDelta("## Summary assessment"),
                           .finished(ReportDraft(markdown: "## Summary assessment", userEdited: false), run: Self.completed(run))])
     }
-    func reviseVoice(reportMarkdown: String, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+    func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
         let run = Self.run(.revise, context)
-        return Self.play([.started(run), .finished(ReportDraft(markdown: reportMarkdown, userEdited: false), run: Self.completed(run))])
+        return Self.play([.started(run), .finished(draft, run: Self.completed(run))])
     }
     func lint(reportMarkdown: String) -> [LintFinding] {
         let found = (reportMarkdown as NSString).range(of: "robust")
@@ -292,7 +292,10 @@ private func callEveryRequirement(of dependencies: AppDependencies, builder: any
                                 createdAt: moment, updatedAt: moment)
     var reports: [ReportEvent] = []
     for try await event in dependencies.engine.generateReport(paper: paper, session: session, context: context) { reports.append(event) }
-    for try await event in dependencies.engine.reviseVoice(reportMarkdown: "## Summary assessment", findings: [], context: context) { reports.append(event) }
+    for try await event in dependencies.engine.reviseVoice(draft: ReportDraft(markdown: "## Summary assessment", userEdited: false), findings: [],
+                                                          context: context) {
+        reports.append(event)
+    }
     #expect(reports.count == 5)
     #expect(dependencies.engine.lint(reportMarkdown: "A robust effect.").map(\.rule) == ["banned-word"])
 

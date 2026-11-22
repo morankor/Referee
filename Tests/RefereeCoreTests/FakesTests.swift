@@ -328,7 +328,9 @@ import TestSupport
         for try await event in engine.generateReport(paper: paper, session: session, context: plain) { reported.append(event) }
         #expect(reported == reports)
         var revised: [ReportEvent] = []
-        for try await event in engine.reviseVoice(reportMarkdown: "x", findings: [finding], context: rich) { revised.append(event) }
+        for try await event in engine.reviseVoice(draft: ReportDraft(markdown: "x", userEdited: false), findings: [finding], context: rich) {
+            revised.append(event)
+        }
         #expect(revised == reports)
         #expect(engine.lint(reportMarkdown: "anything") == [finding])
 

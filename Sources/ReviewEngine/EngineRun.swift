@@ -134,6 +134,11 @@ final class RunBook {
     }
 
     /// Section 6.2: in PDF mode these errors restart the job once in text mode.
+    /// The notice of section 6.2's fallback: "The provider did not accept the PDF file (<why>), so <what happened next>."
+    static func textFallbackNotice(_ error: LLMError, job: String) -> String {
+        "The provider did not accept the PDF file (\(error.userMessage)), so \(job)."
+    }
+
     static func isPDFRejection(_ error: LLMError) -> Bool {
         switch error {
         case .contextTooLong: return true

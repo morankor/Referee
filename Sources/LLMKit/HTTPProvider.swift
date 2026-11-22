@@ -19,16 +19,15 @@ struct HTTPProvider: LLMProvider {
     }
 
     func listModels() async throws -> [ModelInfo] {
-        try await listModels(showAll: false)
+        try await listModels(includeHidden: false)
     }
 
-    /// The model list; with `showAll`, also the models that the filters of section 5.4 hide. The protocol has no way to
-    /// ask for those yet (see the contract notes of WP4), so only tests call this with `true`.
-    func listModels(showAll: Bool) async throws -> [ModelInfo] {
+    /// The model list; with `includeHidden`, also the models that the filters of section 5.4 hide (Settings' "Show all").
+    func listModels(includeHidden: Bool) async throws -> [ModelInfo] {
         let settings = self.settings
         let key = try self.key()
         do {
-            return try await adapter.listModels(client: client, settings: settings, secret: key, showAll: showAll)
+            return try await adapter.listModels(client: client, settings: settings, secret: key, showAll: includeHidden)
         } catch {
             throw llmError(error).removing(secret: key)
         }

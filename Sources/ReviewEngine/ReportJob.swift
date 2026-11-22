@@ -2,16 +2,17 @@ import Foundation
 import RefereeCore
 
 /// The report (plan.md section 6.10) and the voice revision (Appendix B.5): `.started`, the text as `.textDelta`s,
-/// then `.finished(draft, run:)`.
+/// then `.finished(draft, run:)`; a `.notice` before a restart with text when the provider refused the PDF.
 ///
 /// On success the draft is the model's Markdown (an outer code fence removed) with the recommendation parsed from it.
 /// `versions` is the previous draft's history as it stands: the model pushes the old draft (section WP8b), so the engine
-/// does not. On a failure or a cancellation the draft is the one the job started from (the session's report, or the
-/// Markdown given for revision), so a caller that stores it loses nothing; the run says what happened.
+/// does not. A revised draft keeps the revised one's comment ids and versions, and its recommendation when the new
+/// text names none. On a failure or a cancellation the draft is the one the job started from (the session's report,
+/// or the draft given for revision), so a caller that stores it loses nothing; the run says what happened.
 final class ReportJob {
     enum Kind {
         case report(ReviewSession)
-        case voiceRevision(markdown: String, findings: [LintFinding])
+        case voiceRevision(ReportDraft, findings: [LintFinding])
     }
 
     static let noApprovedComments = "Approve at least one comment first."
@@ -41,8 +42,8 @@ final class ReportJob {
         switch kind {
         case .report(let session):
             return session.report ?? ReportDraft(markdown: "", userEdited: false)
-        case .voiceRevision(let markdown, _):
-            return ReportDraft(markdown: markdown, recommendation: ReportStructure.recommendation(in: markdown), userEdited: false)
+        case .voiceRevision(let draft, _):
+            return draft
         }
     }
 
@@ -64,10 +65,10 @@ final class ReportJob {
                                                 dependencies: dependencies, forceText: forceText)
                 let task = PromptBuilder.reportTask(comments: approved, meta: session.meta, template: context.prompts.reportTemplate)
                 built = (paperContext.parts + [.cacheBoundary, .text(paperContext.taskPrefix + task)], paperContext.budget, paperContext.sendsPDF)
-            case .voiceRevision(let markdown, let findings):
+            case .voiceRevision(let draft, let findings):
                 let budget = TokenBudget(descriptor: provider.descriptor, settings: context.providerSettings, model: context.model, job: .report,
                                          physicalMemoryBytes: dependencies.physicalMemoryBytes)
-                built = ([.text(PromptBuilder.voiceRevisionTask(reportMarkdown: markdown, findings: findings))], budget, false)
+                built = ([.text(PromptBuilder.voiceRevisionTask(reportMarkdown: draft.markdown, findings: findings))], budget, false)
             }
             guard built.budget.inputBudget >= Planning.minimumInputBudget else { return finish(unchanged, .failed(Planning.contextTooSmall)) }
             let limits = built.budget.requestLimits(settings: context.providerSettings)
@@ -87,6 +88,7 @@ final class ReportJob {
             } catch JobInterruption.failed(let error) {
                 if built.sendsPDF, !forceText, text.isEmpty, RunBook.isPDFRejection(error) {
                     forceText = true
+                    sink.send(.notice(RunBook.textFallbackNotice(error, job: "the report is written from the text extracted from it")))
                     Log.event("engine.report.textfallback", ["provider": .id(provider.descriptor.id), "error": .id(error.logName)])
                     continue
                 }
@@ -115,9 +117,10 @@ final class ReportJob {
             return ReportDraft(markdown: markdown, recommendation: ReportStructure.recommendation(in: markdown), generatedAt: Date(),
                                provider: context.provider, basedOnCommentIDs: approved.map(\.id), userEdited: false,
                                versions: session.report?.versions ?? [])
-        case .voiceRevision:
-            return ReportDraft(markdown: markdown, recommendation: ReportStructure.recommendation(in: markdown), generatedAt: Date(),
-                               provider: context.provider, userEdited: false)
+        case .voiceRevision(let revised, _):
+            return ReportDraft(markdown: markdown, recommendation: ReportStructure.recommendation(in: markdown) ?? revised.recommendation,
+                               generatedAt: Date(), provider: context.provider, basedOnCommentIDs: revised.basedOnCommentIDs, userEdited: false,
+                               versions: revised.versions)
         }
     }
 

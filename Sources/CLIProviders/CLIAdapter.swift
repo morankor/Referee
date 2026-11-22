@@ -13,6 +13,8 @@ protocol CLIAdapter: Sendable {
     var timeouts: CLITimeouts { get }
     /// Added to the child environment of every process started for this CLI.
     var extraEnvironment: [String: String] { get }
+    /// Copied from the app's environment for this CLI only, when present (section 5.6.2). Default: none.
+    var passedThroughNames: [String] { get }
     /// The constant of section 5.6.6.
     var pdfDelivery: CLIPDFDelivery { get }
 
@@ -26,6 +28,10 @@ protocol CLIAdapter: Sendable {
     func signInStatus(_ binary: ResolvedBinary, host: CLIHost) async -> ProviderAvailability
     /// The model list; `binary` resolves the CLI only when the list needs it.
     func listModels(host: CLIHost, binary: @Sendable () async -> Result<ResolvedBinary, LLMError>) async throws -> [ModelInfo]
+}
+
+extension CLIAdapter {
+    var passedThroughNames: [String] { [] }
 }
 
 /// What a prepared run sends to the process.

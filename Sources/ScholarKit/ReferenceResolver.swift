@@ -107,6 +107,18 @@ public actor ReferenceResolver: ReferenceResolving {
         return URL(string: "https://scholar.google.com/scholar?q=" + ServiceRequests.queryEncoded(query)) ?? base
     }
 
+    /// Bytes of the downloaded PDFs in `<cacheDirectory>/papers/` (Settings ▸ References).
+    public func cachedPDFBytes() async -> Int {
+        Int(pdfStore.totalBytes())
+    }
+
+    /// Deletes every downloaded PDF (Settings ▸ References ▸ Clear). A download under way then fails with "it could not
+    /// be saved".
+    public func clearPDFCache() async {
+        let removed = pdfStore.removeAll()
+        Log.event("scholar.pdf.cleared", ["files": .int(removed)])
+    }
+
     // ---- the per-document cache ----
 
     private func cachedLookup(_ key: String, in document: String) -> ResolvedReference? {

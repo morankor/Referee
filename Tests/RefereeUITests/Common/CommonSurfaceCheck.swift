@@ -261,7 +261,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: Set<String> = settings.storedSecrets
     let _: [ProviderDescriptor] = settings.providers
     settings.update { $0.privacy.localOnly = true }
-    settings.setSecret(nil, for: "anthropic-api")
+    await settings.setSecret(nil, for: "anthropic-api")
     await settings.refreshAvailability(of: nil)
     await settings.refreshModels(of: "ollama")
     let _: Result<String, LLMError> = await settings.sendTestPrompt(to: "ollama")

@@ -165,9 +165,12 @@ public protocol PaperRendering: Sendable {
 }
 
 public protocol PaperService: Sendable {
+    /// Every successful load is matched by exactly one `unload` of that document: the service counts loads, so a file
+    /// open in two windows stays loaded until both have closed.
     func load(url: URL) async throws -> LoadedPaper
     func load(data: Data, fileName: String) async throws -> LoadedPaper
-    /// Highlight rectangles for spans: one rect per text line touched, margin numbers excluded.
+    /// Highlight rectangles for spans: one rect per text line touched, margin numbers excluded. Only for a document
+    /// loaded through this service and not yet unloaded; [] otherwise.
     func rects(for spans: [TextSpan], in document: DocumentRef) async -> [PageRect]
     func unload(_ document: DocumentRef) async
 }
@@ -176,7 +179,7 @@ public enum PaperError: RefereeError, Equatable {
     case unreadable(String)
     case notAPDF
     case encrypted
-    case empty
+    case empty                           // no pages; PDFKit on macOS 26 opens no such file, so it arrives as .unreadable
     public var userMessage: String {
         switch self {
         case .unreadable(let why): return "The file could not be read (\(why))."

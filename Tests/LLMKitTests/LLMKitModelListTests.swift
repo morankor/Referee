@@ -34,6 +34,15 @@ import TestSupport
         #expect(sent.first?.url?.host == "api.anthropic.com")
     }
 
+    /// Settings' "Show all" goes through the protocol (Gate 1): the provider's own implementation answers, not the
+    /// protocol's default, which would apply the filter.
+    @Test func showAllReachesTheProviderThroughTheProtocol() async throws {
+        StubURLProtocol.setHandler { _ in Stub.json(AppendixDVariants.openaiModels) }
+        let provider: any LLMProvider = Harness().provider("openai-api")
+        #expect(try await provider.listModels(includeHidden: false).count == 3)
+        #expect(try await provider.listModels(includeHidden: true).count == 15)
+    }
+
     @Test func openAIIsSortedNewestFirstAndFiltered() async throws {
         StubURLProtocol.setHandler { _ in Stub.json(AppendixDVariants.openaiModels) }
         let provider = Harness().provider("openai-api")
@@ -47,7 +56,7 @@ import TestSupport
         #expect(request.timeoutInterval == 30)
 
         // "Show all" turns the filter off; the order stays newest first.
-        let all = try await provider.listModels(showAll: true)
+        let all = try await provider.listModels(includeHidden: true)
         #expect(all.count == 15)
         #expect(all.first?.id == "sora-2")
         #expect(all.last?.id == "whisper-1")
@@ -71,7 +80,7 @@ import TestSupport
         #expect(sent.allSatisfy { $0.url?.path == "/v1/models" && $0.timeoutInterval == 30 })
         #expect(sent.allSatisfy { $0.value(forHTTPHeaderField: "x-goog-api-key") == "test-key-gemini-0001" })
 
-        let all = try await provider.listModels(showAll: true)
+        let all = try await provider.listModels(includeHidden: true)
         #expect(all.map(\.id) == ["m", "text-embedding-004", "flash", "flash-tts", "flash-live", "veo-3", "flash-image"])
     }
 
@@ -148,7 +157,7 @@ import TestSupport
 
     @Test func aVendorThatRepeatsItsPageTokenCannotKeepTheAppAsking() async throws {
         StubURLProtocol.setHandler { _ in Stub.json(AppendixDVariants.geminiModelsPage1) }      // always "nextPageToken": "t"
-        let models = try await Harness().provider("gemini-api").listModels(showAll: true)
+        let models = try await Harness().provider("gemini-api").listModels(includeHidden: true)
         #expect(StubURLProtocol.recordedRequests.count == 2)
         #expect(models.count == 4)
     }

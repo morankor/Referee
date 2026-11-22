@@ -22,6 +22,8 @@ public actor FileSessionStore: SessionStoring {     // <dataDirectory>/sessions
     static let quarantineStem = "session.corrupt"
 
     private let directory: URL
+    /// What the last load of each document repaired (plan section 4.5), for `recoveryNotice(sha256:)`.
+    private var notices: [String: String] = [:]
     /// Tests only: runs after the new content is complete in session.json.tmp and before it is renamed into place.
     /// A throw there is a failure at the most delicate moment of a save.
     private let beforeReplacing: (@Sendable (URL) throws -> Void)?
@@ -40,6 +42,7 @@ public actor FileSessionStore: SessionStoring {     // <dataDirectory>/sessions
     /// `StoreError.corrupt` names the renamed file. A file of a newer format throws `StoreError.newerSchema` and stays
     /// exactly as it is.
     public func loadSession(sha256: String) async throws -> ReviewSession? {
+        notices[sha256] = nil
         let folder = try folder(for: sha256)
         let file = folder.appendingPathComponent(Self.fileName)
         let backup = folder.appendingPathComponent(Self.backupName)
@@ -67,6 +70,10 @@ public actor FileSessionStore: SessionStoring {     // <dataDirectory>/sessions
         switch try read(backup) {
         case .value(let session):
             Log.event("persistence.session.restoredFromBackup", ["afterDamage": .bool(damaged != nil)])
+            if let damaged {
+                notices[sha256] = "The saved review was damaged, so its previous version was loaded from the backup. "
+                    + "The damaged file was kept as \(damaged.lastPathComponent)."
+            }
             return session
         case .newer(let found):
             Log.event("persistence.session.newerSchema", ["found": .int(found)])
@@ -126,6 +133,12 @@ public actor FileSessionStore: SessionStoring {     // <dataDirectory>/sessions
         }
     }
 
+    /// Set by `loadSession` when it loaded the backup because session.json was damaged; nil after a load that repaired
+    /// nothing. (A session.json that is simply missing, after an earlier repair, is not reported again.)
+    public func recoveryNotice(sha256: String) async -> String? {
+        notices[sha256]
+    }
+
     /// One summary per folder that holds a readable session (the backup when session.json is damaged or missing, as
     /// `loadSession` would return it), newest first. Reads only: nothing is renamed here. Folders without a session
     /// (a references.json alone), damaged ones and ones of a newer format are left out.
@@ -153,6 +166,22 @@ public actor FileSessionStore: SessionStoring {     // <dataDirectory>/sessions
         } catch {
             throw StoreError.io("the review data could not be deleted: \(error.localizedDescription)")
         }
+    }
+
+    /// Removes every document folder (Settings ▸ Privacy, "Delete all review data…"): readable, damaged and newer ones
+    /// alike. Only folders with a valid key are touched; anything else in `directory` stays.
+    public func deleteAllSessions() async throws {
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        var failures = 0
+        for name in names where Self.isValidKey(name) {
+            let folder = directory.appendingPathComponent(name, isDirectory: true)
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDirectory), isDirectory.boolValue else { continue }
+            if (try? FileManager.default.removeItem(at: folder)) == nil { failures += 1 }
+        }
+        notices = [:]
+        Log.event("persistence.session.deletedAll", ["failures": .int(failures)])
+        if failures > 0 { throw StoreError.io("\(failures) review folder(s) could not be deleted") }
     }
 
     // ---- helpers ----

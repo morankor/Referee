@@ -106,7 +106,8 @@ import TestSupport
             _ = try await EngineTest.collect(engine.ask(paper: paper, conversation: Conversation(id: UUID(), createdAt: Date()), question: "Why?",
                                                         context: context))
             _ = try await EngineTest.collect(engine.generateReport(paper: paper, session: session, context: context))
-            _ = try await EngineTest.collect(engine.reviseVoice(reportMarkdown: "## Summary assessment\n\nFine.", findings: [], context: context))
+            _ = try await EngineTest.collect(engine.reviseVoice(draft: ReportDraft(markdown: "## Summary assessment\n\nFine.", userEdited: false),
+                                                                findings: [], context: context))
         }
         let requests = text.recordedRequests + pdf.recordedRequests
         #expect(requests.count == 10)

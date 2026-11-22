@@ -317,10 +317,15 @@ import TestSupport
         let harness = try await Self.harness([comment], engine: engine)
         harness.model.sendDiscussionMessage("Why?", commentID: comment.id)
         await harness.finishJobs()
-        #expect(harness.model.banner?.message == "Reply stopped: Rate limited: slow down")
-        #expect(harness.model.banner?.action == .retry)
+        // Shown inline under the thread, with Retry; no banner (Gate 1, sections 9.3 and 9.9).
+        #expect(harness.model.replyFailure == ReplyFailure(targetID: comment.id, message: "Rate limited: slow down"))
+        #expect(harness.model.banner == nil)
         #expect(harness.model.session?.comments.first?.thread.map(\.text) == ["Why?"])
-        harness.model.retryLastFailedJob()
+        harness.model.retryLastFailedJob()                                // the banner's Retry is for the review lane only
+        await harness.finishJobs()
+        #expect(harness.calls(of: "discuss") == 1)
+        harness.model.retryFailedReply()
+        #expect(harness.model.replyFailure == nil)
         await harness.finishJobs()
         #expect(harness.calls(of: "discuss") == 2)
         #expect(harness.model.session?.comments.first?.thread.map(\.text) == ["Why?"])   // the message is not sent into the thread twice

@@ -28,8 +28,8 @@ final class TextLintEngine: ReviewEngineProtocol, @unchecked Sendable {
     func generateReport(paper: LoadedPaper, session: ReviewSession, context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
         base.generateReport(paper: paper, session: session, context: context)
     }
-    func reviseVoice(reportMarkdown: String, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
-        base.reviseVoice(reportMarkdown: reportMarkdown, findings: findings, context: context)
+    func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+        base.reviseVoice(draft: draft, findings: findings, context: context)
     }
     func lint(reportMarkdown: String) -> [LintFinding] {
         lock.withLock { texts.append(reportMarkdown) }

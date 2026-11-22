@@ -10,18 +10,11 @@ import RefereeCore
 public final class ReviewEngine: ReviewEngineProtocol {
     private let dependencies: EngineDependencies
 
+    /// `debugDumpDirectory`: where the debug transcript of section 10.5 goes; nil = none. `LiveDependencies` passes the
+    /// folder named by `REFEREE_DEBUG_DUMP` in the environment it was given.
     public init(providers: any ProviderResolving, paperService: any PaperService,
                 matcherFactory: @escaping @Sendable (PaperText) -> any QuoteMatching, renderer: any PaperRendering,
-                physicalMemoryBytes: UInt64 = ProcessInfo.processInfo.physicalMemory) {
-        dependencies = EngineDependencies(providers: providers, paperService: paperService, matcherFactory: matcherFactory, renderer: renderer,
-                                          physicalMemoryBytes: physicalMemoryBytes,
-                                          debugDump: DebugDump(environment: ProcessInfo.processInfo.environment))
-    }
-
-    /// For tests: the debug transcript (section 10.5) goes to `debugDumpDirectory` instead of `REFEREE_DEBUG_DUMP`.
-    init(providers: any ProviderResolving, paperService: any PaperService,
-         matcherFactory: @escaping @Sendable (PaperText) -> any QuoteMatching, renderer: any PaperRendering,
-         physicalMemoryBytes: UInt64, debugDumpDirectory: URL?) {
+                physicalMemoryBytes: UInt64 = ProcessInfo.processInfo.physicalMemory, debugDumpDirectory: URL? = nil) {
         dependencies = EngineDependencies(providers: providers, paperService: paperService, matcherFactory: matcherFactory, renderer: renderer,
                                           physicalMemoryBytes: physicalMemoryBytes, debugDump: DebugDump(directory: debugDumpDirectory))
     }
@@ -66,11 +59,10 @@ public final class ReviewEngine: ReviewEngineProtocol {
         }
     }
 
-    public func reviseVoice(reportMarkdown: String, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+    public func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
         let dependencies = self.dependencies
         return JobStream.make { sink in
-            await ReportJob(dependencies: dependencies, paper: nil, kind: .voiceRevision(markdown: reportMarkdown, findings: findings), context: context,
-                            sink: sink).run()
+            await ReportJob(dependencies: dependencies, paper: nil, kind: .voiceRevision(draft, findings: findings), context: context, sink: sink).run()
         }
     }
 

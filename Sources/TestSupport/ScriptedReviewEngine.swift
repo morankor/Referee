@@ -62,7 +62,7 @@ public final class ScriptedReviewEngine: ReviewEngineProtocol, @unchecked Sendab
         return play(reportEvents)
     }
 
-    public func reviseVoice(reportMarkdown: String, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+    public func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
         record("revise", context)
         return play(reportEvents)
     }

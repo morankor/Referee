@@ -72,22 +72,23 @@ final class SettingsNotificationCounter: @unchecked Sendable {
         let parts = try Self.make()
         let model = parts.model
         let value = "sk-test-0123456789"
-        model.setSecret(value, for: "anthropic-api")
+        await model.setSecret(value, for: "anthropic-api")
         #expect(model.storedSecrets == ["anthropic-api"])
         #expect(try parts.secrets.secret(for: "anthropic-api") == value)
         // The value appears in no published state.
         let encoded = String(decoding: try JSONEncoder().encode(model.settings), as: UTF8.self)
         #expect(!encoded.contains(value))
         #expect(!model.modelErrors.values.contains { $0.contains(value) })
+        #expect(!model.secretErrors.values.contains { $0.contains(value) })
         #expect(!"\(model.availability)".contains(value))
         #expect(!"\(model.models)".contains(value))
 
-        model.setSecret("  \n", for: "anthropic-api")                    // blank: removed
+        await model.setSecret("  \n", for: "anthropic-api")                    // blank: removed
         #expect(model.storedSecrets.isEmpty)
         #expect(try parts.secrets.secret(for: "anthropic-api") == nil)
-        model.setSecret("  key-with-a-newline\n", for: "openai-api")
+        await model.setSecret("  key-with-a-newline\n", for: "openai-api")
         #expect(try parts.secrets.secret(for: "openai-api") == "key-with-a-newline")
-        model.setSecret(nil, for: "openai-api")
+        await model.setSecret(nil, for: "openai-api")
         #expect(model.storedSecrets.isEmpty)
     }
 
@@ -95,18 +96,19 @@ final class SettingsNotificationCounter: @unchecked Sendable {
         let secrets = InMemorySecretStore(["anthropic-api": "old"])
         let parts = try Self.make(secrets: secrets)
         let model = parts.model
-        model.setSecret("first", for: "xai-api")
+        await model.setSecret("first", for: "xai-api")
         #expect(model.storedSecrets == ["xai-api"])
         secrets.failReads = true
-        model.setSecret("new", for: "anthropic-api")
+        await model.setSecret("new", for: "anthropic-api")
         #expect(model.storedSecrets == ["xai-api"])                      // unchanged
-        #expect(model.modelErrors["anthropic-api"] == SecretError.unreadable(status: -25293).userMessage)
-        model.setSecret(nil, for: "xai-api")
+        #expect(model.secretErrors["anthropic-api"] == SecretError.unreadable(status: -25293).userMessage)
+        #expect(model.modelErrors["anthropic-api"] == nil)               // a Keychain error is not a model-list error (Gate 1)
+        await model.setSecret(nil, for: "xai-api")
         #expect(model.storedSecrets == ["xai-api"])                      // a removal that failed removes nothing
         secrets.failReads = false
         #expect(try secrets.secret(for: "anthropic-api") == "old")       // the other key survived
-        model.setSecret("new", for: "anthropic-api")
-        #expect(model.modelErrors["anthropic-api"] == nil)               // the error goes once the key is stored
+        await model.setSecret("new", for: "anthropic-api")
+        #expect(model.secretErrors["anthropic-api"] == nil)              // the error goes once the key is stored
         #expect(model.storedSecrets == ["xai-api", "anthropic-api"])
     }
 

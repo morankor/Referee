@@ -13,13 +13,15 @@ import RefereeCore
 // - Pre-flight is synchronous: `startReview()` and the other job methods return with the banner or the consent card
 //   already in place whenever no plan has to be computed first (Task.immediate).
 // - The consent card's plan is `sendPlan` when it was computed for the job's provider and context, else
-//   `engine.plan` for that provider. `answerConsent(granted: true)` always records consent (the API has no way to say
-//   "Ask again next time"). A pending consent card is answered "no" by `cancelRun`/`cancelReply` of its lane and by close.
+//   `engine.plan` for that provider. `answerConsent(granted: true)` records consent unless `askAgain` is set ("Ask
+//   again next time"). A pending consent card is answered "no" by `cancelRun`/`cancelReply` of its lane and by close.
 // - Banners: info notices fade after 6 s; errors and warnings stay until dismissed; a banner never replaces one of a
 //   more serious style. Failures: "Review stopped: …", "Report stopped: …", "Voice revision stopped: …",
-//   "Reply stopped: …", each with Retry; a missing or disabled provider: "Set up an AI provider" (Open Settings);
-//   Local only: "Remote providers are blocked by Local only"; both are errors.
-// - Every run that started is recorded in `session.runs`, also when it was cancelled or its stream threw.
+//   each with Retry; a missing or disabled provider: "Set up an AI provider" (Open Settings); Local only: "Remote
+//   providers are blocked by Local only"; both are errors. A failed reply is no banner: `replyFailure` shows it inline.
+// - Every run that started is recorded in `session.runs`, also when it was cancelled or its stream threw. A stream that
+//   ends without `.finished` was cancelled (Appendix A.6): recorded as cancelled, no banner.
+// - unload is called once per successful load: by close, and by open when the document it loaded is no longer wanted.
 
 @MainActor @Observable
 public final class ReviewSessionModel {
@@ -48,6 +50,8 @@ public final class ReviewSessionModel {
     public private(set) var readerCommand: (serial: Int, command: ReaderCommand)?
     public private(set) var selection: SelectionInfo?            // normalised: no margin numbers, watermarks, headers or footers
     public private(set) var composing: ComposingComment?
+    public private(set) var replyFailure: ReplyFailure?          // a reply that failed, shown inline with Retry (sections 9.3, 9.9)
+    public private(set) var references: [Int: ResolvedReference] = [:]   // entry id → its latest lookup (References list icons, card)
     public var selectedCommentID: UUID?
     public var openThreadCommentID: UUID?        // the comment whose discussion thread is expanded
     public var editingCommentID: UUID?           // the comment being edited in place
@@ -61,7 +65,8 @@ public final class ReviewSessionModel {
     @ObservationIgnored private(set) var replyLaneTask: Task<Void, Never>?
     @ObservationIgnored private var consentContinuation: CheckedContinuation<Bool, Never>?
     @ObservationIgnored private var consentLane: ModelLane?
-    @ObservationIgnored private(set) var lastFailedJob: ModelJob?
+    @ObservationIgnored private(set) var lastFailedJob: ModelJob?          // review lane: the banner's Retry
+    @ObservationIgnored private(set) var failedReplyJob: ModelJob?         // reply lane: the inline Retry
 
     // ---- document, providers, plan ----
     @ObservationIgnored private var matcher: (any QuoteMatching)?
@@ -96,11 +101,9 @@ public final class ReviewSessionModel {
         static let protectedPDF = "This PDF is protected. Its text is readable, so reviews send the text, not the file."
         static let noTextLayer = "This PDF has no text layer. Comments can be tied to pages only, and only providers that accept PDF files can review it."
         static let approveFirst = "Approve at least one comment first."
-        static let endedEarly = "The run ended before it finished."
         static func reviewStopped(_ reason: String) -> String { "Review stopped: " + reason }
         static func reportStopped(_ reason: String) -> String { "Report stopped: " + reason }
         static func revisionStopped(_ reason: String) -> String { "Voice revision stopped: " + reason }
-        static func replyStopped(_ reason: String) -> String { "Reply stopped: " + reason }
     }
 
     // ---- derived ----
@@ -158,15 +161,21 @@ public final class ReviewSessionModel {
             phase = .failed(message: Self.message(for: error, otherwise: "The file could not be opened."))
             return
         }
-        guard generation == openGeneration else { return }
+        guard generation == openGeneration else {
+            // Closed or replaced while loading: `close` did not see this paper, so it is unloaded here (one unload per load).
+            await dependencies.paperService.unload(loaded.ref)
+            return
+        }
         paper = loaded
         Log.event("model.open", ["pages": .int(loaded.ref.pageCount), "encrypted": .bool(loaded.isEncrypted)])
 
         var stored: ReviewSession?
         var storeProblem: String?
         var persist = true
+        var recovery: String?
         do {
             stored = try await dependencies.sessions.loadSession(sha256: loaded.ref.sha256)
+            recovery = await dependencies.sessions.recoveryNotice(sha256: loaded.ref.sha256)
         } catch {
             storeProblem = Self.message(for: error, otherwise: "The saved review could not be read.")
             // A damaged file has been moved aside by the store, so a new session may take its place. Anything else (a
@@ -213,7 +222,9 @@ public final class ReviewSessionModel {
 
         if loaded.isEncrypted { showBanner(.info, Message.protectedPDF) }
         if !loaded.text.hasTextLayer { showBanner(.warning, Message.noTextLayer) }
+        if let recovery { showBanner(.warning, recovery) }                       // section 4.5: the backup was loaded
         if let storeProblem { showBanner(.error, storeProblem) }
+        if settings.privacy.resolveReferencesInBackground { lookUpAllReferences() }   // section 8.7, off by default
     }
 
     /// Answers a pending consent card with "no", stops both lanes, saves what is pending, and forgets the document.
@@ -244,11 +255,14 @@ public final class ReviewSessionModel {
         citationLookup = .idle
         selection = nil
         composing = nil
+        replyFailure = nil
+        references = [:]
         selectedCommentID = nil
         openThreadCommentID = nil
         editingCommentID = nil
         matcher = nil
         lastFailedJob = nil
+        failedReplyJob = nil
         persistenceEnabled = false
         hasUnsavedChanges = false
         refreshPlan()
@@ -289,11 +303,12 @@ public final class ReviewSessionModel {
         refreshPlan()
     }
 
-    /// The consent card's answer. Yes records consent for the provider in this session and lets the job run; no
-    /// leaves everything as it was.
-    public func answerConsent(granted: Bool) {
+    /// The consent card's answer. Yes lets the job run and records consent for the provider in this session, unless
+    /// `askAgain` ("Ask again next time" ticked): then the next job to that provider asks again. No leaves everything
+    /// as it was.
+    public func answerConsent(granted: Bool, askAgain: Bool = false) {
         guard let request = consentRequest else { return }
-        if granted, session?.consents.contains(where: { $0.providerID == request.provider.id }) == false {
+        if granted, !askAgain, session?.consents.contains(where: { $0.providerID == request.provider.id }) == false {
             let record = ConsentRecord(providerID: request.provider.id, grantedAt: clock.now())
             mutateSession { $0.consents.append(record) }
         }
@@ -320,11 +335,20 @@ public final class ReviewSessionModel {
         cancelLane(.reply)
     }
 
-    /// Runs again the job whose failure the banner reports.
+    /// Runs again the review-lane job whose failure the banner reports.
     public func retryLastFailedJob() {
         guard let job = lastFailedJob, laneJob(job.lane) == nil else { return }
         lastFailedJob = nil
         if banner?.action == .retry { dismissBanner() }
+        start(job)
+    }
+
+    /// Sends again the discussion message or question whose reply failed (`replyFailure`); the message is not added
+    /// to the thread a second time.
+    public func retryFailedReply() {
+        guard let job = failedReplyJob, laneJob(.reply) == nil else { return }
+        failedReplyJob = nil
+        replyFailure = nil
         start(job)
     }
 
@@ -374,12 +398,20 @@ public final class ReviewSessionModel {
         if let previous = ordered[..<position].last(where: { ids.contains($0.id) }) { select(previous.id) }
     }
 
-    /// `.reveal` of the selected comment's rectangles, or `.goToPage` when it has none. A conversation's id in
-    /// `selectedCommentID` reveals that conversation's passage (the Chat tab has no method of its own for this).
+    /// `.reveal` of the selected comment's rectangles, or `.goToPage` when it has none.
     public func revealSelectedCommentInPDF() {
-        guard let id = selectedCommentID else { return }
-        let anchor = session?.comments.first(where: { $0.id == id })?.anchor ?? session?.conversations.first(where: { $0.id == id })?.anchor
-        guard let anchor else { return }
+        guard let id = selectedCommentID, let anchor = session?.comments.first(where: { $0.id == id })?.anchor else { return }
+        reveal(anchor)
+    }
+
+    /// The Chat tab's quoted passage (section 9.5): `.reveal` of the conversation's rectangles, or `.goToPage`. A
+    /// conversation about the whole paper has no passage.
+    public func revealConversationInPDF(_ id: UUID) {
+        guard let anchor = session?.conversations.first(where: { $0.id == id })?.anchor else { return }
+        reveal(anchor)
+    }
+
+    private func reveal(_ anchor: Anchor) {
         if !anchor.rects.isEmpty {
             issue(.reveal(rects: anchor.rects, flash: true))
         } else if let page = anchor.spans.first?.pageIndex ?? anchor.pageIndex {
@@ -512,6 +544,7 @@ public final class ReviewSessionModel {
 
     public func deleteConversation(_ id: UUID) {
         if streamingTargetID == id { cancelReply() }
+        if replyFailure?.targetID == id { clearReplyFailure() }
         mutateSession { $0.conversations.removeAll { $0.id == id } }
     }
 
@@ -563,8 +596,14 @@ public final class ReviewSessionModel {
         lint(report.markdown)
     }
 
+    /// Throws `ExportError`.
     public func exportReport(format: ExportFormat, to url: URL) throws {
-        try ReportExporter.data(markdown: session?.report?.markdown ?? "", format: format).write(to: url, options: .atomic)
+        let data = try ReportExporter.data(markdown: session?.report?.markdown ?? "", format: format)
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            throw ExportError.couldNotWrite(error.localizedDescription)
+        }
     }
 
     public func reportText(format: ExportFormat) -> String {   // for the pasteboard (.markdown / .plainText)
@@ -589,6 +628,11 @@ public final class ReviewSessionModel {
 
     public func fetchReferencePDF(_ reference: ResolvedReference) async throws -> URL {
         try await dependencies.resolver.fetchPDF(for: reference)
+    }
+
+    /// The card's "Search Google Scholar" (section 8.6): `ReferenceResolving.searchURL(for:)`. No request is made.
+    public func searchURL(for entry: BibEntry) -> URL {
+        dependencies.resolver.searchURL(for: entry)
     }
 
     // ---- called by the PDF view ----
@@ -918,7 +962,8 @@ public final class ReviewSessionModel {
         runState = .running(kind: kind, phase: nil, startedAt: clock.now())
         streamingReportText = ""
         let stream = revising
-            ? dependencies.engine.reviseVoice(reportMarkdown: previous?.markdown ?? "", findings: lintFindings, context: target.context)
+            ? dependencies.engine.reviseVoice(draft: previous ?? ReportDraft(markdown: "", userEdited: false), findings: lintFindings,
+                                              context: target.context)
             : dependencies.engine.generateReport(paper: paper, session: session, context: target.context)
         var started: RunRecord?
         var finished: (draft: ReportDraft, run: RunRecord)?
@@ -932,6 +977,8 @@ public final class ReviewSessionModel {
                     runState = .running(kind: kind, phase: nil, startedAt: run.startedAt)
                 case .textDelta(let text):
                     streamingReportText += text
+                case .notice(let text):
+                    showBanner(.info, text)
                 case .finished(let draft, let run):
                     finished = (draft, run)
                 }
@@ -969,14 +1016,16 @@ public final class ReviewSessionModel {
         lint(report.markdown)
     }
 
+    /// The engine's draft is the revised one with its new text (Appendix A.6); the old text goes to `versions`.
     private func applyRevisedReport(_ draft: ReportDraft, target: JobTarget) {
-        guard var report = session?.report else { return }
+        guard let old = session?.report else { return }
         let now = clock.now()
-        report.versions = ModelSupport.versions(afterSaving: report, note: "before voice revision", at: now)
-        report.markdown = draft.markdown
-        report.recommendation = draft.recommendation ?? ModelSupport.recommendation(in: draft.markdown) ?? report.recommendation
+        var report = draft
+        report.versions = ModelSupport.versions(afterSaving: old, note: "before voice revision", at: now)
+        report.recommendation = draft.recommendation ?? ModelSupport.recommendation(in: draft.markdown) ?? old.recommendation
         report.generatedAt = draft.generatedAt ?? now
         report.provider = draft.provider ?? target.ref
+        if report.basedOnCommentIDs.isEmpty { report.basedOnCommentIDs = old.basedOnCommentIDs }
         report.userEdited = false
         mutateSession { $0.report = report }
         lint(report.markdown)
@@ -996,6 +1045,7 @@ public final class ReviewSessionModel {
                 switch event {
                 case .started(let run): outcome.started = run
                 case .textDelta(let text): streamingReplyText += text
+                case .notice(let text): showBanner(.info, text)
                 case .finished(let reply, let proposal, let run): outcome.finished = (reply, proposal, run)
                 }
             }
@@ -1017,6 +1067,7 @@ public final class ReviewSessionModel {
             messageID = sent.id
             updateComment(commentID) { $0.thread.append(sent) }
         }
+        clearReplyFailure()
         streamingTargetID = commentID
         streamingReplyText = ""
         let outcome = await playReply(dependencies.engine.discuss(paper: paper, comment: transcript, message: message, context: target.context))
@@ -1025,8 +1076,8 @@ public final class ReviewSessionModel {
         streamingReplyText = ""
         switch status {
         case .failed(let reason):
-            lastFailedJob = .discussion(commentID: commentID, message: message, sentMessageID: messageID)
-            showBanner(.error, Message.replyStopped(reason), action: .retry)
+            failedReplyJob = .discussion(commentID: commentID, message: message, sentMessageID: messageID)
+            replyFailure = ReplyFailure(targetID: commentID, message: reason)
         case .cancelled:
             break
         case .completed, .running:
@@ -1062,6 +1113,7 @@ public final class ReviewSessionModel {
             updateConversation(conversation.id) { $0.messages.append(sent) }
         }
         sidebarTab = .chat
+        clearReplyFailure()
         streamingTargetID = conversation.id
         streamingReplyText = ""
         let outcome = await playReply(dependencies.engine.ask(paper: paper, conversation: transcript, question: question, context: target.context))
@@ -1070,8 +1122,8 @@ public final class ReviewSessionModel {
         streamingReplyText = ""
         switch status {
         case .failed(let reason):
-            lastFailedJob = .question(conversationID: conversation.id, selection: nil, question: question, sentMessageID: messageID)
-            showBanner(.error, Message.replyStopped(reason), action: .retry)
+            failedReplyJob = .question(conversationID: conversation.id, selection: nil, question: question, sentMessageID: messageID)
+            replyFailure = ReplyFailure(targetID: conversation.id, message: reason)
         case .cancelled:
             break
         case .completed, .running:
@@ -1082,13 +1134,14 @@ public final class ReviewSessionModel {
     }
 
     /// Appends the run to `session.runs` and returns how it ended. A run whose stream ended without `.finished` is
-    /// recorded from its `.started` record: cancelled when the job was cancelled, failed otherwise.
+    /// recorded from its `.started` record: failed when the stream threw (and the job was not cancelled), cancelled
+    /// otherwise, since only a consumer cancelled between two events misses `.finished` (Appendix A.6).
     private func record(started: RunRecord?, finished: RunRecord?, thrown: String?) -> RunStatus {
-        let cancelled = Task.isCancelled
+        let unfinished: RunStatus = Task.isCancelled ? .cancelled : thrown.map { .failed($0) } ?? .cancelled
         var run = finished
         if run == nil, var record = started {
             record.finishedAt = clock.now()
-            record.status = cancelled ? .cancelled : .failed(thrown ?? Message.endedEarly)
+            record.status = unfinished
             run = record
         }
         if let run {
@@ -1098,9 +1151,7 @@ public final class ReviewSessionModel {
             Log.event("model.run.end", ["kind": .id(run.kind.rawValue), "failed": .bool(failed)])
             return run.status
         }
-        if cancelled { return .cancelled }
-        if let thrown { return .failed(thrown) }
-        return .completed
+        return unfinished
     }
 
     // ---- comments and anchors ----
@@ -1152,6 +1203,12 @@ public final class ReviewSessionModel {
         if let id = editingCommentID, removed.contains(id) { editingCommentID = nil }
         if let id = openThreadCommentID, removed.contains(id) { openThreadCommentID = nil }
         if let id = streamingTargetID, removed.contains(id) { cancelReply() }
+        if let id = replyFailure?.targetID, removed.contains(id) { clearReplyFailure() }
+    }
+
+    private func clearReplyFailure() {
+        replyFailure = nil
+        failedReplyJob = nil
     }
 
     /// The anchor of a passage the referee selected (sections 6.9, 7.4): the normalised selection, confidence `.exact`,
@@ -1256,9 +1313,30 @@ public final class ReviewSessionModel {
         let resolver = dependencies.resolver
         track { [weak self] in
             let references = await Self.resolveAll(entries, with: resolver, document: document)
-            guard let self, generation == self.lookupGeneration else { return }
+            guard let self else { return }
+            self.remember(references, document: document)            // also when a later lookup took the card over
+            guard generation == self.lookupGeneration else { return }
             self.citationLookup = .resolved(target: target, entries: entries, references: references)
         }
+    }
+
+    /// Settings ▸ References "Look up all references when a document opens" (section 8.7): every entry, through the
+    /// resolver's own rate limits; the results fill `references`, nothing else changes.
+    private func lookUpAllReferences() {
+        guard let paper, let entries = citations?.entries, !entries.isEmpty else { return }
+        let resolver = dependencies.resolver
+        let document = paper.ref.sha256
+        Log.event("model.references.background", ["entries": .int(entries.count)])
+        track { [weak self] in
+            let references = await Self.resolveAll(entries, with: resolver, document: document)
+            self?.remember(references, document: document)
+        }
+    }
+
+    /// Keeps each entry's latest result for the References list, if the document is still the one open.
+    private func remember(_ results: [ResolvedReference], document: String) {
+        guard paper?.ref.sha256 == document else { return }
+        for result in results { references[result.entryID] = result }
     }
 
     /// Every entry at once; the results in the order of `entries`.

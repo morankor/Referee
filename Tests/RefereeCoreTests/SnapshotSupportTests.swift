@@ -87,7 +87,11 @@ import TestSupport
         let byID = Dictionary(uniqueKeysWithValues: rows.map { ($0.descriptor.id, $0.descriptor) })
         #expect(rows.filter(\.descriptor.isLocal).map(\.descriptor.id) == ["ollama"])
         #expect(rows.filter(\.descriptor.isExperimental).map(\.descriptor.id) == ["antigravity-cli", "grok-cli"])
-        #expect(rows.filter(\.descriptor.supportsNativePDF).map(\.descriptor.id) == ["anthropic-api", "openai-api", "gemini-api"])
+        // The two subscription CLIs take the PDF since the delivery experiment of section 5.6.6 (WP5, applied at Gate 1).
+        #expect(rows.filter(\.descriptor.supportsNativePDF).map(\.descriptor.id) == ["anthropic-api", "openai-api", "gemini-api", "claude-cli", "codex-cli"])
+        #expect(byID["codex-cli"]?.pdfDeliveryNote == "sent as page images")
+        #expect(byID["claude-cli"]?.pdfDeliveryNote == nil)
+        #expect(rows.map(\.descriptor.maxPromptBytes) == [nil, nil, nil, nil, nil, 9_000_000, 4_000_000, 4_000_000, 4_000_000])
         #expect(rows.filter { $0.descriptor.authMode == .apiKey }.map(\.descriptor.id) == ["anthropic-api", "openai-api", "gemini-api", "xai-api"])
         #expect(rows.filter { $0.descriptor.authMode == .subscriptionCLI }.map(\.descriptor.id)
                     == ["claude-cli", "codex-cli", "antigravity-cli", "grok-cli"])

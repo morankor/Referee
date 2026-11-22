@@ -258,10 +258,14 @@ import TestSupport
         model.ask("Why?", about: model.selection, in: nil)
         await harness.finishJobs()
         let conversation = try #require(model.session?.conversations.first)
-        model.selectedCommentID = conversation.id
-        model.revealSelectedCommentInPDF()
+        model.revealConversationInPDF(conversation.id)
         #expect(model.readerCommand?.command == .reveal(rects: conversation.anchor?.rects ?? [], flash: true))
         #expect(conversation.anchor?.rects.isEmpty == false)
+        // A conversation's id is not a comment's: revealing the "selected comment" does nothing with it (Gate 1).
+        let serial = model.readerCommand?.serial
+        model.selectedCommentID = conversation.id
+        model.revealSelectedCommentInPDF()
+        #expect(model.readerCommand?.serial == serial)
     }
 
     @Test @MainActor func theReviewerNotesAndVenueAreKept() async throws {

@@ -38,7 +38,8 @@ import TestSupport
 
         let reference = await harness.resolver.resolve(entry, documentSHA256: Documents.first)
 
-        #expect(reference == ResolvedReference(entryID: entry.id, status: .failed, confidence: 0, resolvedAt: harness.clock.now()))
+        #expect(reference == ResolvedReference(entryID: entry.id, status: .failed, failureReason: "Crossref is busy; try again in a minute.",
+                                               confidence: 0, resolvedAt: harness.clock.now()))
         #expect(StubURLProtocol.recordedRequests.count == 2)
         #expect(!FileManager.default.fileExists(atPath: harness.referencesFile(Documents.first).path))
 
@@ -150,9 +151,9 @@ import TestSupport
 
         let reference = await harness.resolver.resolve(entry, documentSHA256: Documents.first)
 
-        #expect(reference == ResolvedReference(entryID: entry.id, status: .failed, doi: "10.1162/neco.1997.9.8.1735",
-                                               landingURL: "https://doi.org/10.1162/neco.1997.9.8.1735", confidence: 0,
-                                               resolvedAt: harness.clock.now()))
+        #expect(reference == ResolvedReference(entryID: entry.id, status: .failed, failureReason: "OpenAlex had a problem answering; try again later.",
+                                               doi: "10.1162/neco.1997.9.8.1735", landingURL: "https://doi.org/10.1162/neco.1997.9.8.1735",
+                                               confidence: 0, resolvedAt: harness.clock.now()))
         #expect(StubURLProtocol.recordedRequests.map { $0.url?.host } == ["api.crossref.org", "api.openalex.org", "api.openalex.org"])
         #expect(!FileManager.default.fileExists(atPath: harness.referencesFile(Documents.first).path))
     }

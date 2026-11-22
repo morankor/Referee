@@ -18,11 +18,15 @@ enum ChildEnvironment {
     /// Appended to the login shell's PATH for anything it lacks. npm-installed CLIs are `#!/usr/bin/env node` scripts.
     static let fallbackPath = ["~/.local/bin", "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
 
-    static func make(from app: [String: String], loginPath: String?, extra: [String: String] = [:]) -> [String: String] {
+    /// `passThrough`: names copied for one CLI only (Claude Code's `CLAUDE_CODE_OAUTH_TOKEN`, Gate 1). `USER` is always
+    /// set, from the app's `USER`, else `LOGNAME`, else the account's name: `claude auth status` finds a subscription
+    /// login only when `USER` is set (WP5).
+    static func make(from app: [String: String], loginPath: String?, extra: [String: String] = [:], passThrough: [String] = []) -> [String: String] {
         var environment: [String: String] = [:]
-        for name in copiedNames {
+        for name in copiedNames + passThrough {
             if let value = app[name], !value.isEmpty { environment[name] = value }
         }
+        if environment["USER"] == nil { environment["USER"] = environment["LOGNAME"] ?? NSUserName() }
         environment["PATH"] = path(loginPath: loginPath, home: app["HOME"])
         environment["TERM"] = "dumb"
         environment["NO_COLOR"] = "1"

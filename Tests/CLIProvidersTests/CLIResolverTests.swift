@@ -12,6 +12,7 @@ struct SpecOverride: CLIAdapter {
     var protectedFlags: [String] { base.protectedFlags }
     var timeouts: CLITimeouts { base.timeouts }
     var extraEnvironment: [String: String] { base.extraEnvironment }
+    var passedThroughNames: [String] { base.passedThroughNames }
     var pdfDelivery: CLIPDFDelivery { base.pdfDelivery }
     func argumentTable(workspace: URL, model: String?, delivery: CLIPDFDelivery) -> CLIArgumentTable {
         base.argumentTable(workspace: workspace, model: model, delivery: delivery)

@@ -38,6 +38,14 @@ public struct ComposingComment: Sendable, Equatable {
     public init(selection: SelectionInfo? = nil) { self.selection = selection }
 }
 
+/// A discussion reply or chat answer that failed: shown inline under its thread or conversation with Retry
+/// (`retryFailedReply()`), not as a banner (sections 9.3, 9.9).
+public struct ReplyFailure: Sendable, Equatable {
+    public var targetID: UUID                // the comment or conversation whose reply failed
+    public var message: String               // the error's userMessage, e.g. "The provider is overloaded."
+    public init(targetID: UUID, message: String) { self.targetID = targetID; self.message = message }
+}
+
 public enum CommentFilter: Sendable, Equatable { case all, pending, approved, rejected, kind(CommentKind) }
 public enum SidebarTab: String, Sendable, CaseIterable { case comments, chat, report }
 public enum ExportFormat: String, Sendable, CaseIterable { case markdown, plainText, docx, pdf }

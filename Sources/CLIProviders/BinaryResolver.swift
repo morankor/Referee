@@ -41,21 +41,23 @@ actor BinaryResolver {
 
     private let host: CLIHost
     private let extraEnvironment: [String: String]
+    private let passThrough: [String]
     private var cache: [String: CacheEntry] = [:]
     /// A failed validation is tried again after this long even if the file did not change (a busy machine can make a
     /// healthy binary miss the version deadline).
     private let failureLifetime: TimeInterval = 300
 
-    init(host: CLIHost, extraEnvironment: [String: String] = [:]) {
+    init(host: CLIHost, extraEnvironment: [String: String] = [:], passThrough: [String] = []) {
         self.host = host
         self.extraEnvironment = extraEnvironment
+        self.passThrough = passThrough
     }
 
     /// Order: (1) the explicit path, (2) the environment override, (3) the spec's candidates, (4) the PATH of the
     /// child (the login shell's PATH and the fallbacks). The first that exists, is executable and answers its version
     /// command in time with exit code 0 wins; its help commands are then run and kept for the flag check.
     func resolve(_ spec: CLISpec, explicitPath: String?) async -> Result<ResolvedBinary, LLMError> {
-        let environment = await host.childEnvironment(extra: extraEnvironment)
+        let environment = await host.childEnvironment(extra: extraEnvironment, passThrough: passThrough)
         var failures: [String] = []
         for path in candidatePaths(spec, explicitPath: explicitPath, childPath: environment["PATH"] ?? "") {
             guard let key = Self.fileKey(path) else { continue }

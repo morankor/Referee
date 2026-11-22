@@ -46,6 +46,25 @@ struct PDFStore: Sendable {
         try? FileManager.default.removeItem(at: partial)
     }
 
+    /// The cached PDFs and their sizes (partial downloads are not counted).
+    private func cachedFiles() -> [(file: URL, size: Int64)] {
+        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey]
+        guard let contents = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: keys) else { return [] }
+        return contents.compactMap { file in
+            guard file.pathExtension == "pdf", let values = try? file.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { return nil }
+            return (file, Int64(values.fileSize ?? 0))
+        }
+    }
+
+    func totalBytes() -> Int64 {
+        cachedFiles().reduce(Int64(0)) { $0 + $1.size }
+    }
+
+    /// Deletes every cached PDF; returns how many were deleted.
+    func removeAll() -> Int {
+        cachedFiles().filter { (try? FileManager.default.removeItem(at: $0.file)) != nil }.count
+    }
+
     /// Deletes the least recently used PDFs until the folder holds at most `limitBytes`, never `kept` (the file just
     /// handed out). Abandoned partial files go too.
     func evict(limitBytes: Int64, keeping kept: URL) {

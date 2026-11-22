@@ -37,10 +37,15 @@ public struct SendPlan: Sendable, Equatable {
     }
 }
 
+/// The three event streams of the engine never throw and end with `.finished`, with one exception: a consumer that is
+/// cancelled between two events sees its stream end without `.finished` (a cold `AsyncThrowingStream` cannot deliver it
+/// then). The consumer records such a run as cancelled itself.
 public enum ReviewEvent: Sendable, Equatable {
     case started(RunRecord)
     case phase(ReviewPhase)
-    case draft(DraftComment)                           // create-or-update by id while the model writes
+    case draft(DraftComment)                           // create-or-update by id while the model writes; a draft that no
+                                                       // .comment has replaced when .finished arrives was dropped (a repeat,
+                                                       // a third strength comment, a block with neither title nor body): discard it
     case comment(ReviewComment, replacesDraft: UUID)   // parsed, validated, anchored
     case notice(String)                                // user-visible, e.g. "The model ignored the output format."
     case digest(String)                                // the model's notes from a review read in parts; at most once, before .finished
@@ -50,12 +55,14 @@ public enum ReviewEvent: Sendable, Equatable {
 public enum ReplyEvent: Sendable, Equatable {
     case started(RunRecord)
     case textDelta(String)
+    case notice(String)                                // user-visible, e.g. the provider refused the PDF and the text was sent instead
     case finished(reply: ThreadMessage, proposal: CommentRevision?, run: RunRecord)   // proposal only for discussions
 }
 
 public enum ReportEvent: Sendable, Equatable {
     case started(RunRecord)
     case textDelta(String)
+    case notice(String)                                // as in ReplyEvent
     case finished(ReportDraft, run: RunRecord)
 }
 
@@ -74,6 +81,8 @@ public protocol ReviewEngineProtocol: Sendable {
     func discuss(paper: LoadedPaper, comment: ReviewComment, message: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error>
     func ask(paper: LoadedPaper, conversation: Conversation, question: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error>
     func generateReport(paper: LoadedPaper, session: ReviewSession, context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
-    func reviseVoice(reportMarkdown: String, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
+    /// `draft` is the report being revised: the result is that draft with the new text, its recommendation parsed again
+    /// (the old one kept when the new text names none) and its comment ids and versions as they were.
+    func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
     func lint(reportMarkdown: String) -> [LintFinding]
 }

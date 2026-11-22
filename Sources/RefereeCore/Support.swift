@@ -45,11 +45,13 @@ public struct AppDependencies: Sendable {
     public var settings: any SettingsStoring
     public var providers: any ProviderResolving
     public var secrets: any SecretStoring
+    public var dataDirectory: URL?               // AppPaths.dataDirectory, shown in Settings ▸ Privacy; nil = not known (tests)
     public init(paperService: any PaperService, matcherFactory: @escaping @Sendable (PaperText) -> any QuoteMatching, citationIndexer: any CitationIndexing,
                 engine: any ReviewEngineProtocol, resolver: any ReferenceResolving, sessions: any SessionStoring, settings: any SettingsStoring,
-                providers: any ProviderResolving, secrets: any SecretStoring) {
+                providers: any ProviderResolving, secrets: any SecretStoring, dataDirectory: URL? = nil) {
         self.paperService = paperService; self.matcherFactory = matcherFactory; self.citationIndexer = citationIndexer; self.engine = engine
         self.resolver = resolver; self.sessions = sessions; self.settings = settings; self.providers = providers; self.secrets = secrets
+        self.dataDirectory = dataDirectory
     }
 }
 

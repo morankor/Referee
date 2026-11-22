@@ -104,7 +104,7 @@ public enum StoreError: RefereeError, Equatable {
     case io(String)
     public var userMessage: String {
         switch self {
-        case .corrupt(let p): return "The saved review at \(p) is damaged; the previous backup was loaded if available."
+        case .corrupt(let p): return "The saved review at \(p) is damaged and has no usable backup."
         case .newerSchema(let f, let s): return "This review was saved by a newer version of Referee (format \(f); this version reads up to \(s))."
         case .io(let m): return "Could not read or write review data (\(m))."
         }
@@ -119,8 +119,23 @@ public protocol SettingsStoring: Sendable {
 }
 
 public protocol SessionStoring: Sendable {
+    /// Dates come back cut to the whole second (ISO 8601, section 3.7). A damaged session.json is moved aside and the
+    /// backup returned in its place; .corrupt only when nothing could be read.
     func loadSession(sha256: String) async throws -> ReviewSession?
+    /// What the last loadSession(sha256:) of that document repaired, as one sentence for the banner of section 4.5
+    /// (the backup was loaded because session.json was damaged); nil when it repaired nothing. Default: nil.
+    func recoveryNotice(sha256: String) async -> String?
     func save(_ session: ReviewSession) async throws  // atomic; keeps one .bak
     func listSessions() async -> [SessionSummary]
     func deleteSession(sha256: String) async throws
+    /// Every document's folder, damaged ones and ones of a newer format included (Settings ▸ Privacy, "Delete all
+    /// review data…"). Default: deleteSession for each listed session.
+    func deleteAllSessions() async throws
+}
+
+extension SessionStoring {
+    public func recoveryNotice(sha256: String) async -> String? { nil }
+    public func deleteAllSessions() async throws {
+        for summary in await listSessions() { try await deleteSession(sha256: summary.id) }
+    }
 }

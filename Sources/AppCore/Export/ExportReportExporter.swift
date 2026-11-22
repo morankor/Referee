@@ -12,7 +12,7 @@ import RefereeCore
     }
 
     /// .markdown and .plainText -> UTF-8; .docx; .pdf (paginated, text on every page; section 6.10). Main actor because of AppKit text layout and printing.
-    /// Failures throw `StoreError.io`.
+    /// Failures throw `ExportError.couldNotCreate`.
     public static func data(markdown: String, format: ExportFormat, paper: PaperSize = .current) throws -> Data {
         switch format {
         case .markdown:

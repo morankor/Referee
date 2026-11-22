@@ -6,8 +6,8 @@ import RefereeCore
 ///
 /// The request is the paper context, the cache boundary, then the comment or the selected passage, the transcript and
 /// the new message, flattened into one user turn (section 5.1). In PDF mode a refused PDF restarts the request once
-/// with text, provided nothing of the reply has been shown yet (there is no notice in a reply stream). On a failure or a
-/// cancellation the reply holds what was shown and the proposal is nil; the run says what happened.
+/// with text, with a `.notice`, provided nothing of the reply has been shown yet. On a failure or a cancellation the
+/// reply holds what was shown and the proposal is nil; the run says what happened.
 final class ReplyJob {
     enum Subject {
         case discussion(ReviewComment, message: String)
@@ -90,6 +90,7 @@ final class ReplyJob {
             } catch JobInterruption.failed(let error) {
                 if paperContext.sendsPDF, !forceText, !shownAny, RunBook.isPDFRejection(error) {
                     forceText = true
+                    sink.send(.notice(RunBook.textFallbackNotice(error, job: "the answer is based on the text extracted from it")))
                     Log.event("engine.reply.textfallback", ["provider": .id(provider.descriptor.id), "error": .id(error.logName)])
                     continue
                 }

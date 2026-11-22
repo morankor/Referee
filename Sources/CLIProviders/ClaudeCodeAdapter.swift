@@ -36,6 +36,8 @@ struct ClaudeCodeAdapter: CLIAdapter {
                           "--no-session-persistence", "--permission-prompts"]
     let timeouts = CLITimeouts(firstOutput: .seconds(300), idle: .seconds(300))
     let extraEnvironment: [String: String] = [:]
+    /// A login made with `claude setup-token` lives in this variable; it reaches `claude` and no other CLI (Gate 1).
+    let passedThroughNames = ["CLAUDE_CODE_OAUTH_TOKEN"]
 
     func argumentTable(workspace: URL, model: String?, delivery: CLIPDFDelivery) -> CLIArgumentTable {
         var leading: [CLIArgument] = delivery == .documentBlock ? [.plain("-p")] : [.plain("-p", Self.promptArgument)]
@@ -79,7 +81,8 @@ struct ClaudeCodeAdapter: CLIAdapter {
     }
 
     func signInStatus(_ binary: ResolvedBinary, host: CLIHost) async -> ProviderAvailability {
-        Self.signInStatus(await host.command(binary, ["auth", "status"], extraEnvironment: extraEnvironment), version: binary.version)
+        Self.signInStatus(await host.command(binary, ["auth", "status"], extraEnvironment: extraEnvironment, passThrough: passedThroughNames),
+                          version: binary.version)
     }
 
     /// `claude auth status` prints JSON and exits 0 when logged in, 1 when not [D]. Only `loggedIn` and `authMethod` are

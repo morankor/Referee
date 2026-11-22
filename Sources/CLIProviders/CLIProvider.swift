@@ -15,7 +15,7 @@ final class CLIProvider: LLMProvider, @unchecked Sendable {
         self.adapter = adapter
         self.environment = environment
         self.host = host
-        self.resolver = BinaryResolver(host: host, extraEnvironment: adapter.extraEnvironment)
+        self.resolver = BinaryResolver(host: host, extraEnvironment: adapter.extraEnvironment, passThrough: adapter.passedThroughNames)
     }
 
     /// The delivery a PDF request uses: the adapter's constant unless a test or the experiment replaces it.
@@ -113,7 +113,8 @@ final class CLIProvider: LLMProvider, @unchecked Sendable {
             let timeouts = host.runTimeouts ?? adapter.timeouts
             let invocation = CLIInvocation(executable: binary.path, arguments: arguments.arguments, input: input.input,
                                            workingDirectory: directory.url,
-                                           environment: await host.childEnvironment(extra: adapter.extraEnvironment),
+                                           environment: await host.childEnvironment(extra: adapter.extraEnvironment,
+                                                                                    passThrough: adapter.passedThroughNames),
                                            firstOutputTimeout: timeouts.firstOutput, idleTimeout: timeouts.idle, totalTimeout: timeouts.total)
             if Task.isCancelled { throw CancellationError() }
             let process = try CLIRunner().start(invocation)

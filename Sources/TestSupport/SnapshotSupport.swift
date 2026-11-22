@@ -60,31 +60,38 @@ public enum SnapshotSupport {
                 .ready(detail: "Ollama 0.40.17"),
                 models: [ModelInfo(id: "gemma4:e4b", displayName: "gemma4:e4b", contextWindow: 131_072, supportsPDFInput: false),
                          ModelInfo(id: "phi4", displayName: "phi4", contextWindow: 16_384, supportsPDFInput: false)]),
-            row("claude-cli", "Claude Code (subscription)", "Anthropic", .subscriptionCLI, destination: "claude", pdf: false,
+            row("claude-cli", "Claude Code (subscription)", "Anthropic", .subscriptionCLI, destination: "claude", pdf: true, maxPromptBytes: 9_000_000,
                 note: "Runs through your Claude Code login with its tools switched off; no session transcript is saved.",
                 .ready(detail: "Logged in"),
                 models: ["default", "opus", "sonnet", "haiku"].map { ModelInfo(id: $0, displayName: $0, contextWindow: 200_000) }),
-            row("codex-cli", "Codex (ChatGPT plan)", "OpenAI", .subscriptionCLI, destination: "codex", pdf: false, streaming: .message,
+            row("codex-cli", "Codex (ChatGPT plan)", "OpenAI", .subscriptionCLI, destination: "codex", pdf: true, pdfNote: "sent as page images",
+                maxPromptBytes: 4_000_000, streaming: .message,
                 note: "Runs through your ChatGPT plan with shell and agent tools switched off; session files are not kept.",
                 .needsSetup(reason: "Codex is not signed in with ChatGPT", hint: "Run `codex login`")),
-            row("antigravity-cli", "Antigravity (Google AI plan)", "Google", .subscriptionCLI, destination: "agy", pdf: false, experimental: true,
+            row("antigravity-cli", "Antigravity (Google AI plan)", "Google", .subscriptionCLI, destination: "agy", pdf: false,
+                maxPromptBytes: 4_000_000, experimental: true,
                 note: "Runs through your Google account. Its tools cannot be switched off: Referee stops the run if it uses one. "
                     + "The CLI may keep a local conversation record.",
                 .needsSetup(reason: "Antigravity is not installed", hint: "curl -fsSL https://antigravity.google/cli/install.sh | bash")),
-            row("grok-cli", "Grok Build", "xAI", .subscriptionCLI, destination: "grok", pdf: false, experimental: true,
+            row("grok-cli", "Grok Build", "xAI", .subscriptionCLI, destination: "grok", pdf: false, maxPromptBytes: 4_000_000, experimental: true,
                 note: "Runs through your xAI account with tools denied. The CLI saves each conversation in ~/.grok and may sync "
                     + "it to your account; Referee deletes the local copy after each run.",
                 .unavailable(reason: unavailableGrok)),
         ]
     }
 
-    /// One static provider. The descriptor fields are the roster values of section 5.2 and the retention notes of section 9.7.
+    /// One static provider. The descriptor fields are the roster values of section 5.2, the retention notes of section
+    /// 9.7 and, for the CLIs, the outcome of the delivery experiment of section 5.6.6 (WP5): Claude Code takes the PDF as
+    /// a document block, Codex as page images, and the transport limits of section 5.6.4. A test in IntegrationTests
+    /// compares these descriptors with the real providers' (Gate 1).
     private static func row(_ id: ProviderID, _ displayName: String, _ vendor: String, _ authMode: AuthMode, isLocal: Bool = false,
-                            destination: String, pdf: Bool, streaming: StreamingGranularity = .token, experimental: Bool = false,
+                            destination: String, pdf: Bool, pdfNote: String? = nil, maxPromptBytes: Int? = nil,
+                            streaming: StreamingGranularity = .token, experimental: Bool = false,
                             note: String, _ availability: ProviderAvailability, models: [ModelInfo] = []) -> any LLMProvider {
         StaticProvider(descriptor: ProviderDescriptor(id: id, displayName: displayName, vendor: vendor, authMode: authMode, isLocal: isLocal,
-                                                      destination: destination, supportsNativePDF: pdf, streaming: streaming,
-                                                      retentionNote: note, isExperimental: experimental),
+                                                      destination: destination, supportsNativePDF: pdf, pdfDeliveryNote: pdfNote,
+                                                      streaming: streaming, maxPromptBytes: maxPromptBytes, retentionNote: note,
+                                                      isExperimental: experimental),
                        availability: availability, models: models)
     }
 }

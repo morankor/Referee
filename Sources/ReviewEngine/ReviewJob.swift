@@ -70,7 +70,7 @@ final class ReviewJob {
             } catch JobInterruption.failed(let error) {
                 if plan.sendsPDF, !fellBackToText, RunBook.isPDFRejection(error) {
                     fellBackToText = true
-                    notice("The provider did not accept the PDF file (\(error.userMessage)), so the review was restarted with the text extracted from it.")
+                    notice(RunBook.textFallbackNotice(error, job: "the review was restarted with the text extracted from it"))
                     Log.event("engine.review.textfallback", ["provider": .id(provider.descriptor.id), "error": .id(error.logName)])
                     plan = Planner.review(descriptor: provider.descriptor, context: context, paper: paper, rendered: rendered,
                                           renderer: dependencies.renderer, physicalMemoryBytes: dependencies.physicalMemoryBytes, forceText: true)

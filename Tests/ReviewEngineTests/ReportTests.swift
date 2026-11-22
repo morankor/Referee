@@ -148,7 +148,8 @@ import TestSupport
         let report = try Fixtures.text("llm/report_sample.txt")
         let findings = engine.lint(reportMarkdown: report)
         #expect(!findings.isEmpty)
-        let events = try await EngineTest.collect(engine.reviseVoice(reportMarkdown: report, findings: findings, context: EngineTest.context()))
+        let events = try await EngineTest.collect(engine.reviseVoice(draft: ReportDraft(markdown: report, userEdited: false), findings: findings,
+                                                                     context: EngineTest.context()))
         let request = try #require(mock.recordedRequests.first)
         #expect(request.purpose == .revise)
         #expect(request.system == DefaultSettings.make().prompts.voiceRevisionSystem)

@@ -7,7 +7,8 @@ import RefereeCore
 ///
 /// `source` says how the work was identified: `.entryText` when the identifier is in the entry (confidence 1),
 /// `.crossref` when Crossref's search found it (confidence 0.5 + 0.5 × the title share). A lookup that could not be
-/// completed is `.failed`, keeps the identifiers already known (DOI, landing page) and is never cached.
+/// completed is `.failed`, keeps the identifiers already known (DOI, landing page), says why in `failureReason` (the
+/// citation card's "Lookup failed: <reason>", section 8.6) and is never cached.
 struct ReferenceLookup: Sendable {
     struct Outcome: Sendable {
         var reference: ResolvedReference
@@ -51,8 +52,8 @@ struct ReferenceLookup: Sendable {
                                               authors: entry.parsed.authorSurnames, year: entry.parsed.year, doi: doi,
                                               landingURL: Self.landingURL(doi), source: .entryText, confidence: 1.0, resolvedAt: stamp())
             return Outcome(reference: reference, cacheable: true, via: "doi")
-        case .failed:
-            return Outcome(reference: failed(entry, doi: doi), cacheable: false, via: "doi")
+        case .failed(let reason):
+            return Outcome(reference: failed(entry, doi: doi, reason: Self.failureReason(reason, service: "OpenAlex")), cacheable: false, via: "doi")
         }
     }
 
@@ -68,11 +69,16 @@ struct ReferenceLookup: Sendable {
         switch await client.get(request, host: .crossref, policy: .crossref(polite: contact != nil)) {
         case .ok(let body):
             guard let parsed = CrossrefCandidate.candidates(from: body) else {
-                return Outcome(reference: failed(entry, doi: nil), cacheable: false, via: "crossref")
+                return Outcome(reference: failed(entry, doi: nil, reason: Self.failureReason("unreadable", service: "Crossref")),
+                               cacheable: false, via: "crossref")
             }
             candidates = parsed
-        case .notFound, .failed:
-            return Outcome(reference: failed(entry, doi: nil), cacheable: false, via: "crossref")
+        case .notFound:
+            return Outcome(reference: failed(entry, doi: nil, reason: Self.failureReason("http-404", service: "Crossref")), cacheable: false,
+                           via: "crossref")
+        case .failed(let reason):
+            return Outcome(reference: failed(entry, doi: nil, reason: Self.failureReason(reason, service: "Crossref")), cacheable: false,
+                           via: "crossref")
         }
         guard let (candidate, verdict) = CandidateValidator.choose(from: candidates, for: entry) else {
             return Outcome(reference: notFound(entry), cacheable: true, via: "crossref")       // step 4
@@ -81,7 +87,9 @@ struct ReferenceLookup: Sendable {
         switch await openAlex(candidate.doi) {
         case .found(let found): work = found
         case .missing: work = nil
-        case .failed: return Outcome(reference: failed(entry, doi: candidate.doi), cacheable: false, via: "crossref")
+        case .failed(let reason):
+            return Outcome(reference: failed(entry, doi: candidate.doi, reason: Self.failureReason(reason, service: "OpenAlex")), cacheable: false,
+                           via: "crossref")
         }
         let crossrefAuthors = candidate.authors.compactMap(\.displayName)
         let reference = ResolvedReference(entryID: entry.id, status: .resolved, title: work?.title ?? candidate.title,
@@ -97,19 +105,19 @@ struct ReferenceLookup: Sendable {
     private enum OpenAlexAnswer {
         case found(OpenAlexWork)
         case missing                     // 404
-        case failed
+        case failed(String)              // ServiceClient's reason id, or "unreadable"
     }
 
     private func openAlex(_ doi: String) async -> OpenAlexAnswer {
         guard let request = ServiceRequests.openAlex(doi: doi) else { return .missing }
         switch await client.get(request, host: .openAlex, policy: .openAlex) {
         case .ok(let body):
-            guard let work = OpenAlexWork.work(from: body) else { return .failed }
+            guard let work = OpenAlexWork.work(from: body) else { return .failed("unreadable") }
             return .found(work)
         case .notFound:
             return .missing
-        case .failed:
-            return .failed
+        case .failed(let reason):
+            return .failed(reason)
         }
     }
 
@@ -119,8 +127,25 @@ struct ReferenceLookup: Sendable {
         ResolvedReference(entryID: entry.id, status: .notFound, confidence: 0, resolvedAt: stamp())
     }
 
-    private func failed(_ entry: BibEntry, doi: String?) -> ResolvedReference {
-        ResolvedReference(entryID: entry.id, status: .failed, doi: doi, landingURL: doi.map(Self.landingURL), confidence: 0, resolvedAt: stamp())
+    private func failed(_ entry: BibEntry, doi: String?, reason: String) -> ResolvedReference {
+        ResolvedReference(entryID: entry.id, status: .failed, failureReason: reason, doi: doi, landingURL: doi.map(Self.landingURL), confidence: 0,
+                          resolvedAt: stamp())
+    }
+
+    /// The sentence after "Lookup failed:" on the citation card (section 8.6), from ServiceClient's reason id. It names
+    /// the service and what to do, never the reference.
+    static func failureReason(_ reason: String, service: String) -> String {
+        switch reason {
+        case "rate-limited": return "\(service) is busy; try again in a minute."
+        case "server": return "\(service) had a problem answering; try again later."
+        case "network", "not-http": return "\(service) could not be reached; check the connection and try again."
+        case "cancelled": return "the lookup was cancelled."
+        case "too-large": return "\(service) sent an answer that was too large to be a lookup."
+        case "unreadable": return "\(service) sent an answer Referee could not read."
+        default:
+            if reason.hasPrefix("http-") { return "\(service) refused the request (HTTP \(reason.dropFirst(5)))." }
+            return "\(service) did not answer as expected."
+        }
     }
 
     static func landingURL(_ doi: String) -> String {

@@ -12,7 +12,8 @@ import RefereeCore
 //   lists when none is chosen, except for subscription CLIs, whose default is the CLI's own (section 5.2).
 // - `storedSecrets` is read in `refreshAvailability` for the API-key providers (whose key name is the provider id,
 //   section 5.8), not at init, so that launching the app does not touch the Keychain.
-// - A secret-store failure is reported in `modelErrors[key]`, the one per-provider error text the model has.
+// - A secret-store failure is reported in `secretErrors[key]` and removed by the next success for that key. Keychain
+//   calls run off the main actor: macOS may show its access dialog meanwhile, and the window must not freeze (WP4).
 // - With Local only on, `refreshModels` and `sendTestPrompt` do not contact a non-local provider.
 // - The test prompt is one user part "Reply with exactly: OK" with an empty system prompt, purpose `.ping`.
 
@@ -31,12 +32,14 @@ public final class SettingsModel {
     public private(set) var models: [ProviderID: [ModelInfo]] = [:]
     public private(set) var modelErrors: [ProviderID: String] = [:]
     public private(set) var storedSecrets: Set<String> = []       // keys that currently have a value in the Keychain
+    public private(set) var secretErrors: [String: String] = [:]  // key → why the Keychain refused; cleared by the next success
+    public private(set) var pdfCacheBytes: Int?                   // downloaded reference PDFs (Settings ▸ References); nil until refreshed
     public var providers: [ProviderDescriptor] { dependencies.providers.all.map(\.descriptor) }
+    public var dataDirectory: URL? { dependencies.dataDirectory }  // Settings ▸ Privacy, with Reveal in Finder
 
     @ObservationIgnored private(set) var saveTask: Task<Void, Never>?
     @ObservationIgnored private var saveChain: Task<Void, Never>?
     @ObservationIgnored private var hasUnsavedChanges = false
-    @ObservationIgnored private var secretErrorKeys: Set<String> = []     // keys whose modelErrors entry is a secret-store failure
 
     static let saveDelay: TimeInterval = 0.5
     static let testPrompt = "Reply with exactly: OK"
@@ -67,40 +70,33 @@ public final class SettingsModel {
     }
 
     /// nil (or only white space) removes the key. The value itself is never kept: only whether the key has one.
-    /// When the secret store fails, nothing is changed and the error is shown in `modelErrors[key]`.
-    public func setSecret(_ value: String?, for key: String) {
+    /// When the secret store fails, nothing is changed and the error is shown in `secretErrors[key]`. The store is
+    /// called off the main actor (a Keychain dialog may be up meanwhile).
+    public func setSecret(_ value: String?, for key: String) async {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleaned = trimmed?.isEmpty == false ? trimmed : nil
-        do {
-            try dependencies.secrets.setSecret(cleaned, for: key)
-        } catch {
-            modelErrors[key] = Self.message(for: error, otherwise: "The key could not be saved.")
-            secretErrorKeys.insert(key)
+        if let failure = await Self.write(cleaned, for: key, to: dependencies.secrets) {
+            secretErrors[key] = failure
             Log.event("settings.secret.failed", ["key": .id(key)])
             return
         }
         if cleaned == nil { storedSecrets.remove(key) } else { storedSecrets.insert(key) }
-        if secretErrorKeys.remove(key) != nil { modelErrors[key] = nil }
+        secretErrors[key] = nil
     }
 
     public func refreshAvailability(of id: ProviderID?) async {    // nil = all
         let targets = dependencies.providers.all.filter { id == nil || $0.descriptor.id == id }
         for (providerID, status) in await Self.availability(of: targets) { availability[providerID] = status }
-        for descriptor in targets.map(\.descriptor) where descriptor.authMode == .apiKey {
-            do {
-                if try dependencies.secrets.secret(for: descriptor.id)?.isEmpty == false {
-                    storedSecrets.insert(descriptor.id)
-                } else {
-                    storedSecrets.remove(descriptor.id)
-                }
-            } catch {
-                // The store could not be read: what is known about the key stays as it is.
-            }
+        let keys = targets.map(\.descriptor).filter { $0.authMode == .apiKey }.map(\.id)
+        for (key, stored) in await Self.storedKeys(keys, in: dependencies.secrets) {
+            // nil: the store could not be read, so what is known about the key stays as it is.
+            if stored == true { storedSecrets.insert(key) } else if stored == false { storedSecrets.remove(key) }
         }
     }
 
-    /// Fills `models` (and `cachedModels`, with the time) or `modelErrors`.
-    public func refreshModels(of id: ProviderID) async {
+    /// Fills `models` (and `cachedModels`, with the time) or `modelErrors`. `includeHidden`: the provider's whole list,
+    /// without the filters of sections 5.4.2 and 5.4.4 (the "Show all" toggle).
+    public func refreshModels(of id: ProviderID, includeHidden: Bool = false) async {
         guard let provider = dependencies.providers.provider(id: id) else {
             modelErrors[id] = LLMError.notConfigured("no provider with the id \(id) is registered").userMessage
             return
@@ -111,15 +107,13 @@ public final class SettingsModel {
         }
         let list: [ModelInfo]
         do {
-            list = try await provider.listModels()
+            list = try await provider.listModels(includeHidden: includeHidden)
         } catch {
             modelErrors[id] = Self.message(for: error, otherwise: "The model list could not be read.")
-            secretErrorKeys.remove(id)
             return
         }
         models[id] = list
         modelErrors[id] = nil
-        secretErrorKeys.remove(id)
         let now = clock.now()
         let choosesFirst = provider.descriptor.authMode != .subscriptionCLI
         update { settings in
@@ -196,6 +190,27 @@ public final class SettingsModel {
         }
     }
 
+    /// Settings ▸ References: the size of the downloaded reference PDFs, into `pdfCacheBytes`.
+    public func refreshPDFCacheSize() async {
+        pdfCacheBytes = await dependencies.resolver.cachedPDFBytes()
+    }
+
+    /// Settings ▸ References ▸ Clear: deletes every downloaded reference PDF.
+    public func clearPDFCache() async {
+        await dependencies.resolver.clearPDFCache()
+        await refreshPDFCacheSize()
+    }
+
+    /// Settings ▸ Privacy ▸ "Delete all review data…" (after confirmation): every review's folder, its lookups
+    /// included, and the resolver's memory of them. The window manager closes every review window first, so that no
+    /// open window saves its session again. Throws `StoreError`.
+    public func deleteAllReviewData() async throws {
+        let documents = await dependencies.sessions.listSessions().map(\.id)
+        try await dependencies.sessions.deleteAllSessions()
+        for document in documents { await dependencies.resolver.forget(documentSHA256: document) }
+        Log.event("settings.reviewData.deleted", ["documents": .int(documents.count)])
+    }
+
     /// Writes a pending change now (the app has no caller for it yet; tests use it).
     func flushPendingSave() async {
         saveTask?.cancel()
@@ -239,6 +254,23 @@ public final class SettingsModel {
         await task.value
     }
 
+    /// The secret store's write, off the main actor; the error's message, or nil on success.
+    @concurrent nonisolated private static func write(_ value: String?, for key: String, to store: any SecretStoring) async -> String? {
+        do {
+            try store.setSecret(value, for: key)
+            return nil
+        } catch {
+            return message(for: error, otherwise: "The key could not be saved.")
+        }
+    }
+
+    /// Whether each key has a value, off the main actor; nil for a key the store could not read.
+    @concurrent nonisolated private static func storedKeys(_ keys: [String], in store: any SecretStoring) async -> [(String, Bool?)] {
+        keys.map { key in
+            do { return (key, try store.secret(for: key)?.isEmpty == false) } catch { return (key, nil) }
+        }
+    }
+
     @concurrent nonisolated private static func availability(of providers: [any LLMProvider]) async -> [(ProviderID, ProviderAvailability)] {
         await withTaskGroup(of: (ProviderID, ProviderAvailability).self) { group in
             for provider in providers {
@@ -250,7 +282,7 @@ public final class SettingsModel {
         }
     }
 
-    static func message(for error: Error, otherwise fallback: String) -> String {
+    nonisolated static func message(for error: Error, otherwise fallback: String) -> String {
         if let error = error as? any RefereeError { return error.userMessage }
         return fallback
     }

@@ -99,7 +99,7 @@ One SwiftPM package, zero third-party dependencies. Reason: everything needed is
 | `LLMKit` | library | RefereeCore, Security | HTTP providers (Anthropic, OpenAI, xAI, Gemini, Ollama), SSE/NDJSON parsing, retry, model listing, Keychain secret store. |
 | `CLIProviders` | library | RefereeCore, CoreGraphics, ImageIO | Subscription providers that drive vendor CLIs (Claude Code, Codex, Antigravity, Grok Build): binary resolution, process runner, per-CLI adapters with tripwires, page images for one delivery mode. |
 | `ReviewEngine` | library | RefereeCore | Prompt assembly, streaming comment parser, chunk planning, review / discussion / question / report orchestration, report lint. |
-| `ScholarKit` | library | RefereeCore | Reference resolution (OpenAlex, Crossref), rate limiting, per-document lookup cache, PDF download. |
+| `ScholarKit` | library | RefereeCore, CryptoKit | Reference resolution (OpenAlex, Crossref), rate limiting, per-document lookup cache, PDF download. CryptoKit gives the SHA-256 of a cache key and of a PDF's address. |
 | `Persistence` | library | RefereeCore | Session and settings files, paths. |
 | `Composition` | library | all libraries above | The one place that constructs real implementations: `LiveDependencies.make()`, including the HTTP session and the snapshot-mode stand-ins. |
 | `AppCore` | library | RefereeCore, AppKit (for export only), Observation | `ReviewSessionModel`, `SettingsModel`, selection normalisation, report export. Depends on protocols only. No SwiftUI, no PDFKit. |
@@ -166,7 +166,7 @@ One `ReviewSessionModel` per open manuscript window, `@Observable`. Views read i
 
 ### 2.5 Error handling
 
-- Every thrown error is a type conforming to `RefereeError` (`userMessage`, `recoverySuggestion`, `isRetryable`). Providers throw only `LLMError`; the paper layer `PaperError`; stores `StoreError`; secret stores `SecretError`; the resolver returns status values and throws `ResolverError` only from `fetchPDF`.
+- Every thrown error is a type conforming to `RefereeError` (`userMessage`, `recoverySuggestion`, `isRetryable`). Providers throw only `LLMError`; the paper layer `PaperError`; stores `StoreError`; secret stores `SecretError`; the report exporter `ExportError` (A.9); the resolver returns status values (a failed lookup says why in `ResolvedReference.failureReason`) and throws `ResolverError` only from `fetchPDF`.
 - Engines never throw away partial work: comments parsed before a failure stay; the run is recorded as failed with the error's `userMessage`.
 - The model output is untrusted input. No parser may crash or loop on any byte sequence; all parsers have tests that feed them garbage.
 - The UI shows failures as a non-modal banner with at most one action (Retry, Open Settings). Nothing in v1 presents a modal alert except destructive confirmations.
@@ -253,7 +253,7 @@ Referee/
     raw/          <name>.raw.json: RawDocument dumps of each PDF, committed (PDFKit-free tests read these)
     sessions/     sample ReviewSession JSON for snapshots
     llm/          model outputs for parser tests and the mock provider
-    private/      git-ignored; real PDFs: public papers fetched by scripts/fetch-optional-fixtures.sh, and any journal-system PDFs the user adds
+    private/      git-ignored; real PDFs: public papers fetched by scripts/fetch-optional-fixtures.sh; journal-system PDFs the user adds go in private/journal/
   Sources/<Target>/…
   Tests/<Target>Tests/…          (a test target may keep its own data files under Tests/<Target>Tests/Fixtures/, excluded in the manifest: §3.7)
   build/          git-ignored output: Referee.app, snapshots, icon
@@ -437,7 +437,7 @@ What PDFKit actually returns for these files is part of the specification; the s
 
 - **Raw dumps.** `referee-cli dump-raw <pdf>` prints the `RawDocument` JSON; `scripts/make-fixtures.sh` writes one per PDF into `Fixtures/raw`. The pure libraries test against these.
 - **Fixture access.** `TestSupport.Fixtures` (§11.3) resolves the repository root in this order: the environment variable `REFEREE_REPO_ROOT` when set; in debug builds (`#if DEBUG`), from `#filePath` of its own source file; in release builds, the current directory. No `Bundle.module`. Reason for the split: `TestSupport` is linked into the app, and a `#filePath` in a release build would put the build machine's home-directory path into the bundled binary; `scripts/bundle.sh` fails if it finds one. Fixtures are only needed by a release binary in snapshot mode, which is run from the repository root.
-- **Real papers.** `scripts/fetch-optional-fixtures.sh` downloads three public arXiv PDFs into `Fixtures/private/` (git-ignored; one request every three seconds, as arXiv's terms ask). Tests that use them skip when absent. They matter: running the prototypes on one real 15-page paper exposed three errors that the synthetic files did not (§8.2). Journal-system PDFs the user supplies go in the same folder (Q7).
+- **Real papers.** `scripts/fetch-optional-fixtures.sh` downloads three public arXiv PDFs into `Fixtures/private/` (git-ignored; one request every three seconds, as arXiv's terms ask). Tests that use them skip when absent. They matter: running the prototypes on one real 15-page paper exposed three errors that the synthetic files did not (§8.2). Journal-system PDFs the user supplies go in the subfolder `Fixtures/private/journal/` (Q7): they have margin numbers, so they must stay out of the "no false positives" row, which reads only the files directly in `Fixtures/private`; the "real papers" test of Gate 1 reads both.
 - **Model outputs and provider streams** are text files (Appendix D and `Fixtures/llm`).
 
 ### 3.7 Conventions for all code
@@ -490,7 +490,7 @@ Keychain: one generic-password item, service "local.referee.app", account "secre
 
 ### 4.3 `session.json`
 
-Encoded with `JSONEncoder` (ISO-8601 dates; `prettyPrinted`, `sortedKeys`, `withoutEscapingSlashes`). Enums with associated values use Swift's synthesised encoding: `{"exact":{}}`, `{"fuzzy":{"score":0.82}}`, `{"ai":{"runID":"…"}}`, `{"failed":{"_0":"message"}}`. Optionals that are `nil` are omitted. Real output of the types in Appendix A, reformatted for width [V]:
+Encoded with `JSONEncoder` (ISO-8601 dates in whole seconds, §3.7; `prettyPrinted`, `sortedKeys`, `withoutEscapingSlashes`). Enums with associated values use Swift's synthesised encoding: `{"exact":{}}`, `{"fuzzy":{"score":0.82}}`, `{"ai":{"runID":"…"}}`, `{"failed":{"_0":"message"}}`. Optionals that are `nil` are omitted. Real output of the types in Appendix A, reformatted for width [V]; the two rectangles are what `PDFPaperService` measures for the Table 2 quote of `ay_nolinks` (§6.7, WP2):
 
 ```json
 {
@@ -502,8 +502,8 @@ Encoded with `JSONEncoder` (ISO-8601 dates; `prettyPrinted`, `sortedKeys`, `with
         "pageIndex" : 0,
         "quote" : "The coefficient in Table 2 is 0.91 with a confidence interval that crosses one",
         "rects" : [
-          { "height" : 10.6, "pageIndex" : 0, "width" : 111, "x" : 384.2, "y" : 189.2 },
-          { "height" : 10.6, "pageIndex" : 0, "width" : 281, "x" : 110.9, "y" : 165.2 }
+          { "height" : 10.6, "pageIndex" : 0, "width" : 82.7, "x" : 410.2, "y" : 189.2 },
+          { "height" : 10.6, "pageIndex" : 0, "width" : 286.2, "x" : 110.9, "y" : 165.2 }
         ],
         "spans" : [ { "pageIndex" : 0, "range" : { "length" : 18, "location" : 676 } },
                     { "pageIndex" : 0, "range" : { "length" : 59, "location" : 697 } } ]
@@ -556,7 +556,7 @@ The location label uses an en dash (U+2013).
 
 - `ReviewSessionModel` schedules a save 1.0 s after the last mutation; it flushes immediately when the window closes, the app deactivates or terminates, and before any run starts.
 - `FileSessionStore.save` writes to `session.json.tmp`, moves the current `session.json` to `session.json.bak`, then renames the temp file into place (`FileManager.replaceItemAt`), all inside the actor.
-- A file that fails to decode is renamed to `session.corrupt-<timestamp>.json`; the `.bak` is tried next; a banner reports what happened.
+- A file that fails to decode is renamed to `session.corrupt-<timestamp>.json`; the `.bak` is tried next; a banner reports what happened: after loading, the model asks `SessionStoring.recoveryNotice(sha256:)` and shows its sentence as a warning banner (Gate 1). `StoreError.corrupt` is thrown only when no backup could be read either; the model then starts a new session, which it saves.
 
 ### 4.6 The PDF is never modified
 
@@ -785,7 +785,7 @@ The app installs nothing; Settings shows the command. Why validation with a time
 An app launched from Finder has a minimal `PATH`. The child environment is built from scratch:
 
 - `PATH` = output of `/bin/zsh -l -c 'printf %s "$PATH"'` run once with a 5 s timeout (0.12 s here [V]; non-interactive, so `.zshrc` is not read and nothing can prompt), followed by `~/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin` for anything missing. npm-installed CLIs are `#!/usr/bin/env node` scripts and need this.
-- Copied from the app's environment when present: `HOME`, `USER`, `LOGNAME`, `LANG`, `LC_ALL`, `TMPDIR`, `SHELL`, `SSH_AUTH_SOCK`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME`, `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY`. Added: `TERM=dumb`, `NO_COLOR=1`, and for `grok` `GROK_SANDBOX=strict`.
+- Copied from the app's environment when present: `HOME`, `USER`, `LOGNAME`, `LANG`, `LC_ALL`, `TMPDIR`, `SHELL`, `SSH_AUTH_SOCK`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME`, `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY`; for `claude` only, also `CLAUDE_CODE_OAUTH_TOKEN` (the login `claude setup-token` makes; no other CLI receives it). `USER` is always set: from the app's `USER`, else `LOGNAME`, else the account's name, because `claude auth status` finds a subscription login only when `USER` is set [V, WP5]. Added: `TERM=dumb`, `NO_COLOR=1`, and for `grok` `GROK_SANDBOX=strict`.
 - **Never copied**, so that the subscription login is what authenticates: `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_PROFILE`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX`, `CLAUDE_CODE_USE_FOUNDRY`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `CODEX_API_KEY`, `CODEX_ACCESS_TOKEN`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_GEMINI_BASE_URL`, `XAI_API_KEY`. (Claude Code uses an `ANTHROPIC_API_KEY` in the environment ahead of the subscription login in `-p` mode [D].)
 - Working directory: a new directory `<TMPDIR>/referee-cli-<uuid>` (mode 0700), deleted when the run ends. It is empty except for what the adapter puts there (a system-prompt file; in the delivery modes of §5.6.6 a copy of the manuscript or its page images). The agent inside the CLI has nothing else to read or edit.
 - stdin is always a pipe; stdout and stderr are pipes. Never a TTY, never inherited.
@@ -816,7 +816,7 @@ final class CLIProcess {
 struct CLIRunner { func start(_ invocation: CLIInvocation) throws -> CLIProcess }
 ```
 
-- `Foundation.Process`. With `.data`, stdin is written from a separate task and then closed (a 1 MB prompt must not deadlock against a full stdout pipe). stdout is read with `FileHandle.bytes` through `LineSplitter`. stderr is drained continuously into a 64 KB ring buffer.
+- `Foundation.Process`. With `.data`, stdin is written from a thread of its own and then closed (a 1 MB prompt must not deadlock against a full stdout pipe), with `F_SETNOSIGPIPE` so that a CLI that exits without reading gives EPIPE, not a SIGPIPE that ends the app. The runner makes the pipes itself (close-on-exec) and reads stdout and stderr each on a thread of its own (`poll` with 250 ms, then `read`), stdout through `LineSplitter`; stderr is drained continuously into a 64 KB ring buffer. Not `FileHandle.bytes`: it serialises reads across handles (a thirteenth silent child's lines arrived after 3 s instead of 0.2 s), and `readabilityHandler` lost data under the parallel tests [V, WP5].
 - Timeouts throw `LLMError.cliTimeout(phase: "start" | "idle" | "total")`.
 - Cancellation or timeout: `SIGINT`, wait 2 s, `SIGTERM`, wait 3 s, `SIGKILL`; then remove the working directory. (Claude Code ends the turn on SIGINT and exits 143 on SIGTERM [D].)
 - `SIGKILL`, here and in `kill()`, goes to the **whole process tree**: the child and every descendant, collected with `proc_listchildpids` (libproc, through `import Darwin`) before the first signal is sent [V]. npm-installed CLIs are Node wrappers that run the real program as a child; killing the wrapper alone would leave the agent running.
@@ -963,7 +963,7 @@ Line 2: the estimate in the row "Staggered rollout" of Table 2.
 
 The third prompt allowed per CLI is a single retry of a variant that failed for a reason unrelated to delivery (network, rate limit). No other variant is tried.
 
-**Outcome → what is built.** Each adapter has one constant, set by WP5 from the result and recorded with the full output in `docs/contract-notes/wp5-cli.md`:
+**Outcome → what is built.** Each adapter has one constant, set by WP5 from the result and recorded with the streams in `docs/contract-notes/wp5-cliproviders.md`. On 2026-11-22 C1 and X1 both passed (Claude Code 2.1.330, codex-cli 0.167.0-alpha.3.2; both answered `\frac{…}` and `0.87`), so `claude-cli` is `.documentBlock` and `codex-cli` `.pageImages`, and `SnapshotSupport`'s static rows carry the same descriptors (Gate 1):
 
 ```swift
 enum CLIPDFDelivery { case none, documentBlock, readTool, pageImages }
@@ -1018,11 +1018,11 @@ Implemented once, in `LLMKit`, as a wrapper every HTTP provider's `stream` goes 
 
 Two modes. **PDF mode** sends the original file; the provider extracts text and renders page images itself, so the model sees equations, tables and figures. **Text mode** sends text extracted locally with page markers. PDF mode is preferred when available because referee work depends on tables and mathematics; text mode is the universal fallback and the only mode for local models, xAI and any CLI that failed the delivery experiment (§5.6.6).
 
-`sendsPDF` is true iff all hold: `providerSettings.inputMode != .text`; `descriptor.supportsNativePDF`; `context.model?.supportsPDFInput != false`; the paper is not encrypted (`LoadedPaper.isEncrypted == false`: vendors reject protected PDFs [D]); file ≤ 30 MB; page count within the provider's limit (§6.4); `pages × pdfTokensPerPage ≤ inputBudget`. If `inputMode == .pdf` but a condition fails, the engine uses text mode and puts the reason in `SendPlan.warnings`. If the paper has no text layer and PDF mode is unavailable, the review cannot run: `plan` returns `blockingReason = "This PDF has no text layer; choose a provider that accepts PDF files."`
+`sendsPDF` is true iff all hold: `providerSettings.inputMode != .text`; `descriptor.supportsNativePDF`; `context.model?.supportsPDFInput != false`; the paper is not encrypted (`LoadedPaper.isEncrypted == false`: vendors reject protected PDFs [D]); file ≤ 30 MB; page count within the provider's limit (§6.4); `pages × pdfTokensPerPage ≤ inputBudget`. If `inputMode == .pdf` but a condition fails, the engine uses text mode and puts the reason in `SendPlan.warnings`; in automatic mode it does the same whenever the provider's side allows PDF mode and another condition fails (`model == nil`, the window, the page limit, encryption), so the user learns why the text was sent (WP6). If the paper has no text layer and PDF mode is unavailable, the review cannot run: `plan` returns `blockingReason = "This PDF has no text layer; choose a provider that accepts PDF files."`
 
 The PDF always travels inline (base64) in the request. No vendor's file-upload API is used (Anthropic Files, OpenAI `file_id`, Gemini Files, xAI Files): inline data covers the 30 MB cap, and an uploaded copy of a confidential manuscript would stay on the vendor's side until deleted.
 
-Automatic fallback: in PDF mode, a `.contextTooLong`, or an `.invalidRequest` whose message mentions "pdf", "file", "document" or "image", restarts the job once in text mode with a `.notice`.
+Automatic fallback: in PDF mode, a `.contextTooLong`, or an `.invalidRequest` whose message mentions "pdf", "file", "document" or "image", restarts the job once in text mode with a `.notice` ("The provider did not accept the PDF file (…), so the review was restarted with the text extracted from it."; for a reply "…, so the answer is based on…", for the report "…, so the report is written from…"). Replies and the report restart only if nothing of the answer was shown yet; their notice is `ReplyEvent.notice` and `ReportEvent.notice` (Gate 1), which the model shows as an info banner.
 
 **Text mode content** is `PaperRendering.render` output: prose joined into paragraph-like lines, with headings, table rows and equation fragments left on lines of their own. Real output for the top of page 2 of `ay_nolinks.pdf` [V, prototype]:
 
@@ -1182,7 +1182,8 @@ emit .finished(run)                        status .completed, usage summed, requ
 - **Same passage → kept, marked.** A comment whose spans overlap at least 80% of their characters with the spans of an existing non-rejected comment of the same kind gets `similarTo = <that comment's id>` and is emitted. The sidebar shows it collapsed under "Similar to: <title>" (§9.3). Titles are not compared: a local model wrote two comments on one quoted equation under different titles [V, reviewer], and deciding which to keep is the referee's call.
 - **At most two `strength` comments per run.** Later ones are dropped; one `.notice` at the end says how many. The format text asks for the same limit; in the reviewer's run six of sixteen comments were generic praise despite "use it sparingly".
 - Any `LLMError`: close the parser (`finish()`), emit what it yields, then `.finished(run)` with `.failed(error.userMessage)`. The stream itself ends normally; the caller reads the failure from the run status. Comments already emitted stay.
-- Cancellation: `.finished(run)` with `.cancelled`; open drafts are discarded.
+- Cancellation: `.finished(run)` with `.cancelled`; open drafts are discarded. A consumer cancelled *between* two events sees the stream end without `.finished` (a cold `AsyncThrowingStream` cannot deliver it then); the model records such a run as cancelled itself, with no banner (A.6).
+- No event retracts a draft: a draft whose block is then dropped (a repeat, a third `strength` comment, a block with neither title nor body) is simply not followed by a `.comment`. The model discards every draft that no `.comment` replaced when the run ends, whatever its status (A.6).
 - `StopReason.refusal`: `.notice("The model declined to continue.")`, run completes with what exists.
 
 ### 6.7 Anchoring a quote to the PDF
@@ -1224,7 +1225,7 @@ So: margin numbers are glued to the **end** of most lines with no space, and sta
 
 The match is an interval of `stream`; converting through the parallel arrays gives `spans`: **one per text line touched**, from the first to the last matched character on that line. A span never covers text between two lines.
 
-**From spans to highlight rectangles** — `PaperService.rects(for:in:)`: for each span, for each `TextLine` of that page whose `contentRange` intersects the span (normally exactly one; a span from a user selection may cover several), take the intersection and ask PDFKit for `page.selection(for: intersection)?.bounds(for: page)`. One rectangle per line. Never pass a range that includes margin-number characters: the bounds then stretch across the page (x from −2 to 495 in the fixture) [V]; sub-ranges that exclude them are exact (x = 110.9) [V].
+**From spans to highlight rectangles** — `PaperService.rects(for:in:)`: for each span, for each `TextLine` of that page whose `contentRange` intersects the span (normally exactly one; a span from a user selection may cover several), take the intersection and measure it. One rectangle per line. `PDFSelection.bounds(for:)` is the union of the boxes PDFKit gives each character, and on a line with glued margin digits the digits **and the character just before them** have boxes that reach back across the page (x from −2 to 495 in the fixture) [V]; so a range that merely *ends* at that character, without any digit, also gets bounds that begin mid-line [V, WP2]. `PDFPaperService` therefore measures a range between its outermost characters whose own boxes are plausible: blanks and boxes more than twice as wide as high are skipped (no single glyph is), PDFKit's bounds of the range between the first and the last remaining character are taken, and if those reach beyond the two outer boxes the plausible boxes are united one by one. A rectangle can be one glyph short where a margin number is glued ("…difficult to" ends at 493.6 instead of about 499.5). Ranges that start at the line's left edge are exact (x = 110.9) [V].
 
 **Label** — `locationLabel(for:)`. Let the first and last lines touched be on pages A and B (1-based) with margin numbers a and b (`TextLine.marginNumber`, which is the line's own printed number or the ruler number level with it, §7.2).
 
@@ -1319,7 +1320,7 @@ PDF details, each verified by a test that ran through `scripts/test.sh` [V]:
 2. `NSPrintInfo()`: `paperSize` = Letter (612 × 792) or A4 (595 × 842) from `PaperSize.current`, 72 pt margins, `horizontalPagination = .fit`, `verticalPagination = .automatic`, not centred, `jobDisposition = .save`, `dictionary()[NSPrintInfo.AttributeKey.jobSavingURL]` = a temporary file URL.
 3. `NSPrintOperation(view:printInfo:)` with `showsPrintPanel = false`, `showsProgressPanel = false`; `run()`; read the file, delete it.
 
-Do **not** print a plain `NSTextView(frame:)`: it lays out only what a window would show, and the resulting PDF has the right number of pages with text on the first page only (six pages, 2,077 characters on page 1, none after [V]; the reviewer's sample output has the same defect). `dataWithPDF(inside:)` gives one tall page and is not used. The print operation must run on the main thread, hence `@MainActor`; no `NSApplication` needs to be running [V].
+Do **not** print a plain `NSTextView(frame:)`: it lays out only what a window would show, and the resulting PDF has the right number of pages with text on the first page only (six pages, 2,077 characters on page 1, none after [V]; the reviewer's sample output has the same defect). `dataWithPDF(inside:)` gives one tall page and is not used. The print operation must run on the main thread, hence `@MainActor`; no `NSApplication` needs to be running [V]. (On macOS 26.6.1 WP8a could not reproduce the defect with three naive set-ups; the construction above stays, and the test that checks text on every page would catch it.)
 
 ---
 
@@ -1344,7 +1345,7 @@ Both are `PDFDocument(data:)` from the same bytes. The **display document** live
 
 Links: every annotation of type `Link` → `RawLink` with target from `action` (GoTo → page index and point; URL → string), falling back to `destination` / `url`; `text` = `page.selection(for: annotation.bounds)?.string ?? ""`. Outline: preorder walk of `document.outlineRoot`.
 
-`load` fails with `PaperError.encrypted` when `isLocked` (a password is needed to open; no password UI in v1), `.empty` for zero pages, `.notAPDF` when the data does not start with `%PDF-` within the first 1,024 bytes. A PDF with an owner password and copying or printing disabled is not locked: it opens, `isEncrypted` is true, and `page.string` returns its text [V]. Such a file loads normally with `LoadedPaper.isEncrypted = true`, which only stops the file itself from being sent to a provider (§6.2).
+`load` fails with `PaperError.encrypted` when `isLocked` (a password is needed to open; no password UI in v1), `.empty` for zero pages, `.notAPDF` when `%PDF-` does not start at one of the first 1,024 bytes. (PDFKit on macOS 26 opens no PDF whose page tree is empty, well-formed or not, so such a file is `.unreadable`; the `.empty` check stays in case a later PDFKit opens one [V, WP2].) A PDF with an owner password and copying or printing disabled is not locked: it opens, `isEncrypted` is true, and `page.string` returns its text [V]. Such a file loads normally with `LoadedPaper.isEncrypted = true`, which only stops the file itself from being sent to a provider (§6.2).
 
 **Cleaning** (`PaperText.PaperTextBuilder.build(from:)`, pure). Two journal styles must both work [V, prototype on both fixtures]: numbers that belong to text lines (`lineno`, Editorial Manager) and a ruler of numbers that ignores the text (ScholarOne). One rule set handles both, because PDFKit turns either into the same two things: digits glued to a text line, or a line that is only a number.
 
@@ -1366,7 +1367,7 @@ Results on the fixtures [V, prototype]:
 | `s1_ruler` | 1–60 on each page, 60 number-only lines per page | "Journal of Synthetic Economics" `.runningHeader`; "Page N of 4" `.pageNumber`; the URL line `.runningFooter`; "For Peer Review" `.watermark` | "ficient in Table 2 is 0.91 …" gets 49; the abstract's first line gets 28 |
 | `ay_round_nolinks`, `ay_links`, `num_links`, `num_twocol_links`, a real 15-page arXiv paper | nothing found | page numbers only | — |
 
-`PDFPaperService` then replaces `bounds` for every line whose `contentRange` differs from `range` with `page.selection(for: contentRange)?.bounds(for: page)`. Code that needs a line's `x` (the reference list's hanging indent, §8.2) therefore runs on the finished `PaperText`, never inside the builder.
+`PDFPaperService` then replaces `bounds` for every line whose `contentRange` differs from `range` with the bounds of `contentRange`, measured between its outermost characters with plausible boxes (§6.7; `nil` when nothing visible is left, as on a line that was only a number). Code that needs a line's `x` (the reference list's hanging indent, §8.2) therefore runs on the finished `PaperText`, never inside the builder. With "Remove margin line numbers: Never", `contentRange == range`, and only the glyph rule keeps the digits out of rectangles: it drops them on full-width lines, not always on short ones [WP2].
 
 The builder is a heuristic over real-world variety. No real Editorial Manager or ScholarOne PDF has been examined (Q7): in particular, where PDFKit puts a real ruler's numbers in the text is not known. Three safety nets exist: the fuzzy matcher (§6.7 step 4) tolerates leftover digits; Settings ▸ Advanced has "Remove margin line numbers: Automatic / Never"; and `referee-cli extract --stats` shows what was detected.
 
@@ -1409,7 +1410,7 @@ Citations are **not** annotated; they are hit-tested from their rectangles (§8.
 ### 7.6 Search, thumbnails, outline, zoom
 
 - Find: `showFind()` shows a find bar over the top of `ReaderPane` and focuses its field. `PDFDocument.findString(_:withOptions: [.caseInsensitive])` on the display document for up to 5,000 results; `pdfView.highlightedSelections` shows all, `setCurrentSelection(_:animate:)` + `go(to:)` step through with `findNext()` / `findPrevious()`; the bar shows "3 of 17".
-- Navigator (left column), three tabs: **Pages** (`PDFThumbnailView` bound to `controller.pdfView`, wrapped in `NSViewRepresentable`), **Outline** (`model.paper.outline` as an indented list; hidden when empty), **References** (the parsed reference list with a status icon per entry; click → `model.lookUpEntry(entryID:)`, which shows the citation card for that entry at the top of the PDF pane).
+- Navigator (left column), three tabs: **Pages** (`PDFThumbnailView` bound to `controller.pdfView`, wrapped in `NSViewRepresentable`), **Outline** (`model.paper.outline` as an indented list; hidden when empty), **References** (the parsed reference list with a status icon per entry, from `model.references[entry.id]?.status`, none until the entry was looked up; click → `model.lookUpEntry(entryID:)`, which shows the citation card for that entry at the top of the PDF pane).
 - Zoom: `zoom(.zoomIn)` / `.zoomOut` / `.fitWidth` (`zoomIn`, `zoomOut`, `autoScales = true`); pinch works natively.
 
 ### 7.7 Several documents
@@ -1483,7 +1484,7 @@ For every `RawLink` with `.internalDestination(pageIndex, x, y)`:
 - Mention rectangle = the annotation bounds; text = the link's text.
 - **Merging pieces** (author–year lists only; in a numeric list every link is a whole citation). natbib links author and year separately and splits links at line breaks: "Avery and Zem-" / "sky" / "1998" [V]. Consecutive links with the same target on the same page are one mention while each new piece continues the last (same line with a gap under 12 pt, or the next line down starting further left) **and the mention is not closed**; a piece whose text is just a year closes it. So "Kogan [2020], Lee [2021]" and two citations of one paper on consecutive lines stay separate.
 
-**Merge of the two paths.** Per page and per entry, the k-th link mention of that entry is paired with the k-th text mention that lists it as a candidate; the pair becomes one mention with the link's target and rectangles and the text mention's `text` and `spans`. Unpaired mentions of either kind are kept. Result sorted by page and position (text offset when known, else top-to-bottom, left-to-right of the first rectangle), ids reassigned 0…n−1.
+**Merge of the two paths.** Per page and per entry, the k-th link mention of that entry is paired with the k-th text mention that lists it as a candidate; the pair becomes one mention with the link's target and rectangles, the text mention's `text` and `spans`, and source `.linkAnnotation`; so the model fills rectangles only for mentions whose `rects` is empty, which are the unpaired text ones. Unpaired mentions of either kind are kept. Result sorted by page and position (text offset when known, else top-to-bottom, left-to-right of the first rectangle), ids reassigned 0…n−1.
 
 Prototype results [V, prototype]:
 
@@ -1502,13 +1503,13 @@ Prototype results [V, prototype]:
 
 - header: the mention text; for each candidate entry: the raw reference text (up to four lines), then resolved title, authors, year, venue when available, a badge "Open access" when a PDF URL was found, and "year differs: the list says 2019, this record 2022" when the two years are both known and unequal;
 - buttons: **Open PDF** (enabled when `openAccessPDFURL != nil`; downloads then opens the reference viewer), **Open in Browser** (`landingURL`, else the DOI URL, else the entry's URL), **Copy DOI**, **Search Google Scholar** (always available; `ReferenceResolving.searchURL(for:)`), **Show in References** (selects the entry in the navigator);
-- states: resolving (spinner beside the raw text, which is shown immediately), resolved, not found ("No match found" with Search Google Scholar), failed ("Lookup failed: <reason>", Retry).
+- states: resolving (spinner beside the raw text, which is shown immediately), resolved, not found ("No match found" with Search Google Scholar), failed ("Lookup failed: <reason>", Retry; the reason is `ResolvedReference.failureReason`, a sentence that names the service and never the reference, e.g. "Crossref is busy; try again in a minute."). Search Google Scholar is `model.searchURL(for:)`; Retry is `lookUpCitation` or `lookUpEntry` again.
 
 A mention with no candidate entries shows its text and Search Google Scholar only.
 
 ### 8.7 Resolving a reference (`ScholarKit.ReferenceResolver`)
 
-Lookups happen **only when the user clicks** (default). Reason: each lookup discloses one reference string of a confidential manuscript to a third party; a click is a deliberate act. Settings ▸ References offers "Look up all references when a document opens" (off).
+Lookups happen **only when the user clicks** (default). Reason: each lookup discloses one reference string of a confidential manuscript to a third party; a click is a deliberate act. Settings ▸ References offers "Look up all references when a document opens" (off): `ReviewSessionModel.open` then resolves every entry in the background, through the resolver's own limits. Every result, clicked or not, is kept in `model.references` (entry id → latest result), which the References list's status icons read (§7.6).
 
 Order, stopping at the first step that yields a DOI, arXiv id or PDF URL and passes validation:
 
@@ -1658,7 +1659,7 @@ Card anatomy:
 | unanchored | warning glyph, "Passage not found"; button "Attach to selection" (enabled when the PDF has a selection) |
 | own comment | blue left bar, "You" badge instead of the category when category is `other` |
 | AI comment in category `literature` | a small "verify" tag beside the category: the model cannot look references up, so any paper it names must be checked |
-| reply failed | red inline line under the thread with the error message and Retry |
+| reply failed | red inline line under the thread with the error message and Retry, while `model.replyFailure?.targetID` is the comment: `message` is the text, Retry calls `retryFailedReply()`. A failed reply raises no banner |
 
 New own comment ("+", N, or Comment in the selection bar → `model.beginComposingComment()`): while `model.composing != nil` an editing card sits at the top of the list, anchored to the selection captured in `composing.selection` (shown as its quote), kind default minor; Save calls `addUserComment(…)` (status approved), Cancel calls `cancelComposing()`.
 
@@ -1687,15 +1688,15 @@ Modified keys go through the menu: ⌘R, ⌘., ⇧⌘R, ⌘F, ⌘G, ⌘1–3, �
 ### 9.5 Selection bar, Chat tab, citation card
 
 - **Selection bar**: appears 6 pt above the first rectangle of `model.selection` (the normalised selection, §7.4) when its text has at least three characters, 200 ms after it settles: `[Ask AI] [Comment] [Copy]  [▾ quick questions]`. Ask AI expands the bar into a text field (placeholder "Ask about this passage…", Return sends); the question and its streaming answer then live in the Chat tab, which opens. Quick questions come from `PromptSet.quickQuestions` and send immediately. Comment calls `model.beginComposingComment()` and switches the sidebar to Comments. Copy puts the normalised text on the pasteboard.
-- **Chat tab**: conversations newest first. Each: the quoted passage (click → reveal), location label, messages, streaming answer, a follow-up field, and per answer "Make comment ▾" (kind) and Copy. At the bottom of the tab a field "Ask about the paper…" starts a conversation with no selection. Empty state: "Select text in the PDF and choose Ask AI."
+- **Chat tab**: conversations newest first (`session.conversations` is in creation order). Each: the quoted passage (click → `revealConversationInPDF(id)`), location label, messages, streaming answer, a failed answer's red line with Retry (`replyFailure`, as in §9.3), a follow-up field, and per answer "Make comment ▾" (kind) and Copy. At the bottom of the tab a field "Ask about the paper…" starts a conversation with no selection. Empty state: "Select text in the PDF and choose Ask AI."
 - **Citation card**: §8.6. Anchored below the mention, or at the top of the PDF pane for an entry chosen in the References list; 360 pt wide.
 
 ### 9.6 Settings window (780 × 560, tabs)
 
-- **Providers.** Three groups: *API key* (Anthropic, OpenAI, Gemini, xAI), *Subscription through an installed CLI* (Claude Code, Codex, Antigravity, Grok Build), *Local* (Ollama). Each row: enable switch; status from `availability()` with a coloured dot (green ready, yellow needs setup with the hint, red unavailable with the reason, which for a CLI can be a missing safety flag, §5.6.1); for API providers a secure key field that only accepts input ("•••• stored" when set, Replace, Remove); model picker filled from `listModels()` with a refresh button, "Show all" where a filter applies, and "Custom…" for a typed id; for CLIs the detected path and version, a path override field, the install command with a Copy button and the sign-in command to run in Terminal. An experimental provider with no `verifiedAt` shows, in orange under its name, "Experimental — not yet verified against the real CLI on this machine". Advanced disclosure per provider: base URL, context window override, max output tokens, input mode (Automatic / Text / PDF), extra arguments (CLI) or extra body JSON (API; for Ollama it holds `{"think": false}` by default). "Send test prompt" button with the note "sends 'Reply with exactly: OK'; uses a few tokens"; success stores `verifiedAt` and removes the experimental warning. Below the list: default provider pickers for Review, Chat and Report (Chat and Report default to "Same as Review").
+- **Providers.** Three groups: *API key* (Anthropic, OpenAI, Gemini, xAI), *Subscription through an installed CLI* (Claude Code, Codex, Antigravity, Grok Build), *Local* (Ollama). Each row: enable switch; status from `availability()` with a coloured dot (green ready, yellow needs setup with the hint, red unavailable with the reason, which for a CLI can be a missing safety flag, §5.6.1); for API providers a secure key field that only accepts input ("•••• stored" when set, Replace, Remove; a Keychain failure shows `secretErrors[key]` under the field); model picker filled from `listModels()` with a refresh button, "Show all" where a filter applies (OpenAI and Gemini: `refreshModels(of:includeHidden: true)`), and "Custom…" for a typed id; for CLIs the version (in the status detail, "Logged in · claude 2.1.330"), a path override field (`executablePath`), the install command with a Copy button and the sign-in command to run in Terminal (both are the hint of a `.needsSetup` status). The detected path is not shown in v1: no API reports it. An experimental provider with no `verifiedAt` shows, in orange under its name, "Experimental — not yet verified against the real CLI on this machine". Advanced disclosure per provider: base URL, context window override, max output tokens, input mode (Automatic / Text / PDF), extra arguments (CLI) or extra body JSON (API; for Ollama it holds `{"think": false}` by default). "Send test prompt" button with the note "sends 'Reply with exactly: OK'; uses a few tokens"; success stores `verifiedAt` and removes the experimental warning. Below the list: default provider pickers for Review, Chat and Report (Chat and Report default to "Same as Review").
 - **Prompts.** Editors for `reviewSystem`, `discussionSystem`, `questionSystem`, `reportSystem`, `reportTemplate`, `voiceRevisionSystem`; the rubric table (enabled, id, name, guidance; add, remove); the quick questions list; the fixed output-format text (`FormatSpec.review`) shown read-only with the note "The app parses this format; it cannot be edited"; "Restore defaults".
-- **Privacy.** "Local only" switch; "Ask before the first send of each document" (on); the data folder path with Reveal in Finder; "Delete all review data…"; a plain-language summary of §12.3 and §12.5.
-- **References.** "Look up references only when I click them" (on); Crossref contact email (empty; note: "optional; gives faster lookups"); PDF cache size and Clear.
+- **Privacy.** "Local only" switch; "Ask before the first send of each document" (on); the data folder path (`SettingsModel.dataDirectory`) with Reveal in Finder; "Delete all review data…" (after confirmation the window manager closes every review window, then calls `deleteAllReviewData()`); a plain-language summary of §12.3 and §12.5.
+- **References.** "Look up references only when I click them" (on); Crossref contact email (empty; note: "optional; gives faster lookups"); PDF cache size (`pdfCacheBytes`, after `refreshPDFCacheSize()`) and Clear (`clearPDFCache()`).
 - **Advanced.** "Remove margin line numbers from extracted text: Automatic / Never" (applies to documents opened afterwards); "Advance to the next comment after a decision"; "Show highlights of rejected comments".
 
 ### 9.7 The destination indicator and consent
@@ -1728,7 +1729,7 @@ Check the journal's policy on AI tools before sending a manuscript under review.
 [ ] Ask again next time                                   [Cancel]  [Send]
 ```
 
-For a text-mode plan the second line reads "The extracted text (34 pages) will be sent to … Extracted text only: equations and tables may reach the model garbled." For a CLI provider one more line states what §12.5 says about that CLI in a sentence (`retentionNote`). Send records a `ConsentRecord` (unless "Ask again" is ticked) and starts the job; Cancel leaves everything untouched. With "Local only" on, non-local providers cannot be selected and any job addressed to one fails immediately with a banner.
+For a text-mode plan the second line reads "The extracted text (34 pages) will be sent to … Extracted text only: equations and tables may reach the model garbled." For a CLI provider one more line states what §12.5 says about that CLI in a sentence (`retentionNote`). Send records a `ConsentRecord` (unless "Ask again" is ticked: `answerConsent(granted: true, askAgain: true)` sends without recording, so the next job asks again) and starts the job; Cancel leaves everything untouched. With "Local only" on, non-local providers cannot be selected and any job addressed to one fails immediately with a banner.
 
 `retentionNote` texts: Anthropic API "Sent to Anthropic under your API account's data terms."; OpenAI "Sent with store=false; not kept for retrieval by the API."; Gemini "Sent with store=false."; xAI "Sent to an endpoint that does not store requests."; Ollama "Processed on this Mac; nothing is sent." (or "Sent to <host> on your network." for a non-loopback base URL); Claude Code "Runs through your Claude Code login with its tools switched off; no session transcript is saved."; Codex "Runs through your ChatGPT plan with shell and agent tools switched off; session files are not kept."; Antigravity "Runs through your Google account. Its tools cannot be switched off: Referee stops the run if it uses one. The CLI may keep a local conversation record."; Grok Build "Runs through your xAI account with tools denied. The CLI saves each conversation in ~/.grok and may sync it to your account; Referee deletes the local copy after each run."
 
@@ -1744,10 +1745,10 @@ Top: Target venue field (`meta.targetVenue`), "Notes for the report" field (`met
 | PDF with no text layer | — | — | yellow banner: "This PDF has no text layer. Comments can be tied to pages only, and only providers that accept PDF files can review it." |
 | Protected PDF | — | — | info banner: "This PDF is protected. Its text is readable, so reviews send the text, not the file." |
 | Comments tab | "No comments yet. Run a review (⌘R) or add your own (N)." | drafts under "Writing…"; phase text in the toolbar | banner "Review stopped: <message>" with Retry; comments received so far stay |
-| Comment thread | — | streaming reply bubble | inline error with Retry |
-| Chat tab | hint text (§9.5) | streaming answer | inline error with Retry |
+| Comment thread | — | streaming reply bubble | inline error with Retry (`replyFailure`, `retryFailedReply()`); no banner |
+| Chat tab | hint text (§9.5) | streaming answer | inline error with Retry (the same) |
 | Report tab | "Approve at least one comment, then generate the report." | text streams into the editor (read-only until finished) | banner with Retry; previous draft kept |
-| Citation card | — | raw reference text + spinner | "No match found" / "Lookup failed" with Search Google Scholar and Retry |
+| Citation card | — | raw reference text + spinner | "No match found" / "Lookup failed: <failureReason>" with Search Google Scholar and Retry |
 | Provider row | "Not set up" + hint | "Checking…" | red dot + reason |
 | Any job, provider missing or blocked | — | — | banner "Set up an AI provider" (Open Settings) or "Remote providers are blocked by Local only" |
 
@@ -1866,7 +1867,7 @@ All in `TestSupport`, declared in §11.3.
 
 ### 10.5 Debug transcript (off by default)
 
-`REFEREE_DEBUG_DUMP=<dir>` makes `ReviewEngine` write each request's prompt and the raw model output to `<dir>/<timestamp>-<purpose>.txt`. This is the only way manuscript text can reach a file other than the session, it is never enabled by the app's UI, and the destination indicator shows a red "debug dump on" tag while it is set.
+`REFEREE_DEBUG_DUMP=<dir>` makes `ReviewEngine` write each request's prompt and the raw model output to `<dir>/<timestamp>-<purpose>.txt`. `LiveDependencies.make(environment:)` reads the variable from the environment it is given and passes the folder to the engine's initialiser (`debugDumpDirectory`); the engine reads no environment itself. This is the only way manuscript text can reach a file other than the session, it is never enabled by the app's UI, and the destination indicator shows a red "debug dump on" tag while it is set.
 
 ### 10.6 Environment variables
 
@@ -1881,7 +1882,8 @@ All in `TestSupport`, declared in §11.3.
 | `REFEREE_TEST_KEYCHAIN=1` | `LLMKitTests` | runs the one test that uses the real Keychain (§5.8) |
 | `REFEREE_CLI_PATH_CLAUDE`, `_CODEX`, `_AGY`, `_GROK` | `BinaryResolver` | explicit CLI binary (fake CLIs in tests) |
 | `REFEREE_CLI_SMOKE=1` | `CLIProvidersTests` | runs the one-line smoke prompt through each installed, signed-in real CLI (§11.6) |
-| `REFEREE_DEBUG_DUMP=<dir>` | `ReviewEngine` | writes prompts and raw model output there (§10.5) |
+| `REFEREE_DEBUG_DUMP=<dir>` | `LiveDependencies` → `ReviewEngine` | writes prompts and raw model output there (§10.5) |
+| `REFEREE_CLI_EXPERIMENT=C1` or `X1` | `CLIProvidersTests` | reruns one variant of the delivery experiment of §5.6.6 (C1 Claude Code, X1 Codex); a real prompt, so never set by an agent without the coordinator; never together with `REFEREE_CLI_SMOKE` |
 | `REFEREE_LIVE_NET=1` | tests | enables tests that call the public reference services |
 | `REFEREE_SIGN_IDENTITY`, `REFEREE_VERSION` | `scripts/bundle.sh` | signing identity (default ad hoc) and version string |
 
@@ -2091,9 +2093,10 @@ public enum CLIProviderFactory {
 
 // ====== ReviewEngine (WP6) ============================================================================================
 public final class ReviewEngine: ReviewEngineProtocol {
+    /// debugDumpDirectory: the folder of section 10.5; LiveDependencies passes REFEREE_DEBUG_DUMP of the environment it is given.
     public init(providers: any ProviderResolving, paperService: any PaperService,
                 matcherFactory: @escaping @Sendable (PaperText) -> any QuoteMatching, renderer: any PaperRendering,
-                physicalMemoryBytes: UInt64 = ProcessInfo.processInfo.physicalMemory)
+                physicalMemoryBytes: UInt64 = ProcessInfo.processInfo.physicalMemory, debugDumpDirectory: URL? = nil)
 }
 
 // ====== ScholarKit (WP7) ==============================================================================================
@@ -2119,6 +2122,7 @@ public enum PaperSize: Sendable {
 @MainActor public enum ReportExporter {
     public static func plainText(fromMarkdown markdown: String) -> String
     /// .markdown and .plainText -> UTF-8; .docx; .pdf (paginated, text on every page; section 6.10). Main actor because of AppKit text layout and printing.
+    /// Throws ExportError.couldNotCreate (Appendix A.9).
     public static func data(markdown: String, format: ExportFormat, paper: PaperSize = .current) throws -> Data
 }
 public enum SelectionNormalizer {
@@ -2290,13 +2294,15 @@ public enum LiveDependencies {
 
         let paperService = PDFPaperService(builder: PaperTextBuilder(stripMarginLineNumbers: { current.get().ui.stripMarginLineNumbers }))
         let matcherFactory: @Sendable (PaperText) -> any QuoteMatching = { QuoteMatcher(paper: $0) }
-        let engine = ReviewEngine(providers: registry, paperService: paperService, matcherFactory: matcherFactory, renderer: PaperRenderer())
+        let dump = environment["REFEREE_DEBUG_DUMP"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }   // section 10.5
+        let engine = ReviewEngine(providers: registry, paperService: paperService, matcherFactory: matcherFactory, renderer: PaperRenderer(),
+                                  debugDumpDirectory: dump)
         let resolver: any ReferenceResolving = snapshot
             ? FakeResolver()
             : ReferenceResolver(settings: { current.get().references }, urlSession: session, dataDirectory: data, cacheDirectory: caches)
         return AppDependencies(paperService: paperService, matcherFactory: matcherFactory, citationIndexer: CitationIndexer(), engine: engine,
                                resolver: resolver, sessions: FileSessionStore(directory: data.appendingPathComponent("sessions")),
-                               settings: settings, providers: registry, secrets: secrets)
+                               settings: settings, providers: registry, secrets: secrets, dataDirectory: data)
     }
 
     /// The one URLSession for providers and reference lookups (section 5.3).
@@ -2391,7 +2397,7 @@ Acceptance: `scripts/build.sh` and `scripts/test.sh --filter PaperTextTests` wit
 |---|---|
 | line numbers on text lines ● | `ay_nolinks`: `hasMarginLineNumbers`; numbers 1…16, 17…33, 34…48, 49…54 on pages 1–4, of which 4, 1, 3 and 2 are `.marginNumberOnly` lines; the line starting "Table 2 is 0.91" has `marginNumber == 14` and `text` ending "difficult to"; "function." has 17 and "A Course in Game Theory. MIT Press." has 52 (both from step 6); the five table lines and the four equation lines have `nil` |
 | ruler ● | `s1_ruler`: `hasMarginLineNumbers`; 60 `.marginNumberOnly` lines on every page; the line starting "ficient in Table 2 is 0.91" has `marginNumber == 49` and the first line of the abstract 28; no `.body` line's text is only digits |
-| no false positives ● | `hasMarginLineNumbers == false` for `ay_links`, `ay_round_nolinks`, `num_links`, `num_twocol_links`; and for any PDF dump made from `Fixtures/private` (skipped when absent) |
+| no false positives ● | `hasMarginLineNumbers == false` for `ay_links`, `ay_round_nolinks`, `num_links`, `num_twocol_links`; and for any PDF dump made from the files directly in `Fixtures/private`, not its subfolder `journal/` (skipped when absent) |
 | setting respected | `PaperTextBuilder(stripMarginLineNumbers: { false })` leaves every `contentRange == range` |
 | page furniture ● | `ay_nolinks`: the four "CONFIDENTIAL" lines are `.watermark`; the last line of each page is `.pageNumber`. `s1_ruler`, every page: "Journal of Synthetic Economics" `.runningHeader`, "Page N of 4" `.pageNumber`, the URL line `.runningFooter`, "For Peer Review" `.watermark` |
 | numbered lists are not line numbers | a synthetic page of 30 reference lines "1. …", "2. …" is not treated as leading margin numbers |
@@ -2423,7 +2429,7 @@ Acceptance: `scripts/build.sh`, `scripts/test.sh --filter PDFBridgeTests`:
 | raw consistency ● | for every fixture and page: each `RawLine.text` equals the substring of `string` at `range`; ranges are increasing and non-overlapping. No assertion relates the number of lines to newlines; page 2 of `ay_round_nolinks` has 22 lines and 21 newline-separated pieces |
 | links ● | `num_links`: 12 links, 10 with `.internalDestination` into page indices 2 and 3, 2 with `.url` containing `doi.org/10.3115/v1/D14-1179`; `num_twocol_links`: 12; `ay_links`: 36, all internal; `ay_nolinks`, `ay_round_nolinks`, `s1_ruler`: none |
 | load ● | page counts 4 (`ay_nolinks`, `ay_round_nolinks`, `ay_links`, `s1_ruler`, `num_links`), 2 (`num_twocol_links`), 1 (`scanned`); `DocumentRef.sha256` equals `shasum -a 256` of the file; two loads give equal `PaperText`; `isEncrypted == false` |
-| protected PDFs ● | a temporary copy written in the test with `PDFDocument.write(to:withOptions:)`, owner password set and copying disabled → loads, `isEncrypted == true`, page 1 text equal to the original's; a copy with a user password → `PaperError.encrypted` |
+| protected PDFs ● | a temporary copy of `num_links` written in the test with `PDFDocument.write(to:withOptions:)`, owner password set and copying disabled → loads, `isEncrypted == true`, page 1 text equal to the original's; a copy with a user password → `PaperError.encrypted`. (The text holds for `num_links` only: re-serialising re-encodes the fonts, and the ff/ffi ligatures of the `ay_*` and `s1_ruler` fixtures then come back as "!" and "\"", with or without a password [WP2]. A user password also needs an owner password, or PDFKit writes no encryption.) |
 | failures | data not starting with `%PDF-` → `.notAPDF`; `scanned.pdf` loads with `hasTextLayer == false` |
 | equation and table | page 2 (the displayed fraction) and page 3 (the table) of `ay_round_nolinks`: `rects` for a span covering each line returns one rectangle per line |
 | rects exclude margin numbers ● | with a test builder that marks the trailing digits of `ay_nolinks` lines as margin numbers, `rects` for the "Table 2 … crosses one" spans returns two rectangles, each with `x ≥ 100` and `width < 400` |
@@ -2845,7 +2851,7 @@ Each item has a default so that nothing waits for the user.
 | Q4 | Reference lookups only on click, or all at open? | Only on click. |
 | Q5 | Review data in Application Support (keyed by file hash) rather than next to the PDF? | Yes. |
 | Q6 | Export formats: Markdown, plain text, Word, PDF. Any journal need another? | Those four. |
-| Q7 | Can you provide two real journal-system PDFs that are not confidential (for example your own past submissions as built by Editorial Manager and by ScholarOne) for `Fixtures/private`? This is the largest remaining unknown (R4). | Proceed without. |
+| Q7 | Can you provide two real journal-system PDFs that are not confidential (for example your own past submissions as built by Editorial Manager and by ScholarOne) for `Fixtures/private/journal/`? This is the largest remaining unknown (R4). | Proceed without. |
 | Q8 | Will anyone else use the app? | No (see R3). |
 | Q9 | Should approving a comment include it in the report automatically? | Yes. |
 | Q10 | Do you want an optional "Confidential comments to the editor" section in the report template? | Not in the default template; add it by editing the template. |
@@ -2856,7 +2862,7 @@ Each item has a default so that nothing waits for the user.
 
 ## Appendix A. Contracts (Swift)
 
-These files are the shared language of the project. A.1–A.8 are the complete contents of `Sources/RefereeCore/` apart from `DefaultSettings` and `FormatSpec` (§11.3); they compile exactly as printed (Swift 5 language mode, no warnings) [V]. Wave 0a copies them verbatim. Every public struct carries its public memberwise initialiser inside the struct: parameters in declaration order, optionals defaulting to `nil`, arrays to `[]`, dictionaries to `[:]`. A.9 lists the public members of the two application models in `AppCore` (declarations only; it compiles with stub bodies [V]).
+These files are the shared language of the project. A.1–A.8 are the complete contents of `Sources/RefereeCore/` apart from `DefaultSettings` and `FormatSpec` (§11.3); they compile exactly as printed (Swift 5 language mode, no warnings) [V]. Wave 0a copies them verbatim. Every public struct carries its public memberwise initialiser inside the struct: parameters in declaration order, optionals defaulting to `nil`, arrays to `[]`, dictionaries to `[:]`. A.9 lists the public members of the two application models in `AppCore` (declarations only; it compiles with stub bodies [V]; Gate 1's additions are marked in G.6).
 
 ### A.1 `Basics.swift`
 
@@ -3079,9 +3085,12 @@ public protocol PaperRendering: Sendable {
 }
 
 public protocol PaperService: Sendable {
+    /// Every successful load is matched by exactly one `unload` of that document: the service counts loads, so a file
+    /// open in two windows stays loaded until both have closed.
     func load(url: URL) async throws -> LoadedPaper
     func load(data: Data, fileName: String) async throws -> LoadedPaper
-    /// Highlight rectangles for spans: one rect per text line touched, margin numbers excluded.
+    /// Highlight rectangles for spans: one rect per text line touched, margin numbers excluded. Only for a document
+    /// loaded through this service and not yet unloaded; [] otherwise.
     func rects(for spans: [TextSpan], in document: DocumentRef) async -> [PageRect]
     func unload(_ document: DocumentRef) async
 }
@@ -3090,7 +3099,7 @@ public enum PaperError: RefereeError, Equatable {
     case unreadable(String)
     case notAPDF
     case encrypted
-    case empty
+    case empty                           // no pages; PDFKit on macOS 26 opens no such file, so it arrives as .unreadable
     public var userMessage: String {
         switch self {
         case .unreadable(let why): return "The file could not be read (\(why))."
@@ -3129,7 +3138,7 @@ public struct ParsedReference: Codable, Sendable, Equatable {
 public struct BibEntry: Codable, Sendable, Equatable, Identifiable {
     public var id: Int                       // 0-based position in the reference list
     public var label: String?                // "13" for numeric lists
-    public var rawText: String               // entry lines joined by a space, margin numbers removed
+    public var rawText: String               // entry lines joined as section 8.1 says (a space; none at a word hyphen or a broken DOI), margin numbers removed
     public var spans: [TextSpan]
     public var firstLineBounds: PageRect?
     public var parsed: ParsedReference
@@ -3143,11 +3152,11 @@ public enum MentionSource: String, Codable, Sendable { case linkAnnotation, text
 public struct CitationMention: Codable, Sendable, Equatable, Identifiable {
     public var id: Int
     public var pageIndex: Int
-    public var text: String                  // "Smith and Jones (2019)", "12"
+    public var text: String                  // "Smith and Jones (2019", "12": from where the author key begins to the end of the year (section 8.4)
     public var spans: [TextSpan]             // one per text line touched; empty when only the link rectangle is known
     public var rects: [PageRect]             // click targets
     public var entryIDs: [Int]               // candidate BibEntry ids; empty = unresolved
-    public var source: MentionSource
+    public var source: MentionSource         // a text mention paired with a link mention is .linkAnnotation (its rects are the link's)
     public init(id: Int, pageIndex: Int, text: String, spans: [TextSpan] = [], rects: [PageRect] = [], entryIDs: [Int] = [], source: MentionSource) {
         self.id = id; self.pageIndex = pageIndex; self.text = text; self.spans = spans; self.rects = rects; self.entryIDs = entryIDs; self.source = source
     }
@@ -3170,12 +3179,15 @@ public protocol CitationIndexing: Sendable {
 
 // ---- Resolution ----
 
+/// How a work was identified: .entryText = an arXiv id or DOI printed in the entry (or in a link annotation inside it),
+/// .crossref = found by Crossref's bibliographic search. .linkAnnotation and .openAlex are reserved: v1 never produces them.
 public enum ResolutionSource: String, Codable, Sendable { case entryText, linkAnnotation, crossref, openAlex }
 public enum ResolutionStatus: String, Codable, Sendable { case resolved, notFound, failed }
 
 public struct ResolvedReference: Codable, Sendable, Equatable {
     public var entryID: Int
     public var status: ResolutionStatus      // .failed = transient (network, rate limit); never cached
+    public var failureReason: String?        // .failed only: why, in one sentence safe to show ("Crossref is busy; try again in a minute.")
     public var title: String?
     public var authors: [String]
     public var year: Int?                    // may differ from the entry's year (working paper vs. published version); the card says so
@@ -3187,12 +3199,12 @@ public struct ResolvedReference: Codable, Sendable, Equatable {
     public var source: ResolutionSource?
     public var confidence: Double            // 1.0 when the identifier was printed in the entry itself
     public var resolvedAt: Date
-    public init(entryID: Int, status: ResolutionStatus, title: String? = nil, authors: [String] = [], year: Int? = nil, venue: String? = nil,
-                doi: String? = nil, arxivID: String? = nil, landingURL: String? = nil, openAccessPDFURL: String? = nil, source: ResolutionSource? = nil,
-                confidence: Double, resolvedAt: Date) {
-        self.entryID = entryID; self.status = status; self.title = title; self.authors = authors; self.year = year; self.venue = venue; self.doi = doi
-        self.arxivID = arxivID; self.landingURL = landingURL; self.openAccessPDFURL = openAccessPDFURL; self.source = source; self.confidence = confidence
-        self.resolvedAt = resolvedAt
+    public init(entryID: Int, status: ResolutionStatus, failureReason: String? = nil, title: String? = nil, authors: [String] = [], year: Int? = nil,
+                venue: String? = nil, doi: String? = nil, arxivID: String? = nil, landingURL: String? = nil, openAccessPDFURL: String? = nil,
+                source: ResolutionSource? = nil, confidence: Double, resolvedAt: Date) {
+        self.entryID = entryID; self.status = status; self.failureReason = failureReason; self.title = title; self.authors = authors
+        self.year = year; self.venue = venue; self.doi = doi; self.arxivID = arxivID; self.landingURL = landingURL
+        self.openAccessPDFURL = openAccessPDFURL; self.source = source; self.confidence = confidence; self.resolvedAt = resolvedAt
     }
 }
 
@@ -3222,6 +3234,15 @@ public protocol ReferenceResolving: Sendable {
     func fetchPDF(for reference: ResolvedReference) async throws -> URL
     /// Manual fallback: a Google Scholar query URL built from the entry text.
     func searchURL(for entry: BibEntry) -> URL
+    /// Bytes of the downloaded PDFs in the cache (Settings ▸ References). Default: 0.
+    func cachedPDFBytes() async -> Int
+    /// Deletes every downloaded PDF (Settings ▸ References ▸ Clear). Default: does nothing.
+    func clearPDFCache() async
+}
+
+extension ReferenceResolving {
+    public func cachedPDFBytes() async -> Int { 0 }
+    public func clearPDFCache() async {}
 }
 ```
 
@@ -3570,9 +3591,16 @@ public protocol LLMProvider: Sendable {
     /// Cheap, no model tokens spent. For CLI providers: resolve binary, run `--version` (20 s cap) and the auth-status command.
     func availability() async -> ProviderAvailability
     func listModels() async throws -> [ModelInfo]
+    /// includeHidden: true = the whole list, without the filters of sections 5.4.2 and 5.4.4 (Settings' "Show all").
+    /// Default: listModels(), for providers that filter nothing.
+    func listModels(includeHidden: Bool) async throws -> [ModelInfo]
     /// Cold stream: work starts when iterated; cancelling the consuming Task cancels the HTTP request / kills the process.
     /// Throws only LLMError.
     func stream(_ request: LLMRequest) -> AsyncThrowingStream<LLMEvent, Error>
+}
+
+extension LLMProvider {
+    public func listModels(includeHidden: Bool) async throws -> [ModelInfo] { try await listModels() }
 }
 
 public protocol ProviderResolving: Sendable {
@@ -3644,10 +3672,15 @@ public struct SendPlan: Sendable, Equatable {
     }
 }
 
+/// The three event streams of the engine never throw and end with `.finished`, with one exception: a consumer that is
+/// cancelled between two events sees its stream end without `.finished` (a cold `AsyncThrowingStream` cannot deliver it
+/// then). The consumer records such a run as cancelled itself.
 public enum ReviewEvent: Sendable, Equatable {
     case started(RunRecord)
     case phase(ReviewPhase)
-    case draft(DraftComment)                           // create-or-update by id while the model writes
+    case draft(DraftComment)                           // create-or-update by id while the model writes; a draft that no
+                                                       // .comment has replaced when .finished arrives was dropped (a repeat,
+                                                       // a third strength comment, a block with neither title nor body): discard it
     case comment(ReviewComment, replacesDraft: UUID)   // parsed, validated, anchored
     case notice(String)                                // user-visible, e.g. "The model ignored the output format."
     case digest(String)                                // the model's notes from a review read in parts; at most once, before .finished
@@ -3657,12 +3690,14 @@ public enum ReviewEvent: Sendable, Equatable {
 public enum ReplyEvent: Sendable, Equatable {
     case started(RunRecord)
     case textDelta(String)
+    case notice(String)                                // user-visible, e.g. the provider refused the PDF and the text was sent instead
     case finished(reply: ThreadMessage, proposal: CommentRevision?, run: RunRecord)   // proposal only for discussions
 }
 
 public enum ReportEvent: Sendable, Equatable {
     case started(RunRecord)
     case textDelta(String)
+    case notice(String)                                // as in ReplyEvent
     case finished(ReportDraft, run: RunRecord)
 }
 
@@ -3681,7 +3716,9 @@ public protocol ReviewEngineProtocol: Sendable {
     func discuss(paper: LoadedPaper, comment: ReviewComment, message: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error>
     func ask(paper: LoadedPaper, conversation: Conversation, question: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error>
     func generateReport(paper: LoadedPaper, session: ReviewSession, context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
-    func reviseVoice(reportMarkdown: String, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
+    /// `draft` is the report being revised: the result is that draft with the new text, its recommendation parsed again
+    /// (the old one kept when the new text names none) and its comment ids and versions as they were.
+    func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
     func lint(reportMarkdown: String) -> [LintFinding]
 }
 ```
@@ -3795,7 +3832,7 @@ public enum StoreError: RefereeError, Equatable {
     case io(String)
     public var userMessage: String {
         switch self {
-        case .corrupt(let p): return "The saved review at \(p) is damaged; the previous backup was loaded if available."
+        case .corrupt(let p): return "The saved review at \(p) is damaged and has no usable backup."
         case .newerSchema(let f, let s): return "This review was saved by a newer version of Referee (format \(f); this version reads up to \(s))."
         case .io(let m): return "Could not read or write review data (\(m))."
         }
@@ -3810,10 +3847,25 @@ public protocol SettingsStoring: Sendable {
 }
 
 public protocol SessionStoring: Sendable {
+    /// Dates come back cut to the whole second (ISO 8601, section 3.7). A damaged session.json is moved aside and the
+    /// backup returned in its place; .corrupt only when nothing could be read.
     func loadSession(sha256: String) async throws -> ReviewSession?
+    /// What the last loadSession(sha256:) of that document repaired, as one sentence for the banner of section 4.5
+    /// (the backup was loaded because session.json was damaged); nil when it repaired nothing. Default: nil.
+    func recoveryNotice(sha256: String) async -> String?
     func save(_ session: ReviewSession) async throws  // atomic; keeps one .bak
     func listSessions() async -> [SessionSummary]
     func deleteSession(sha256: String) async throws
+    /// Every document's folder, damaged ones and ones of a newer format included (Settings ▸ Privacy, "Delete all
+    /// review data…"). Default: deleteSession for each listed session.
+    func deleteAllSessions() async throws
+}
+
+extension SessionStoring {
+    public func recoveryNotice(sha256: String) async -> String? { nil }
+    public func deleteAllSessions() async throws {
+        for summary in await listSessions() { try await deleteSession(sha256: summary.id) }
+    }
 }
 ```
 
@@ -3867,11 +3919,13 @@ public struct AppDependencies: Sendable {
     public var settings: any SettingsStoring
     public var providers: any ProviderResolving
     public var secrets: any SecretStoring
+    public var dataDirectory: URL?               // AppPaths.dataDirectory, shown in Settings ▸ Privacy; nil = not known (tests)
     public init(paperService: any PaperService, matcherFactory: @escaping @Sendable (PaperText) -> any QuoteMatching, citationIndexer: any CitationIndexing,
                 engine: any ReviewEngineProtocol, resolver: any ReferenceResolving, sessions: any SessionStoring, settings: any SettingsStoring,
-                providers: any ProviderResolving, secrets: any SecretStoring) {
+                providers: any ProviderResolving, secrets: any SecretStoring, dataDirectory: URL? = nil) {
         self.paperService = paperService; self.matcherFactory = matcherFactory; self.citationIndexer = citationIndexer; self.engine = engine
         self.resolver = resolver; self.sessions = sessions; self.settings = settings; self.providers = providers; self.secrets = secrets
+        self.dataDirectory = dataDirectory
     }
 }
 
@@ -3963,9 +4017,31 @@ public struct ComposingComment: Sendable, Equatable {
     public init(selection: SelectionInfo? = nil) { self.selection = selection }
 }
 
+/// A discussion reply or chat answer that failed: shown inline under its thread or conversation with Retry
+/// (`retryFailedReply()`), not as a banner (sections 9.3, 9.9).
+public struct ReplyFailure: Sendable, Equatable {
+    public var targetID: UUID                // the comment or conversation whose reply failed
+    public var message: String               // the error's userMessage, e.g. "The provider is overloaded."
+    public init(targetID: UUID, message: String) { self.targetID = targetID; self.message = message }
+}
+
 public enum CommentFilter: Sendable, Equatable { case all, pending, approved, rejected, kind(CommentKind) }
 public enum SidebarTab: String, Sendable, CaseIterable { case comments, chat, report }
 public enum ExportFormat: String, Sendable, CaseIterable { case markdown, plainText, docx, pdf }
+
+/// Why a report could not be exported (section 6.10). `ReportExporter.data` throws `.couldNotCreate`, `exportReport` also `.couldNotWrite`.
+public enum ExportError: RefereeError, Equatable {
+    case couldNotCreate(String)              // the Word or PDF data could not be produced
+    case couldNotWrite(String)               // the file could not be written where the user chose
+    public var userMessage: String {
+        switch self {
+        case .couldNotCreate(let why): return "The report could not be exported (\(why))."
+        case .couldNotWrite(let why): return "The exported report could not be saved (\(why))."
+        }
+    }
+    public var recoverySuggestion: String? { "Try another format or another folder." }
+    public var isRetryable: Bool { false }
+}
 
 /// Model -> PDF view. Find and zoom are not here: the menu calls ReaderController directly (plan section 7.4).
 public enum ReaderCommand: Sendable, Equatable {
@@ -4007,6 +4083,8 @@ public final class ReviewSessionModel {
     public private(set) var readerCommand: (serial: Int, command: ReaderCommand)?
     public private(set) var selection: SelectionInfo?            // normalised: no margin numbers, watermarks, headers or footers
     public private(set) var composing: ComposingComment?
+    public private(set) var replyFailure: ReplyFailure?          // a reply that failed, shown inline with Retry (sections 9.3, 9.9)
+    public private(set) var references: [Int: ResolvedReference] = [:]   // entry id → its latest lookup (References list icons, card)
     public var selectedCommentID: UUID?
     public var openThreadCommentID: UUID?        // the comment whose discussion thread is expanded
     public var editingCommentID: UUID?           // the comment being edited in place
@@ -4032,20 +4110,22 @@ public final class ReviewSessionModel {
 
     // ---- provider & consent ----
     public func setActiveProvider(_ ref: ProviderRef)
-    public func answerConsent(granted: Bool)
+    public func answerConsent(granted: Bool, askAgain: Bool = false)   // askAgain ("Ask again next time"): send now, record no consent
     public func reloadSettings(_ settings: AppSettings)   // called by WindowManager on .refereeSettingsDidChange
 
     // ---- review run ----
     public func startReview()                   // asks consent first when required
     public func cancelRun()                     // review lane: review, report, voice revision
     public func cancelReply()                   // reply lane: discussion, question
-    public func retryLastFailedJob()
+    public func retryLastFailedJob()             // the banner's Retry: the review lane's last failed job
+    public func retryFailedReply()               // the inline Retry of `replyFailure`: the message is not added again
 
     // ---- triage ----
     public func setStatus(_ status: CommentStatus, for id: UUID)
     public func selectNextComment(pendingOnly: Bool)
     public func selectPreviousComment()
     public func revealSelectedCommentInPDF()
+    public func revealConversationInPDF(_ id: UUID)   // the Chat tab's quoted passage (section 9.5)
     public func setKind(_ kind: CommentKind, for id: UUID)
     public func editComment(_ id: UUID, kind: CommentKind, category: String, title: String, body: String, suggestion: String?)
     public func deleteComment(_ id: UUID)
@@ -4072,13 +4152,14 @@ public final class ReviewSessionModel {
     public func setRecommendation(_ recommendation: Recommendation?)
     public func reviseReportVoice()
     public func restoreReportVersion(at index: Int)
-    public func exportReport(format: ExportFormat, to url: URL) throws
+    public func exportReport(format: ExportFormat, to url: URL) throws   // throws ExportError
     public func reportText(format: ExportFormat) -> String   // for the pasteboard (.markdown / .plainText)
 
     // ---- citations ----
     public func lookUpCitation(mentionID: Int)
     public func lookUpEntry(entryID: Int)
     public func fetchReferencePDF(_ reference: ResolvedReference) async throws -> URL
+    public func searchURL(for entry: BibEntry) -> URL   // the card's "Search Google Scholar"; no request is made
 
     // ---- called by the PDF view ----
     public func readerSelectionChanged(_ selection: SelectionInfo?)   // normalises against paper.text, then refreshes rects
@@ -4104,20 +4185,29 @@ public final class SettingsModel {
     public private(set) var models: [ProviderID: [ModelInfo]] = [:]
     public private(set) var modelErrors: [ProviderID: String] = [:]
     public private(set) var storedSecrets: Set<String> = []       // keys that currently have a value in the Keychain
+    public private(set) var secretErrors: [String: String] = [:]  // key → why the Keychain refused; cleared by the next success
+    public private(set) var pdfCacheBytes: Int?                   // downloaded reference PDFs (Settings ▸ References); nil until refreshed
     public var providers: [ProviderDescriptor]
+    public var dataDirectory: URL? { get }                        // Settings ▸ Privacy, with Reveal in Finder (AppDependencies.dataDirectory)
 
     public init(dependencies: AppDependencies, settings: AppSettings)
 
     public func update(_ mutate: (inout AppSettings) -> Void)     // saves (debounced 0.5 s) and posts .refereeSettingsDidChange
-    public func setSecret(_ value: String?, for key: String)
+    /// Off the main actor: macOS may show its Keychain dialog meanwhile, and the window must not freeze. Failure → secretErrors[key].
+    public func setSecret(_ value: String?, for key: String) async
     public func refreshAvailability(of id: ProviderID?) async    // nil = all
-    public func refreshModels(of id: ProviderID) async
+    public func refreshModels(of id: ProviderID, includeHidden: Bool = false) async   // includeHidden: the "Show all" toggle
     /// Explicit button only; sends "Reply with exactly: OK" and spends a few tokens. Success stores ProviderSettings.verifiedAt.
     public func sendTestPrompt(to id: ProviderID) async -> Result<String, LLMError>
     public func resetPromptsToDefaults()
     /// Called once by AppDelegate at launch. Acts on first launch only (no review default yet): if Ollama is running
     /// and has a model, enable it and make it the default. Never enables a remote provider by itself.
     public func applyFirstRunDefaultsIfNeeded() async
+    public func refreshPDFCacheSize() async                       // fills pdfCacheBytes
+    public func clearPDFCache() async                             // Settings ▸ References ▸ Clear
+    /// Settings ▸ Privacy ▸ "Delete all review data…": every review folder and the resolver's memory of it. The window
+    /// manager closes every review window first, so that none saves its session again. Throws StoreError.
+    public func deleteAllReviewData() async throws
 }
 ```
 
@@ -5100,3 +5190,35 @@ Gate 1 merged the nine Wave 1 branches, read their notes (`docs/contract-notes/w
 |---|---|---|
 | WP1 1, WP8b 6: `TextRange` is ambiguous in type position outside `RefereeCore` (Apple Events' C struct of the same name comes with Foundation) | One internal `typealias TextRange = RefereeCore.TextRange` per module that uses the type, in `TextRangeAlias.swift` (`CommonTextRangeAlias.swift` in `RefereeUI` and `RefereeUITests`), written by Gate 1 for every such module and for `RefereeUI`; Wave 2 adds none | §3.7 |
 | WP4 1, WP5 1, WP6 1: data files in a test target make SwiftPM warn, and the three packages each got round it differently | One rule: Swift literals, or data files in `Tests/<Target>Tests/Fixtures/` with `exclude: ["Fixtures"]` for that target and no Swift file in the folder. `ReviewEngineTests` is excluded and its four files left the hidden `.llm` folder; LLMKit's two literal files left its `Fixtures/` folder; the fake CLIs stay literals | §3.2, §3.3, §3.7, §10.3, §11.2, Appendix D |
+| WP8b 1: "Ask again next time" could not reach the model | `answerConsent(granted:askAgain:)`, `askAgain` defaulting to false: send now, record no consent | A.9, §9.7 |
+| WP8b 2: no state for a failed reply | `ReplyFailure`, `ReviewSessionModel.replyFailure` and `retryFailedReply()`; a failed reply raises no banner any more, and `retryLastFailedJob()` serves the review lane only | A.9, §9.3, §9.5, §9.9 |
+| WP8b 3: no way to reveal a conversation's passage | `revealConversationInPDF(_:)`; `revealSelectedCommentInPDF()` takes comments only again | A.9, §9.5 |
+| WP8b 4: no place for a Keychain error | `SettingsModel.secretErrors`; `modelErrors` holds model-list errors only. `setSecret` became `async` and reaches the store off the main actor, as do the reads of `refreshAvailability` (WP4: the Keychain dialog blocks the calling thread) | A.9, §9.6 |
+| WP8a 1, WP8b 5: the model could not learn that the backup was loaded | `SessionStoring.recoveryNotice(sha256:)`, default `nil`; the file store reports a load that fell back to the backup after damage; the model shows it as a warning banner. `StoreError.corrupt` is thrown only when nothing could be read, and its message now says so | A.7, §4.5 |
+| WP4 2: "Show all" had no way through `LLMProvider` | `listModels(includeHidden:)` with a default that calls `listModels()`; the HTTP providers implement it; `SettingsModel.refreshModels(of:includeHidden:)` | A.5, A.9, §9.6 |
+| WP7 2: no reason for "Lookup failed" | `ResolvedReference.failureReason` (optional, after `status`); ScholarKit writes one sentence per failure, naming the service, never the reference | A.3, §8.6, §9.9 |
+| WP7 3: `ResolutionSource` undefined | Meaning stated; `.linkAnnotation` and `.openAlex` kept as reserved cases (nothing produces them) | A.3 |
+| WP7 (for Wave 2): no API for the PDF cache of Settings ▸ References | `ReferenceResolving.cachedPDFBytes()` and `clearPDFCache()`, with defaults; `SettingsModel.pdfCacheBytes`, `refreshPDFCacheSize()`, `clearPDFCache()` | A.3, A.9, §9.6 |
+| Gate 1: Settings ▸ Privacy needs the data folder and "Delete all review data…", which `RefereeUI` cannot reach | `AppDependencies.dataDirectory` (optional, set by `LiveDependencies`) and `SettingsModel.dataDirectory`; `SessionStoring.deleteAllSessions()` with a default (the file store removes damaged and newer folders too) and `SettingsModel.deleteAllReviewData()` | A.7, A.8, A.9, §9.6, §11.3 |
+| Gate 1: the References list's status icons and the card's Search Google Scholar had no source; background lookups were not implemented | `ReviewSessionModel.references` (entry id → latest result) and `searchURL(for:)`; with "Look up all references when a document opens" on, `open` resolves every entry | A.9, §7.6, §8.6, §8.7 |
+| WP6 4: `REFEREE_DEBUG_DUMP` only from the process environment | `ReviewEngine.init(…, debugDumpDirectory:)`; `LiveDependencies` passes the variable of the environment it is given; the engine reads no environment | §10.5, §10.6, §11.3 |
+| WP6 5: a voice revision could not keep the draft's fields | `reviseVoice(draft:findings:context:)`: the result keeps the draft's comment ids and versions, and its recommendation when the new text names none | A.6 |
+| WP6 6: the text fallback of replies and the report was silent | `ReplyEvent.notice` and `ReportEvent.notice`; the model shows them as info banners | A.6, §6.2 |
+| WP6 2 and 3: no event retracts a draft; a consumer cancelled between events misses `.finished` | Stated in A.6 and §6.6. The model discarded drafts already; it now records a stream that ends without `.finished` as cancelled, with no banner (WP8b had "failed: The run ended before it finished.") | A.6, §6.6 |
+| WP6 7: §6.2 and the planning row differed | §6.2 states the warning in automatic mode | §6.2 |
+| WP2: each load must be matched by one unload | Stated on `PaperService`. The model leaked one load when a window closed while its paper was loading; it now unloads it | A.2 |
+| WP3 1 and 2: A.3's examples disagreed with §8.4 and §8.1 | The comments of `CitationMention.text` and `BibEntry.rawText` follow §8.4 and §8.1, as built | A.3 |
+| WP3 3: the source of a merged mention | `.linkAnnotation`, stated; the model fills rectangles only where `rects` is empty (verified) | A.3, §8.5 |
+| WP8a 2: dates lose their fraction in session files | Decided: whole seconds, stated; no change of format | §3.7, §4.3, A.7 |
+| WP8a 4: exports threw `StoreError.io` | `ExportError` (`couldNotCreate`, `couldNotWrite`) | A.9, §2.5, §11.3 |
+| WP8a: a newer session file must not be autosaved | Verified: such a session is kept in memory and never saved | — |
+| WP2, measured: a range that ends just before glued digits gets wrong bounds | §6.7 and §7.2 describe the measurement as built; the §4.3 sample rectangles (and the tests that hold copies of it) are the measured ones | §4.3, §6.7, §7.2 |
+| WP2 2: the protected-PDF row holds for `num_links` only | Row names the fixture and says why | WP2 |
+| WP2 3: `PaperError.empty` cannot occur on macOS 26 | Stated in A.2 and §7.2; the check stays | A.2, §7.2 |
+| WP1 2: journal-system PDFs would break "no false positives" | They go in `Fixtures/private/journal/` | §3.3, §3.6, Q7, WP1 |
+| WP7 1: ScholarKit imports CryptoKit | Added | §2.1 |
+| WP5 5: `CLAUDE_CODE_OAUTH_TOKEN` | Passed to `claude` only (`passedThroughNames` of its adapter); `USER` is always set in the child environment | §5.6.2 |
+| WP5 6: `FileHandle.bytes` is wrong for the runner | §5.6.3 describes the reader threads as built | §5.6.3 |
+| WP5 3 and 4: notes file name; `REFEREE_CLI_EXPERIMENT` | §5.6.6 names `wp5-cliproviders.md` and the outcome; §10.6 lists the variable | §5.6.6, §10.6 |
+| WP5 2, Gate 0 3: `SnapshotSupport`'s CLI rows | `claude-cli` takes the PDF (document block), `codex-cli` too ("sent as page images"); `maxPromptBytes` 9,000,000 and 4,000,000; an integration test compares every static row with the real descriptor | §5.6.6, §11.3 |
+| WP5 incident: a fake that timed out let a real Codex run | Confirmed fixed (`CLIHost.searchesDefaultLocations`); a guard test runs every adapter's real spec with a fake that fails its version check and requires failure | §10.3 |

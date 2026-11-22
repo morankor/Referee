@@ -20,7 +20,7 @@ public struct ParsedReference: Codable, Sendable, Equatable {
 public struct BibEntry: Codable, Sendable, Equatable, Identifiable {
     public var id: Int                       // 0-based position in the reference list
     public var label: String?                // "13" for numeric lists
-    public var rawText: String               // entry lines joined by a space, margin numbers removed
+    public var rawText: String               // entry lines joined as section 8.1 says (a space; none at a word hyphen or a broken DOI), margin numbers removed
     public var spans: [TextSpan]
     public var firstLineBounds: PageRect?
     public var parsed: ParsedReference
@@ -34,11 +34,11 @@ public enum MentionSource: String, Codable, Sendable { case linkAnnotation, text
 public struct CitationMention: Codable, Sendable, Equatable, Identifiable {
     public var id: Int
     public var pageIndex: Int
-    public var text: String                  // "Smith and Jones (2019)", "12"
+    public var text: String                  // "Smith and Jones (2019", "12": from where the author key begins to the end of the year (section 8.4)
     public var spans: [TextSpan]             // one per text line touched; empty when only the link rectangle is known
     public var rects: [PageRect]             // click targets
     public var entryIDs: [Int]               // candidate BibEntry ids; empty = unresolved
-    public var source: MentionSource
+    public var source: MentionSource         // a text mention paired with a link mention is .linkAnnotation (its rects are the link's)
     public init(id: Int, pageIndex: Int, text: String, spans: [TextSpan] = [], rects: [PageRect] = [], entryIDs: [Int] = [], source: MentionSource) {
         self.id = id; self.pageIndex = pageIndex; self.text = text; self.spans = spans; self.rects = rects; self.entryIDs = entryIDs; self.source = source
     }
@@ -61,12 +61,15 @@ public protocol CitationIndexing: Sendable {
 
 // ---- Resolution ----
 
+/// How a work was identified: .entryText = an arXiv id or DOI printed in the entry (or in a link annotation inside it),
+/// .crossref = found by Crossref's bibliographic search. .linkAnnotation and .openAlex are reserved: v1 never produces them.
 public enum ResolutionSource: String, Codable, Sendable { case entryText, linkAnnotation, crossref, openAlex }
 public enum ResolutionStatus: String, Codable, Sendable { case resolved, notFound, failed }
 
 public struct ResolvedReference: Codable, Sendable, Equatable {
     public var entryID: Int
     public var status: ResolutionStatus      // .failed = transient (network, rate limit); never cached
+    public var failureReason: String?        // .failed only: why, in one sentence safe to show ("Crossref is busy; try again in a minute.")
     public var title: String?
     public var authors: [String]
     public var year: Int?                    // may differ from the entry's year (working paper vs. published version); the card says so
@@ -78,12 +81,12 @@ public struct ResolvedReference: Codable, Sendable, Equatable {
     public var source: ResolutionSource?
     public var confidence: Double            // 1.0 when the identifier was printed in the entry itself
     public var resolvedAt: Date
-    public init(entryID: Int, status: ResolutionStatus, title: String? = nil, authors: [String] = [], year: Int? = nil, venue: String? = nil,
-                doi: String? = nil, arxivID: String? = nil, landingURL: String? = nil, openAccessPDFURL: String? = nil, source: ResolutionSource? = nil,
-                confidence: Double, resolvedAt: Date) {
-        self.entryID = entryID; self.status = status; self.title = title; self.authors = authors; self.year = year; self.venue = venue; self.doi = doi
-        self.arxivID = arxivID; self.landingURL = landingURL; self.openAccessPDFURL = openAccessPDFURL; self.source = source; self.confidence = confidence
-        self.resolvedAt = resolvedAt
+    public init(entryID: Int, status: ResolutionStatus, failureReason: String? = nil, title: String? = nil, authors: [String] = [], year: Int? = nil,
+                venue: String? = nil, doi: String? = nil, arxivID: String? = nil, landingURL: String? = nil, openAccessPDFURL: String? = nil,
+                source: ResolutionSource? = nil, confidence: Double, resolvedAt: Date) {
+        self.entryID = entryID; self.status = status; self.failureReason = failureReason; self.title = title; self.authors = authors
+        self.year = year; self.venue = venue; self.doi = doi; self.arxivID = arxivID; self.landingURL = landingURL
+        self.openAccessPDFURL = openAccessPDFURL; self.source = source; self.confidence = confidence; self.resolvedAt = resolvedAt
     }
 }
 
@@ -113,4 +116,13 @@ public protocol ReferenceResolving: Sendable {
     func fetchPDF(for reference: ResolvedReference) async throws -> URL
     /// Manual fallback: a Google Scholar query URL built from the entry text.
     func searchURL(for entry: BibEntry) -> URL
+    /// Bytes of the downloaded PDFs in the cache (Settings ▸ References). Default: 0.
+    func cachedPDFBytes() async -> Int
+    /// Deletes every downloaded PDF (Settings ▸ References ▸ Clear). Default: does nothing.
+    func clearPDFCache() async
+}
+
+extension ReferenceResolving {
+    public func cachedPDFBytes() async -> Int { 0 }
+    public func clearPDFCache() async {}
 }
