@@ -20,8 +20,8 @@ struct ReaderSelectionBar: View {
             if isAsking { askField } else { buttons }
         }
         .controlSize(.small)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
         .background(.regularMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(.separator))
         .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
@@ -29,7 +29,7 @@ struct ReaderSelectionBar: View {
     }
 
     private var buttons: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 12) {
             Button {
                 isAsking = true
             } label: {
@@ -48,7 +48,7 @@ struct ReaderSelectionBar: View {
                 Label("Copy", systemImage: "doc.on.doc")
             }
             .help("Copy the passage without margin numbers")
-            Divider().frame(height: 16).padding(.horizontal, 2)
+            Divider().frame(height: 16)
             Menu {
                 ForEach(Array(model.settings.prompts.quickQuestions.enumerated()), id: \.offset) { _, preset in
                     Button(preset) { model.ask(preset, about: selection, in: nil) }

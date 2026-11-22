@@ -32,8 +32,11 @@ import TestSupport
         #expect(finder.owns(first))
         #expect(first.string?.lowercased() == "effect")
 
+        #expect(view.highlightedSelections?.filter { $0.color == ReaderFinder.currentColor }.count == 1)
         finder.next()
         #expect(finder.countText == "2 of 3")
+        #expect(view.highlightedSelections?[1].color == ReaderFinder.currentColor)       // the current match is orange
+        #expect(view.highlightedSelections?[0].color == ReaderFinder.matchColor)
         finder.next()
         #expect(finder.countText == "3 of 3")
         #expect(view.currentSelection?.pages.first.map { view.document?.index(for: $0) } == 2)

@@ -32,17 +32,20 @@ import TestSupport
         return model
     }
 
-    /// A controller on `model`, attached, its PDF view in a window of `size` points that is never put on screen, the
-    /// document loaded and laid out.
+    /// A controller on `model`, attached, its PDF view of `size` points in a window that is never put on screen, the
+    /// document loaded and laid out. The view does not start at the window's origin (as in the review window, where the
+    /// navigator is on its left), so a point given in the wrong coordinates misses.
     static func attachedReader(_ model: ReviewSessionModel, size: NSSize = NSSize(width: 700, height: 800)) async throws -> (ReaderController, NSWindow) {
         _ = NSApplication.shared
         let reader = ReaderController(model: model)
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let inset = NSPoint(x: 120, y: 30)
+        let windowSize = NSSize(width: size.width + inset.x + 40, height: size.height + inset.y + 20)
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: windowSize), styleMask: [.titled, .resizable], backing: .buffered,
+                              defer: false)
         window.isReleasedWhenClosed = false
-        let container = NSView(frame: NSRect(origin: .zero, size: size))
+        let container = NSView(frame: NSRect(origin: .zero, size: windowSize))
         window.contentView = container
-        reader.pdfView.frame = container.bounds
-        reader.pdfView.autoresizingMask = [.width, .height]
+        reader.pdfView.frame = NSRect(origin: inset, size: size)
         container.addSubview(reader.pdfView)
         reader.attach()
         await wait { reader.isDocumentLoaded }

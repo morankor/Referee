@@ -4,20 +4,28 @@ import Observation
 
 // Find in a PDF view (plan.md section 7.6), for the manuscript (through ReaderController) and for the reference
 // viewer. `PDFDocument.findString(_:withOptions: [.caseInsensitive])` on the displayed document, at most 5,000 results;
-// `pdfView.highlightedSelections` marks them all; `setCurrentSelection(_:animate:)` and `go(to:)` step through them.
+// `pdfView.highlightedSelections` marks them all; `setCurrentSelection(_:animate:)` and a scroll step through them.
 //
 // Decisions (also in docs/contract-notes/wp9-reader.md):
 // - The current match is the PDF view's selection, as section 7.6 says, but it is not a passage the referee chose:
 //   ReaderController hands the model no selection while it is current (`owns(_:)`), so no selection bar pops up over
 //   each match, and a selection made before the search stops being the model's.
 // - Typing searches 0.2 s after the last key; Return goes to the next match, Shift-Return to the previous one; both wrap
-//   round. The first match shown is the first on or after the current page.
+//   round. The first match shown is the first on or after the current page. A match already in sight below the bar
+//   stays where it is; any other is scrolled one third of the way down (ReaderScrolling), never under the bar.
 // - "3 of 17"; "1 of 5000+" when the 5,000 results are cut off; "No matches"; nothing while the field is empty.
+// - The current match is marked in orange, the others in the system's find colour.
 
 @MainActor @Observable
 final class ReaderFinder {
     static let maximumResults = 5_000
     static let typingDelay: Duration = .milliseconds(200)
+    /// Every match is marked in the system's find colour, the current one in orange, so that "3 of 17" can be seen in
+    /// the page (in a window that is not key, PDFKit draws the view's own selection in a pale grey).
+    static let matchColor = NSColor.findHighlightColor
+    static let currentColor = NSColor.systemOrange
+    /// The height the find bar covers at the top of the PDF, with its margin: a match under it is not in sight.
+    static let barClearance: CGFloat = 56
 
     var isVisible = false
     var query = ""
@@ -88,7 +96,7 @@ final class ReaderFinder {
         var found = document.findString(query, withOptions: [.caseInsensitive])
         isCapped = found.count > Self.maximumResults
         if isCapped { found = Array(found.prefix(Self.maximumResults)) }
-        for match in found { match.color = NSColor.findHighlightColor }
+        for match in found { match.color = Self.matchColor }
         results = found
         resultCount = found.count
         searchedQuery = query
@@ -158,10 +166,17 @@ final class ReaderFinder {
 
     private func showCurrent(animate: Bool) {
         guard let pdfView, let index = currentIndex, results.indices.contains(index) else { return }
+        for (position, result) in results.enumerated() { result.color = position == index ? Self.currentColor : Self.matchColor }
+        pdfView.highlightedSelections = results
         let match = results[index]
         appliedSelection = match
         pdfView.setCurrentSelection(match, animate: animate)
-        pdfView.go(to: match)
+        // In sight below the find bar: left where it is. Otherwise one third of the way down, as a reveal.
+        guard let page = match.pages.first else { return }
+        let bounds = match.bounds(for: page)
+        if !ReaderScrolling.isInSight(bounds, on: page, in: pdfView, topInset: Self.barClearance) {
+            ReaderScrolling.reveal(bounds, on: page, in: pdfView)
+        }
     }
 
     private func firstIndex(atOrAfter pageIndex: Int, in document: PDFDocument) -> Int {

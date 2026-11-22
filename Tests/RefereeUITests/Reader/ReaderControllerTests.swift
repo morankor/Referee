@@ -107,13 +107,17 @@ import TestSupport
         #expect(reader.pdfView.currentSelection == nil)
         #expect(reader.cardMention?.id == 0)
 
-        // The cursor over it is PDFKit's link cursor; beside it, it is not.
+        // The cursor over it is PDFKit's link cursor; beside it, it is not. PDFKit asks with the mouse event, and passes
+        // the point on to `areaOfInterest(for:)` in view coordinates (measured: the view is not at the window's origin).
         let viewPoint = reader.pdfView.convert(point, from: nil)
         #expect(reader.pdfView.areaOfInterest(for: viewPoint).contains(.linkArea))
+        #expect(reader.pdfView.areaOfInterest(forMouse: try ReaderTestSupport.mouseEvent(.mouseMoved, at: point, in: window)).contains(.linkArea))
         #expect(reader.isOverCitation(at: viewPoint))
         let besidePage = try #require(reader.pdfView.document?.page(at: 0))
         let beside = reader.pdfView.convert(CGPoint(x: 200, y: 300), from: besidePage)
         #expect(!reader.isOverCitation(at: beside))
+        let besideInWindow = reader.pdfView.convert(beside, to: nil)
+        #expect(!reader.pdfView.areaOfInterest(forMouse: try ReaderTestSupport.mouseEvent(.mouseMoved, at: besideInWindow, in: window)).contains(.linkArea))
 
         // A click anywhere else in the PDF closes the card.
         #expect(reader.handleMouseDown(at: beside) == .other)
@@ -259,5 +263,16 @@ import TestSupport
         reader.findPrevious()
         #expect(reader.finder.countText == "1 of 3")
         #expect(reader.pdfView.highlightedSelections?.count == 3)
+
+        // Each current match is in sight, below the find bar: the one on page 3 was scrolled to.
+        func currentIsInSight() -> Bool {
+            guard let match = reader.pdfView.currentSelection, let page = match.pages.first else { return false }
+            return ReaderScrolling.isInSight(match.bounds(for: page), on: page, in: reader.pdfView, topInset: ReaderFinder.barClearance)
+        }
+        #expect(currentIsInSight())
+        reader.findPrevious()
+        #expect(reader.finder.countText == "3 of 3")
+        #expect(reader.pdfView.currentSelection?.pages.first.map { reader.pdfView.document?.index(for: $0) } == 2)
+        #expect(currentIsInSight())
     }
 }

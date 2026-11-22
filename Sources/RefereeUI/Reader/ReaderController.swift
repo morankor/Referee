@@ -249,24 +249,7 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
     /// Scrolls so that the first rectangle's top edge is one third of the way down the visible area.
     private func reveal(_ rects: [PageRect]) {
         guard let first = rects.first, let page = pdfView.document?.page(at: first.pageIndex) else { return }
-        guard let documentView = pdfView.documentView, let clipView = documentView.enclosingScrollView?.contentView else {
-            pdfView.go(to: first.cgRect, on: page)
-            return
-        }
-        let target = documentView.convert(pdfView.convert(first.cgRect, from: page), from: pdfView)
-        var visible = clipView.documentVisibleRect
-        if documentView.isFlipped {
-            visible.origin.y = target.minY - visible.height / 3
-        } else {
-            visible.origin.y = target.maxY + visible.height / 3 - visible.height
-        }
-        if target.minX < visible.minX || target.maxX > visible.maxX {
-            visible.origin.x = target.minX - ReaderOverlayPlacement.margin * 3
-        }
-        let bounds = documentView.bounds
-        visible.origin.y = min(max(visible.origin.y, bounds.minY), max(bounds.minY, bounds.maxY - visible.height))
-        visible.origin.x = min(max(visible.origin.x, bounds.minX), max(bounds.minX, bounds.maxX - visible.width))
-        documentView.scroll(visible.origin)
+        ReaderScrolling.reveal(first.cgRect.standardized, on: page, in: pdfView)
     }
 
     // ---- what the view reports ----
