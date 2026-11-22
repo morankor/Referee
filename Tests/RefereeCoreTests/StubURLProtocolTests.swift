@@ -170,11 +170,22 @@ import TestSupport
         let started = clock.now
         while lines.value < 3, clock.now - started < .seconds(8) { try await Task.sleep(for: .milliseconds(5)) }
         #expect(lines.value >= 3)                               // the body is arriving piece by piece
+        #expect(await session.allTasks.count == 1)              // the request is under way
         let cancelledAt = clock.now
         consumer.cancel()
         await consumer.value
         #expect(clock.now - cancelledAt < .seconds(3))          // it did not wait for the rest of the ten seconds
         #expect(lines.value < 200)
+
+        // The request itself ended, not only the reading of it: the session has no task left. This is how a test can
+        // see that cancelling a provider's consumer cancelled its HTTP request (WP4, "cancellation"), since the stub
+        // has no hook of its own for stopLoading.
+        var remaining = await session.allTasks.count
+        while remaining > 0, clock.now - cancelledAt < .seconds(3) {
+            try await Task.sleep(for: .milliseconds(10))
+            remaining = await session.allTasks.count
+        }
+        #expect(remaining == 0)
     }
 
     /// Each test has a handler of its own, so tests that use the stub can run in parallel (the default in Swift

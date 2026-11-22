@@ -151,6 +151,81 @@ import TestSupport
         #expect(result.events.last == .finished(.endOfTurn, Usage(inputTokens: 7, outputTokens: 1)))
     }
 
+    /// Without a `failure`, the mock fails as a server would: status 500.
+    @Test func failAfterChunksWithoutAFailureIsAServerError() async {
+        let response = MockResponse(text: "abcdef", chunkSize: 2, failAfterChunks: 1)
+        let (events, error) = await collect(MockLLMProvider(script: MockScript(responses: [.review: [response]])).stream(request(.review)))
+        #expect(events == [.textDelta("ab")])
+        guard case .server(let status, _)? = error as? LLMError else {
+            Issue.record("expected LLMError.server, got \(String(describing: error))")
+            return
+        }
+        #expect(status == 500)
+    }
+
+    /// `stallAfterChunks: n` on a response of one's own: n deltas, then silence until the consumer is cancelled, which
+    /// ends the stream with `.cancelled`. A stall point past the end of the text is never reached.
+    @Test func afterStallAfterChunksNothingComesUntilTheConsumerIsCancelled() async throws {
+        final class Seen: @unchecked Sendable {
+            private let lock = NSLock()
+            private var events: [LLMEvent] = []
+            private var failure: Error?
+            private var ended = false
+            func add(_ event: LLMEvent) { lock.withLock { events.append(event) } }
+            func end(_ error: Error?) { lock.withLock { ended = true; failure = error } }
+            var snapshot: (events: [LLMEvent], ended: Bool, failure: Error?) { lock.withLock { (events, ended, failure) } }
+        }
+        let response = MockResponse(text: "abcdefghij", chunkSize: 2, stallAfterChunks: 2)
+        let stream = MockLLMProvider(script: MockScript(responses: [.review: [response]])).stream(request(.review))
+        let seen = Seen()
+        let consumer = Task {
+            do {
+                for try await event in stream { seen.add(event) }
+                seen.end(nil)
+            } catch {
+                seen.end(error)
+            }
+        }
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(5)
+        while seen.snapshot.events.count < 2, clock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(seen.snapshot.events == [.textDelta("ab"), .textDelta("cd")])
+        #expect(!seen.snapshot.ended)
+        consumer.cancel()
+        await consumer.value
+        #expect(seen.snapshot.failure as? LLMError == .cancelled)
+
+        let beyond = MockResponse(text: "abcd", chunkSize: 2, stallAfterChunks: 3)
+        let (events, error) = await collect(MockLLMProvider(script: MockScript(responses: [.review: [beyond]])).stream(request(.review)))
+        #expect(error == nil)
+        #expect(deltas(events) == ["ab", "cd"])
+        #expect(events.count == 3)                              // the two deltas and .finished
+    }
+
+    /// A consumer cancelled while the mock waits out a delay ends at once, with `.cancelled`.
+    @Test func aDelayedStreamThatIsCancelledEndsWithCancelled() async {
+        let response = MockResponse(text: "abcdef", chunkSize: 2, delayPerChunk: .seconds(30))
+        let stream = MockLLMProvider(script: MockScript(responses: [.review: [response]])).stream(request(.review))
+        let consumer = Task { () -> (count: Int, error: Error?) in
+            var count = 0
+            do {
+                for try await _ in stream { count += 1 }
+                return (count, nil)
+            } catch {
+                return (count, error)
+            }
+        }
+        try? await Task.sleep(for: .milliseconds(100))
+        let clock = ContinuousClock()
+        let cancelledAt = clock.now
+        consumer.cancel()
+        let result = await consumer.value
+        #expect(clock.now - cancelledAt < .seconds(2))
+        #expect(result.count == 0)
+        #expect(result.error as? LLMError == .cancelled)
+    }
+
     @Test func delaysSeparateTheDeltas() async {
         let response = MockResponse(text: "abcdef", chunkSize: 2, delayPerChunk: .milliseconds(30))
         let clock = ContinuousClock()

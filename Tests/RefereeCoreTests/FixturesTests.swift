@@ -304,6 +304,19 @@ import TestSupport
         #expect(identityPaperText(from: RawDocument()).pages.isEmpty)
     }
 
+    /// The 200-letter rule of section 7.2: a document with fewer than 200 letters, counted over all its pages, has no
+    /// text layer. Digits, spaces and punctuation are not letters.
+    @Test func identityPaperTextHasATextLayerFrom200Letters() {
+        let size = PageSize(width: 612, height: 792)
+        func document(_ pages: [String]) -> RawDocument {
+            RawDocument(pages: pages.enumerated().map { RawPage(index: $0.offset, size: size, string: $0.element) })
+        }
+        #expect(!identityPaperText(from: document([String(repeating: "a", count: 199) + " 1234567890 -- ()"])).hasTextLayer)
+        #expect(identityPaperText(from: document([String(repeating: "a", count: 200)])).hasTextLayer)
+        #expect(identityPaperText(from: document([String(repeating: "b", count: 100), String(repeating: "é", count: 100)])).hasTextLayer)
+        #expect(!identityPaperText(from: document(["", String(repeating: "9", count: 500)])).hasTextLayer)
+    }
+
     @Test func theSamplePaperIsTheFixtureWithoutPDFKit() throws {
         let paper = try makeSamplePaper()
         let bytes = try Data(contentsOf: Fixtures.url("pdf/ay_round_nolinks.pdf"))
