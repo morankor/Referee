@@ -1,0 +1,7 @@
+The paper asks whether traders who act in sequence aggregate their private information, and it answers the question with the staggered rollout of a disclosure rule. The question matters, and the setting is a natural one for it.
+
+My main difficulty is with the headline estimate. The introduction reports a coefficient of 0.91 with an interval that crosses one, yet the same sentence calls the effect robust, and the abstract calls it statistically significant. These statements cannot all be true of one specification.
+
+The identifying assumption is that the timing of the rollout is unrelated to outcomes. I found no discussion of how the order was decided and no test for differences before the rollout, so I cannot tell whether the design identifies anything.
+
+The theoretical section is easier to follow, but the step before the first proposition multiplies an inequality by a likelihood ratio without saying why its direction is preserved at the boundary. I would like to see that step written out.
