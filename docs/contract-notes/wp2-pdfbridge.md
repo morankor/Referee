@@ -10,7 +10,7 @@ Notes of the Wave 1 package PDFBridge (`plan.md` §11.4), for the Gate 1 integra
 | `PDFPaperService` | `load(url:)`, `load(data:fileName:)`, SHA-256 with CryptoKit, `isEncrypted`, the four `PaperError` cases, bounds of stripped lines, `rects(for:in:)`, `unload`. One extraction `PDFDocument` per loaded document, counted per load (decision 2) |
 | `SelectionInfoBuilder.make(from:in:)` | The raw selection of §7.4: one span per text range of each line selection, one rectangle per line, PDFKit's text |
 | `PageGeometry` (internal) | The bounds of a text range, used by `rects` and by the bounds of stripped lines (decision 1) |
-| Tests | 39 in `PDFBridgeTests` (the 6 Wave 0 smoke tests kept unchanged, 33 new), in six files; every row of WP2's table has at least one |
+| Tests | 39 in `PDFBridgeTests` (the 6 Wave 0 smoke tests kept unchanged, 33 new) in six suites, one file each, plus `PDFBridgeTestHelpers.swift`; every row of WP2's table has at least one |
 
 ## Decisions
 
