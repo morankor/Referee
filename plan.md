@@ -222,23 +222,23 @@ let package = Package(
         .executableTarget(name: "referee-cli", dependencies: ["RefereeCore", "Composition", "PDFBridge", "PaperText"]),
 
         .testTarget(name: "RefereeCoreTests", dependencies: ["RefereeCore", "TestSupport"]),
-        .testTarget(name: "PaperTextTests", dependencies: ["PaperText", "TestSupport"]),
-        .testTarget(name: "PDFBridgeTests", dependencies: ["PDFBridge", "TestSupport"]),
-        .testTarget(name: "CitationKitTests", dependencies: ["CitationKit", "TestSupport"]),
-        .testTarget(name: "LLMKitTests", dependencies: ["LLMKit", "TestSupport"]),
-        .testTarget(name: "CLIProvidersTests", dependencies: ["CLIProviders", "TestSupport"]),
-        .testTarget(name: "ReviewEngineTests", dependencies: ["ReviewEngine", "TestSupport"]),
-        .testTarget(name: "ScholarKitTests", dependencies: ["ScholarKit", "TestSupport"]),
-        .testTarget(name: "PersistenceTests", dependencies: ["Persistence", "TestSupport"]),
-        .testTarget(name: "AppCoreTests", dependencies: ["AppCore", "TestSupport"]),
-        .testTarget(name: "RefereeUITests", dependencies: ["RefereeUI", "TestSupport"]),
-        .testTarget(name: "IntegrationTests", dependencies: ["Composition", "AppCore", "TestSupport"]),
+        .testTarget(name: "PaperTextTests", dependencies: ["PaperText", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "PDFBridgeTests", dependencies: ["PDFBridge", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "CitationKitTests", dependencies: ["CitationKit", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "LLMKitTests", dependencies: ["LLMKit", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "CLIProvidersTests", dependencies: ["CLIProviders", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "ReviewEngineTests", dependencies: ["ReviewEngine", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "ScholarKitTests", dependencies: ["ScholarKit", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "PersistenceTests", dependencies: ["Persistence", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "AppCoreTests", dependencies: ["AppCore", "RefereeCore", "TestSupport"]),
+        .testTarget(name: "RefereeUITests", dependencies: ["RefereeUI", "RefereeCore", "AppCore", "PDFBridge", "TestSupport"]),
+        .testTarget(name: "IntegrationTests", dependencies: ["Composition", "RefereeCore", "AppCore", "TestSupport", "PaperText", "PDFBridge", "CitationKit", "LLMKit", "CLIProviders", "ReviewEngine", "ScholarKit", "Persistence"]),
     ],
     swiftLanguageModes: [.v5]
 )
 ```
 
-Manifest rules: no `resources:` anywhere (reason: `Bundle.module` does not resolve inside a hand-assembled `.app`; prompts and templates are Swift string literals, tests find fixtures by path, see §3.6); no `unsafeFlags`; no dependencies. A target imports only modules it declares: an undeclared transitive `import` happens to compile on this toolchain [V, reviewer] and must not be relied on. This manifest, with every declaration of §11.3 as a stub, builds from clean [V].
+Manifest rules: no `resources:` anywhere (reason: `Bundle.module` does not resolve inside a hand-assembled `.app`; prompts and templates are Swift string literals, tests find fixtures by path, see §3.6); no `unsafeFlags`; no dependencies. A target imports only modules it declares: an undeclared transitive `import` happens to compile on this toolchain [V, reviewer] and must not be relied on. That is why every test target declares `RefereeCore` (no test can avoid naming the shared types), `RefereeUITests` declares `AppCore` and `PDFBridge`, and `IntegrationTests` declares every library (Appendix G.4). This manifest, with every declaration of §11.3 as a stub, builds from clean [V].
 
 ### 3.3 Repository layout
 
@@ -259,7 +259,7 @@ Referee/
   build/          git-ignored output: Referee.app, snapshots, icon
 ```
 
-`.gitignore`: `.build/`, `build/`, `Fixtures/private/`, `*.local.json`, `.env`, `.DS_Store`, `*.xcuserstate`, `.swiftpm/`.
+`.gitignore`: `.build/`, `build/`, `Fixtures/private/`, `*.local.json`, `.env`, `.DS_Store`, `*.xcuserstate`, `.swiftpm/`, `__pycache__/`.
 
 ### 3.4 Commands (the only ones agents and the user run)
 
@@ -372,6 +372,10 @@ cat > "$APP/Contents/Info.plist" <<EOF
 </dict></plist>
 EOF
 plutil -lint "$APP/Contents/Info.plist"
+if strings -a "$APP/Contents/MacOS/Referee" | grep -q "$HOME/"; then
+  echo "bundle.sh: the binary contains a path under your home directory (a #filePath or #file in a release build?). Remove it before the app is shared." >&2
+  exit 1
+fi
 codesign --force --sign "${REFEREE_SIGN_IDENTITY:--}" "$APP"
 codesign --verify --verbose=1 "$APP"
 echo "Built $APP"
@@ -432,7 +436,7 @@ Rules: tests never read or write the user's Keychain item, `~/Library/Applicatio
 What PDFKit actually returns for these files is part of the specification; the samples in §6.7 and §7.2 are copied from its output.
 
 - **Raw dumps.** `referee-cli dump-raw <pdf>` prints the `RawDocument` JSON; `scripts/make-fixtures.sh` writes one per PDF into `Fixtures/raw`. The pure libraries test against these.
-- **Fixture access.** `TestSupport.Fixtures` (§11.3) resolves the repository root from `#filePath` of its own source file. No `Bundle.module`.
+- **Fixture access.** `TestSupport.Fixtures` (§11.3) resolves the repository root in this order: the environment variable `REFEREE_REPO_ROOT` when set; in debug builds (`#if DEBUG`), from `#filePath` of its own source file; in release builds, the current directory. No `Bundle.module`. Reason for the split: `TestSupport` is linked into the app, and a `#filePath` in a release build would put the build machine's home-directory path into the bundled binary; `scripts/bundle.sh` fails if it finds one. Fixtures are only needed by a release binary in snapshot mode, which is run from the repository root.
 - **Real papers.** `scripts/fetch-optional-fixtures.sh` downloads three public arXiv PDFs into `Fixtures/private/` (git-ignored; one request every three seconds, as arXiv's terms ask). Tests that use them skip when absent. They matter: running the prototypes on one real 15-page paper exposed three errors that the synthetic files did not (§8.2). Journal-system PDFs the user supplies go in the same folder (Q7).
 - **Model outputs and provider streams** are text files (Appendix D and `Fixtures/llm`).
 
@@ -1049,7 +1053,7 @@ Texts are in Appendix B. `PromptSet` fields are user-editable; the **format spec
 | Job | `system` | User turn parts, in order |
 |---|---|---|
 | review, one pass | `reviewSystem` + rubric block + `FORMAT_REVIEW` | paper (`.pdf` or `.text`), `.cacheBoundary`, task text (`TASK_REVIEW` + reviewer notes + titles of existing comments) |
-| review, part *i* of *n* | same | text of the part, task text (`TASK_PART` with notes so far) |
+| review, part *i* of *n* | same | one text: `TASK_PART` with the part's pages, the notes so far and the text of the part filled in where its placeholders stand |
 | review, whole-paper pass | same | task text (`TASK_WHOLE` with final notes and titles so far) |
 | discuss | `discussionSystem` + `FORMAT_REVISION` | paper context, `.cacheBoundary`, the comment, the transcript, the new message |
 | ask | `questionSystem` | paper context, `.cacheBoundary`, the selected passage with its location label, the transcript, the question |
@@ -1858,6 +1862,7 @@ All in `TestSupport`, declared in §11.3.
 | `REFEREE_HOME` | `AppPaths` | data directory (settings, sessions; caches under `Caches/`) instead of the user's Library; tests, CLI and snapshots always set it |
 | `REFEREE_KEY_<NAME>` | `EnvironmentSecretStore` | a secret that takes precedence over the Keychain: `REFEREE_KEY_ANTHROPIC_API`, `REFEREE_KEY_OPENAI_API`, `REFEREE_KEY_GEMINI_API`, `REFEREE_KEY_XAI_API` |
 | `REFEREE_ENABLE_MOCK=1` | `LiveDependencies` | adds the provider `mock` to the real registry |
+| `REFEREE_REPO_ROOT` | `TestSupport.Fixtures` | the repository root, for finding `Fixtures/`; needed only when a release binary runs the snapshot mode from another directory (§3.6) |
 | `REFEREE_SNAPSHOT=1` | `LiveDependencies` | snapshot graph: mock and static providers only, fake resolver, in-memory secrets (§10.1) |
 | `REFEREE_NO_KEYCHAIN=1` | `LiveDependencies` | the Keychain is never read or written (secrets come from `REFEREE_KEY_*` only) |
 | `REFEREE_TEST_KEYCHAIN=1` | `LLMKitTests` | runs the one test that uses the real Keychain (§5.8) |
@@ -1895,6 +1900,8 @@ All in `TestSupport`, declared in §11.3.
 - Do not pass `--scratch-path` or `--build-path`; do not run `swift package clean`, `reset` or `update`.
 - Frozen paths (below) are read-only. If a contract is wrong or missing something: implement what you need inside your own target (an extension, an internal helper), keep the public shape, and write the problem and your workaround in `docs/contract-notes/<WP>.md` under a heading "Contract problems". Gate 1 or Wave 3 resolves these.
 - Commit early and often on your branch; the last commit must have the acceptance commands passing. Put the commands you ran and their final lines in `docs/contract-notes/<WP>.md`.
+- Never drive the screen: no `osascript`, AppleScript or System Events, no `screencapture`, no synthetic input sent to another process. They hang or raise macOS permission prompts on the user's desktop. What the UI looks like is checked through the app's own snapshot mode (§10.1); whether the app runs, through exit codes and `log show`.
+- Nothing in the tree may contain a personal name, an email address or an absolute path under a home directory. Paths are relative or computed at run time.
 
 ### 11.2 Steps and ownership
 
@@ -1929,8 +1936,9 @@ Wave 0 creates these exact declarations; owners fill them in and may add anythin
 ```swift
 // ====== RefereeCore, besides Appendix A (Wave 0a) =====================================================================
 public enum DefaultSettings {
-    /// Prompts, rubric and quick questions of Appendix B; every provider id of section 5.2 present and disabled except "ollama",
-    /// whose extraBodyJSON is {"think": false}; privacy: localOnly false, confirm on, background lookups off.
+    /// Prompts, rubric and quick questions of Appendix B; the nine real provider ids of section 5.2 (not "mock"), all disabled
+    /// except "ollama", which is enabled and whose extraBodyJSON is {"think": false}; no default provider chosen;
+    /// privacy: localOnly false, confirm on, background lookups off.
     public static func make() -> AppSettings
 }
 public enum FormatSpec {                                  // Appendix B.2: constants in code, never settings
@@ -1945,7 +1953,7 @@ public enum FormatSpec {                                  // Appendix B.2: const
 
 // ====== TestSupport (Wave 0b; frozen) =================================================================================
 public enum Fixtures {
-    public static var root: URL { get }                                           // repository root, from #filePath of this file; no Bundle.module
+    public static var root: URL { get }                                           // repository root: REFEREE_REPO_ROOT, else #filePath (debug builds only), else the current directory (section 3.6)
     public static func url(_ relativePath: String) -> URL                 // "pdf/ay_nolinks.pdf" -> <root>/Fixtures/pdf/ay_nolinks.pdf
     public static func rawDocument(_ name: String) throws -> RawDocument  // "ay_nolinks" -> Fixtures/raw/ay_nolinks.raw.json
     public static func text(_ relativePath: String) throws -> String      // "llm/review_clean.txt"
@@ -2010,6 +2018,12 @@ public final class InMemorySecretStore: SecretStoring, @unchecked Sendable {
 public final class FakePaperService: PaperService, @unchecked Sendable { public init(paper: LoadedPaper) }
 /// Exact substring search inside single lines of the body text; label "p. N".
 public struct FakeQuoteMatcher: QuoteMatching { public init(paper: PaperText) }
+/// Returns `index` whatever the input; nil = an index with style .unknown, no entries and no mentions.
+public struct FakeCitationIndexer: CitationIndexing { public init(index: CitationIndex? = nil) }
+/// The simplest rendering, stable for ever (ReviewEngine's tests depend on it, not on PaperText's real renderer): for each page in
+/// range the line "[[page N]]" (1-based), then the text of each .body line on a line of its own; a final newline.
+/// chunkPageRanges adds consecutive pages to a range while its rendering stays within maxCharacters (a single page may exceed it).
+public struct FakePaperRenderer: PaperRendering { public init() }
 /// Every entry resolves at once: status .resolved, title "Resolved: " + first 30 characters, an example.org open-access URL.
 public final class FakeResolver: ReferenceResolving, @unchecked Sendable { public init() }
 /// Plays the given events; `calls` lists the jobs requested, in order ("plan", "review", "discuss", "ask", "report", "revise").
@@ -2097,6 +2111,7 @@ public enum SelectionNormalizer {
     public let model: ReviewSessionModel?         // review scenes
     public let reader: ReaderController?          // review scenes; the runner has already called attach()
     public let settings: SettingsModel?           // settings scenes
+    public init(window: NSWindow, model: ReviewSessionModel? = nil, reader: ReaderController? = nil, settings: SettingsModel? = nil)
 }
 @MainActor public struct SnapshotScene {
     public enum Kind { case review, settings, welcome, referenceViewer }
@@ -2265,7 +2280,7 @@ Read: §2, §3, §11, Appendix A, Appendix B.
 Build:
 
 1. Repository files of §3.3; `scripts/build.sh`, `test.sh`, `run.sh`, `bundle.sh`, `snapshots.sh`, `make-icon.sh` and the `Makefile` exactly as printed in §3.4; `Package.swift` of §3.2 exactly as printed.
-2. `RefereeCore`: Appendix A.1–A.8 verbatim (the initialisers are printed; add none), plus `DefaultSettings.make()` (prompts, rubric and quick questions from Appendix B; every provider id of §5.2 present and disabled except `ollama`, whose `extraBodyJSON` is `{"think": false}`; privacy defaults: `localOnly` false, confirm on, background lookups off; `ui.stripMarginLineNumbers` true) and the `FormatSpec` constants (Appendix B.2).
+2. `RefereeCore`: Appendix A.1–A.8 verbatim (the initialisers are printed; add none), plus `DefaultSettings.make()` (prompts, rubric and quick questions from Appendix B; the nine real provider ids of §5.2, all disabled except `ollama`, which is enabled and whose `extraBodyJSON` is `{"think": false}`; privacy defaults: `localOnly` false, confirm on, background lookups off; `ui.stripMarginLineNumbers` true) and the `FormatSpec` constants (Appendix B.2).
 3. Every other target with the declarations of §11.3 and harmless bodies, no `fatalError`: `PaperTextBuilder.build` copies raw lines to `.body` lines with `contentRange == range`; `PaperRenderer` in its simplest form (one marker line per page, one text line per body line; WP1 replaces it); `QuoteMatcher.locate` returns `nil`; `CitationIndexer` returns an empty index; providers report `.needsSetup("not implemented", …)` and throw `.notConfigured` from `stream`; `ReviewEngine` streams finish with a failed run; `ReferenceResolver.resolve` returns `notFound`; stores work in memory; `ReviewSessionModel` and `SettingsModel` have every member of Appendix A.9; views are `EmptyView`; `TestSupport` types exist with trivial bodies; `Composition` as printed.
 4. `main.swift` of §9.1, a smoke test in each of the twelve test targets, `README.md` (commands of §3.4), `docs/contract-notes/README.md`, initial commit.
 
@@ -2280,10 +2295,11 @@ git status --porcelain | wc -l                           # 0
 
 #### WP0b — Test support, fixtures, composition, snapshot runner (Wave 0, second session, on `main`)
 
-Read: §3.6, §5.3 (the session), §5.9, §7.2 (raw extraction only), §10.1, §10.3, §11.3, Appendices C and D.
+Read: §3.6, §5.3 (the session), §5.9, §7.2 (raw extraction only), §10.1, §10.3, §11.3, Appendices C and D, Appendix G.4, and `docs/contract-notes/wp0a-scaffold.md`.
 
 Build:
 
+0. The amendments of Appendix G.4 that WP0a's code does not have yet: the manifest and `scripts/bundle.sh` as now printed, `.gitignore`, `DefaultSettings` without `mock`, `Fixtures.root`, the two new fakes, and the four public initialisers.
 1. `TestSupport` for real, with the behaviour §11.3's comments, §5.9 and §10.3 give. `RefereeCoreTests` gets a test for each fake's documented behaviour.
 2. `PDFBridge.RawExtractor.extract` and `PDFPaperService.load` in their simplest working form (§7.2 "Raw extraction"; WP2 owns and completes them), and a seed `referee-cli` with only `dump-raw <pdf>` (Gate 1 completes it), because fixtures need them.
 3. Fixtures: LaTeX sources from Appendix C; `scripts/make-fixtures.sh`; run it and commit the seven PDFs and their raw dumps; `Fixtures/llm/*` from Appendix D.9; `Fixtures/sessions/sample.json` (seven comments quoting sentences that occur in all `ay_*` fixtures, in the states the scenes of §10.1 need, one of them with `similarTo`; anchors may be empty, the model re-anchors on load).
@@ -2300,7 +2316,7 @@ scripts/test.sh --filter RefereeCoreTests                # round-trip of the §4
                                                          # StubURLProtocol chunking; SnapshotSupport ids; every fixture PDF and raw dump present and decodable
 "$(swift build --show-bin-path)"/referee-cli dump-raw Fixtures/pdf/ay_nolinks.pdf | head -c 200
 scripts/snapshots.sh --scene placeholder                 # exit 0, PNG non-blank; open it: three columns and a PDF page are visible
-scripts/bundle.sh && codesign --verify build/Referee.app
+scripts/bundle.sh && codesign --verify build/Referee.app # bundle.sh now also fails if the binary contains a home-directory path
 git status --porcelain | wc -l                           # 0
 ```
 
@@ -2311,9 +2327,9 @@ Read: §2, §3, §10.1, §10.3, §11.1–§11.3, Appendix A; then the code of Wa
 Do, and record each result in `docs/contract-notes/gate0.md`:
 
 1. **Every protocol has a consumer.** Add `Tests/RefereeCoreTests/ContractConsumers.swift`: for each protocol of Appendix A a minimal conforming type written from the protocol alone (an actor for `PaperService`, `ReferenceResolving`, `SessionStoring`, `SettingsStoring`; a class for `SecretStoring`, `LLMProvider`, `ReviewEngineProtocol`; structs for the rest) and a function that calls every requirement. It must compile and run.
-2. **§11.3 against the code.** Add `Tests/IntegrationTests/SurfaceCheck.swift`: a function, never called, that names every declaration of §11.3 with its printed argument labels. It must compile. Any difference between §11.3 and the code is fixed in the code.
+2. **§11.3 against the code.** Add two files, each a function, never called, that names declarations of §11.3 with their printed argument labels: `Tests/RefereeUITests/Common/CommonSurfaceCheck.swift` for `RefereeUI`, `AppCore`, `PDFBridge` and `TestSupport`, and `Tests/IntegrationTests/SurfaceCheck.swift` for every other target (`IntegrationTests` does not depend on `RefereeUI`). Together they name every declaration; both must compile. Any difference between §11.3 and the code is fixed in the code.
 3. **The fakes.** Read all of `TestSupport` against §5.9, §10.3 and the comments in §11.3; add a test wherever a documented behaviour has none.
-4. **The snapshot path.** Run `scripts/snapshots.sh --scene placeholder` and look at the PNG. Add a temporary scene that selects `mock-remote` and starts a review, and confirm that the engine finds that provider (this is the failure the first plan had); remove the scene.
+4. **The snapshot path.** Run `scripts/snapshots.sh --scene placeholder` and look at the PNG. Then confirm that the engine of the snapshot graph finds the snapshot providers (this is the failure the first plan had). A scene cannot start a review before WP8b, so do it in a test that stays: `Tests/IntegrationTests/SnapshotGraphTests.swift` builds `LiveDependencies.make` with `REFEREE_SNAPSHOT=1` and a temporary `REFEREE_HOME`, calls `engine.review` for `mock-remote`, and asserts that the run's destination is `mock.example.org` and that its message does not say the provider is missing. Write the assertions so that they hold for the placeholder engine and for the real one.
 5. **The fixtures.** Run `scripts/make-fixtures.sh --pdf-only` into a scratch copy and compare page counts and the first lines of each raw dump with the committed ones; confirm the facts marked ● in WP1's and WP2's tables for two rows of your choice with `referee-cli dump-raw`.
 6. Fix what is wrong directly; this is the last moment anything in the frozen paths changes without a gate.
 
@@ -2454,7 +2470,7 @@ Acceptance: `scripts/build.sh`, `scripts/test.sh --filter CLIProvidersTests`:
 
 #### WP6 — ReviewEngine (Wave 1)
 
-Read: §6 entirely, §5.1, Appendices A.4–A.6, B, D.9. Dependencies in tests: `MockLLMProvider`, `FakePaperService`, `FakeQuoteMatcher`, the Wave 0 `PaperRenderer`.
+Read: §6 entirely, §5.1, Appendices A.4–A.6, B, D.9, and the doc comment of `FormatSpec` in `Sources/RefereeCore/FormatSpec.swift` (the rule for placeholders). Dependencies in tests: `MockLLMProvider`, `FakePaperService`, `FakeQuoteMatcher`, `FakePaperRenderer` (all from `TestSupport`; `ReviewEngineTests` cannot import `PaperText`).
 
 Build: `Planning`, `PromptBuilder`, `CommentStreamParser`, `ReplyParser` (revision / withdraw), `ReviewEngine` jobs, `ReportLinter`, the debug dump (§10.5). Author `review_sloppy.txt`, `review_json.txt`, `review_prose.txt` and `review_dupes.txt` as Appendix D.9 describes, under `Tests/ReviewEngineTests/Fixtures/`.
 
@@ -3874,6 +3890,9 @@ public struct Banner: Sendable, Equatable, Identifiable {
     public var style: Style
     public var message: String
     public var action: Action?               // .retry -> model.retryLastFailedJob(); .openSettings is handled by the window
+    public init(id: UUID = UUID(), style: Style, message: String, action: Action? = nil) {
+        self.id = id; self.style = style; self.message = message; self.action = action
+    }
 }
 
 public struct ConsentRequest: Sendable, Equatable, Identifiable {
@@ -3881,11 +3900,15 @@ public struct ConsentRequest: Sendable, Equatable, Identifiable {
     public var provider: ProviderDescriptor
     public var model: String?
     public var plan: SendPlan
+    public init(id: UUID = UUID(), provider: ProviderDescriptor, model: String? = nil, plan: SendPlan) {
+        self.id = id; self.provider = provider; self.model = model; self.plan = plan
+    }
 }
 
 /// An own comment being written (N key, "+" button, or "Comment" in the selection bar).
 public struct ComposingComment: Sendable, Equatable {
     public var selection: SelectionInfo?     // the passage it will be anchored to, captured when composing began
+    public init(selection: SelectionInfo? = nil) { self.selection = selection }
 }
 
 public enum CommentFilter: Sendable, Equatable { case all, pending, approved, rejected, kind(CommentKind) }
@@ -4089,7 +4112,7 @@ Rules.
 
 ### B.2 Format and task constants (`RefereeCore/FormatSpec.swift`, not editable)
 
-In code: `FormatSpec.review` (`FORMAT_REVIEW`), `.revision` (`FORMAT_REVISION`), `.taskReviewText`, `.taskReviewPDF`, `.taskPart`, `.taskWhole`, `.taskContinue`. Placeholders in braces are filled by `PromptBuilder`.
+In code: `FormatSpec.review` (`FORMAT_REVIEW`), `.revision` (`FORMAT_REVISION`), `.taskReviewText`, `.taskReviewPDF`, `.taskPart`, `.taskWhole`, `.taskContinue`. Placeholders in braces are filled by `PromptBuilder`. The constants carry the texts below with three differences, and the doc comment of `FormatSpec` in `Sources/RefereeCore/FormatSpec.swift` is the binding rule for every placeholder: the "← only when …" notes are not prompt text and are left out; `{same optional lines}` is written out as the three optional lines; and `taskReviewText` is the two text-mode blocks in one string, split by `PromptBuilder` at the line `{paper text}` (what stands before it goes with the rendered paper before the cache boundary, the rest after it). An optional line whose condition does not hold is removed with its line break; `{if i > 1:}` is always removed, and for the first part the two lines after it and the following empty line go too.
 
 `FORMAT_REVIEW` (appended to `reviewSystem` after the rubric block):
 
@@ -4978,3 +5001,21 @@ One line per finding of `docs/plan-review.md` and per coordinator decision. "As 
 | Codex still exposes an agent-spawning tool family that `--disable multi_agent` does not remove; `-c agents.enabled=false` does. | §5.6.4 |
 | Grok Build stores every conversation locally and can sync it; the adapter deletes the session after each run. | §5.6.4, §9.7, §12.3 |
 | The public surface of `TestSupport` is now pinned and compiled, since nine agents test against it. | §11.3 |
+
+### G.4 Amendments after WP0a (coordinator)
+
+WP0a built the scaffold and reported nine contract problems (`docs/contract-notes/wp0a-scaffold.md`). Decisions, all reflected in the sections named:
+
+| Problem | Decision | Where |
+|---|---|---|
+| 1 Test targets could not name the shared types without an undeclared import | Every test target declares `RefereeCore`; `RefereeUITests` also `AppCore` and `PDFBridge`; `IntegrationTests` every library | §3.2 |
+| 2 No stand-in for `CitationIndexing` | `FakeCitationIndexer` in `TestSupport` | §11.3 |
+| 3 `ReviewEngineTests` cannot reach `PaperRenderer` | `FakePaperRenderer` in `TestSupport`, with a rendering that never changes; WP6 tests against it | §11.3, WP6 |
+| 4 Placeholders and presentation marks in the task texts | WP0a's representation stands: the constants hold placeholders, and the doc comment of `FormatSpec` is the binding rule. A part request is one text with the part inside the task | B.2, §6.3 |
+| 5 Default settings | Ollama is enabled, every other real provider disabled, no default chosen; `mock` is not in the defaults (it would be written into the user's `settings.json`). Tests and the snapshot mode that need mocks use `SnapshotSupport.settings()` | §11.3, WP0a item 2 |
+| 6 `SurfaceCheck` cannot name the UI from `IntegrationTests` | Two files, one in `RefereeUITests`, one in `IntegrationTests` | Gate 0 step 2 |
+| 7 A scene cannot start a review before WP8b | The check is a permanent test through `LiveDependencies.make` | Gate 0 step 4 |
+| 8 Types without a public initialiser | `Banner`, `ConsentRequest`, `ComposingComment` and `SnapshotContext` get one | A.9, §11.3 |
+| 9 The release binary carried the checkout's absolute path | `Fixtures.root` uses `#filePath` in debug builds only; `REFEREE_REPO_ROOT` overrides; `scripts/bundle.sh` fails when the binary contains a home-directory path | §3.4, §3.6, §10.6, §11.3 |
+| `__pycache__/` | Added to `.gitignore` | §3.3 |
+| An `osascript` check hung | Agents never drive the screen; nothing in the tree carries a name, an address or a home-directory path | §11.1 |
