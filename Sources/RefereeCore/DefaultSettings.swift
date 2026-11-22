@@ -1,8 +1,9 @@
 import Foundation
 
 public enum DefaultSettings {
-    /// Prompts, rubric and quick questions of Appendix B; every provider id of section 5.2 present and disabled except "ollama",
-    /// whose extraBodyJSON is {"think": false}; privacy: localOnly false, confirm on, background lookups off.
+    /// Prompts, rubric and quick questions of Appendix B; the nine real provider ids of section 5.2 (not "mock"), all disabled
+    /// except "ollama", which is enabled and whose extraBodyJSON is {"think": false}; no default provider chosen;
+    /// privacy: localOnly false, confirm on, background lookups off.
     public static func make() -> AppSettings {
         AppSettings(
             schemaVersion: 1,
@@ -17,10 +18,12 @@ public enum DefaultSettings {
             ui: UISettings(autoAdvanceAfterTriage: true, showRejectedHighlights: false, sidebarWidth: 380, stripMarginLineNumbers: true))
     }
 
-    /// The ten provider ids of plan section 5.2, in the order of its table, the mock included.
+    /// The nine real provider ids of plan section 5.2, in the order of its table. "mock" is not among them: these
+    /// settings are written into the user's settings.json. Tests and the snapshot mode get the mocks from
+    /// TestSupport.SnapshotSupport.settings().
     static let providerIDs: [ProviderID] = [
         "anthropic-api", "openai-api", "gemini-api", "xai-api", "ollama",
-        "claude-cli", "codex-cli", "antigravity-cli", "grok-cli", "mock",
+        "claude-cli", "codex-cli", "antigravity-cli", "grok-cli",
     ]
 
     /// Every provider is present and switched off, except the local one: "ollama" is on, with thinking switched off

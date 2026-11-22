@@ -2,15 +2,17 @@ import Foundation
 import Testing
 import RefereeCore
 
-/// Wave 0a smoke tests: the two things this step wrote in RefereeCore beyond Appendix A.
+/// The two things Wave 0 wrote in RefereeCore beyond Appendix A: the default settings and the format constants.
 @Suite struct RefereeCoreSmokeTests {
     @Test func defaultSettingsFollowThePlan() {
         let settings = DefaultSettings.make()
         #expect(settings.schemaVersion == 1)
 
-        // Every provider id of plan section 5.2 is present; only the local one is switched on.
-        let ids = ["anthropic-api", "openai-api", "gemini-api", "xai-api", "ollama", "claude-cli", "codex-cli", "antigravity-cli", "grok-cli", "mock"]
+        // The nine real provider ids of plan section 5.2 are present, and only the local one is switched on. "mock" is
+        // not among them: these settings are written into the user's settings.json.
+        let ids = ["anthropic-api", "openai-api", "gemini-api", "xai-api", "ollama", "claude-cli", "codex-cli", "antigravity-cli", "grok-cli"]
         #expect(Set(settings.providers.keys) == Set(ids))
+        #expect(settings.providers["mock"] == nil)
         #expect(settings.providers.filter { $0.value.enabled }.map(\.key) == ["ollama"])
         #expect(settings.providers["ollama"]?.extraBodyJSON == #"{"think": false}"#)
         #expect(settings.providers.values.allSatisfy { $0.inputMode == .auto && $0.model == nil && $0.verifiedAt == nil })

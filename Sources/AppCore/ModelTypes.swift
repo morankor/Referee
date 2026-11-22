@@ -17,6 +17,9 @@ public struct Banner: Sendable, Equatable, Identifiable {
     public var style: Style
     public var message: String
     public var action: Action?               // .retry -> model.retryLastFailedJob(); .openSettings is handled by the window
+    public init(id: UUID = UUID(), style: Style, message: String, action: Action? = nil) {
+        self.id = id; self.style = style; self.message = message; self.action = action
+    }
 }
 
 public struct ConsentRequest: Sendable, Equatable, Identifiable {
@@ -24,11 +27,15 @@ public struct ConsentRequest: Sendable, Equatable, Identifiable {
     public var provider: ProviderDescriptor
     public var model: String?
     public var plan: SendPlan
+    public init(id: UUID = UUID(), provider: ProviderDescriptor, model: String? = nil, plan: SendPlan) {
+        self.id = id; self.provider = provider; self.model = model; self.plan = plan
+    }
 }
 
 /// An own comment being written (N key, "+" button, or "Comment" in the selection bar).
 public struct ComposingComment: Sendable, Equatable {
     public var selection: SelectionInfo?     // the passage it will be anchored to, captured when composing began
+    public init(selection: SelectionInfo? = nil) { self.selection = selection }
 }
 
 public enum CommentFilter: Sendable, Equatable { case all, pending, approved, rejected, kind(CommentKind) }

@@ -11,6 +11,9 @@ import AppCore
     public let model: ReviewSessionModel?         // review scenes
     public let reader: ReaderController?          // review scenes; the runner has already called attach()
     public let settings: SettingsModel?           // settings scenes
+    public init(window: NSWindow, model: ReviewSessionModel? = nil, reader: ReaderController? = nil, settings: SettingsModel? = nil) {
+        self.window = window; self.model = model; self.reader = reader; self.settings = settings
+    }
 }
 
 @MainActor public struct SnapshotScene {

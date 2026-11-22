@@ -36,6 +36,10 @@ cat > "$APP/Contents/Info.plist" <<EOF
 </dict></plist>
 EOF
 plutil -lint "$APP/Contents/Info.plist"
+if strings -a "$APP/Contents/MacOS/Referee" | grep -q "$HOME/"; then
+  echo "bundle.sh: the binary contains a path under your home directory (a #filePath or #file in a release build?). Remove it before the app is shared." >&2
+  exit 1
+fi
 codesign --force --sign "${REFEREE_SIGN_IDENTITY:--}" "$APP"
 codesign --verify --verbose=1 "$APP"
 echo "Built $APP"
