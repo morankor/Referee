@@ -1,6 +1,6 @@
 # Referee plan: independent review
 
-Reviewed: `/Users/morankoren/Referee/plan.md` (4,040 lines), all sections and appendices.
+Reviewed: `plan.md` (4,040 lines), all sections and appendices.
 Date: 2026-11-22. Machine: macOS 26.6.1, Apple Silicon, Command Line Tools 26.6 (Swift 6.3.3).
 
 Method: read the whole plan; compiled Appendix A as printed; ran the plan's scripts and fixture build as printed; wrote Swift probes for PDFKit, the SwiftUI/AppKit window, click interception, export, and the Keychain; ran the plan's default review prompt through local Ollama models; checked vendor documentation live and against the copies the plan's author downloaded; rendered Codex's model-visible tool list locally (no prompt was sent to any subscription CLI or paid API). Plan references are section numbers and line numbers (`l. N`) of `plan.md`. Probe sources and outputs are listed at the end.
@@ -340,7 +340,7 @@ Keep: the consent card and Local-only mode (the manuscripts are confidential), t
 
 ## Appendix: probes
 
-All under `/private/tmp/claude-502/-Users-morankoren/ff24cb6e-2520-4f35-a533-0955209fd44f/scratchpad/review/`.
+All under `review/` in the reviewer's session scratch directory.
 
 | Path | What it is | Result |
 | --- | --- | --- |
