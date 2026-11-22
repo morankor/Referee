@@ -310,7 +310,7 @@ import TestSupport
         #expect(events.finishedRun?.requestCount == 1)
     }
 
-    @Test func aToolUseFailureGivesTheRunThatErrorsMessage() async throws {
+    @Test func aToolUseFailureGivesTheRunItsOwnMessage() async throws {
         let paper = try makeSamplePaper()
         let response = MockResponse(text: try Fixtures.text("llm/review_clean.txt"), chunkSize: 100, failAfterChunks: 7, failure: .toolUseBlocked("Bash"))
         let mock = MockLLMProvider(script: EngineTest.script(.review, [response]))
