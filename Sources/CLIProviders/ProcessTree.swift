@@ -78,4 +78,26 @@ enum ProcessTree {
             _ = Darwin.kill(process.pid, signal)
         }
     }
+
+    /// The members of process group `group` that exist now.
+    static func groupMembers(_ group: pid_t) -> [pid_t] {
+        var buffer = [pid_t](repeating: 0, count: 1_024)
+        let count = buffer.withUnsafeMutableBytes { proc_listpgrppids(group, $0.baseAddress, Int32($0.count)) }
+        guard count > 0 else { return [] }
+        return buffer.prefix(min(Int(count), buffer.count)).filter { $0 > 0 }
+    }
+
+    /// SIGKILL to every running member of the root's process group that started no earlier than the root.
+    ///
+    /// `Process` makes the CLI the leader of a group of its own, and its children stay in it unless they leave on
+    /// purpose. This catches a child whose fork was under way while the group was being killed: it is not in any
+    /// snapshot, and once its parent is dead it is not anyone's descendant either. A group id cannot be given to
+    /// another process while the group still has members, and the start time rules out an unrelated process that
+    /// had the id before.
+    static func killGroup(of root: ProcessIdentity) {
+        for pid in groupMembers(root.pid) {
+            guard let member = identity(of: pid), member.startTime >= root.startTime, isRunning(member) else { continue }
+            _ = Darwin.kill(pid, SIGKILL)
+        }
+    }
 }

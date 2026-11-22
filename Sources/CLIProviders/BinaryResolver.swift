@@ -93,6 +93,7 @@ actor BinaryResolver {
         }
         add(explicitPath)
         add(host.processEnvironment[spec.environmentOverride])
+        guard host.searchesDefaultLocations else { return result }
         for candidate in spec.candidates {
             if candidate.contains("*") {
                 guard let pattern = ChildEnvironment.expandTilde(candidate, home: home) else { continue }

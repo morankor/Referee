@@ -13,15 +13,16 @@ final class StdinWriter: @unchecked Sendable {
         case close
     }
 
-    private let handle: FileHandle
+    private let fd: Int32
     private let condition = NSCondition()
     private var items: [Item] = []
     private var closeRequested = false
     private var broken = false
 
-    init(handle: FileHandle) {
-        self.handle = handle
-        _ = fcntl(handle.fileDescriptor, F_SETNOSIGPIPE, 1)
+    /// Takes ownership of `fd`: it is closed by the writer's thread, once, after the last write.
+    init(fd: Int32) {
+        self.fd = fd
+        _ = fcntl(fd, F_SETNOSIGPIPE, 1)
         let thread = Thread { [self] in self.drain() }
         thread.name = "referee.cli.stdin"
         thread.start()
@@ -77,13 +78,13 @@ final class StdinWriter: @unchecked Sendable {
                     done?(LLMError.cliLaunchFailed("the command-line tool stopped reading its input"))
                     continue
                 }
-                let ok = Self.writeAll(data, to: handle.fileDescriptor)
+                let ok = Self.writeAll(data, to: fd)
                 if !ok {
                     condition.lock(); broken = true; condition.unlock()
                 }
                 done?(ok ? nil : LLMError.cliLaunchFailed("the command-line tool stopped reading its input"))
             case .close:
-                try? handle.close()
+                Darwin.close(fd)
                 // Fail whatever was queued behind the close (nothing normally is).
                 condition.lock()
                 let rest = items

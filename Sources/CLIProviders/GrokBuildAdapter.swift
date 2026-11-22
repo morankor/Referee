@@ -60,12 +60,14 @@ struct GrokBuildAdapter: CLIAdapter {
         }
     }
 
-    /// `grok models`: the first whitespace-delimited token of each non-empty line [A]; a token ending in ":" is a heading.
+    /// `grok models`: the first whitespace-delimited token of each non-empty line [A]; a line ending in ":" is a
+    /// heading, and a token is listed once.
     static func parseModels(_ text: String) -> [ModelInfo] {
         var seen: Set<String> = []
         return text.split(whereSeparator: \.isNewline).compactMap { line in
-            guard let token = line.split(whereSeparator: { $0 == " " || $0 == "\t" }).first.map(String.init),
-                  !token.hasSuffix(":"), !token.hasPrefix("#"), seen.insert(token).inserted else { return nil }
+            guard !line.trimmingCharacters(in: .whitespaces).hasSuffix(":"),
+                  let token = line.split(whereSeparator: { $0 == " " || $0 == "\t" }).first.map(String.init),
+                  !token.hasPrefix("#"), seen.insert(token).inserted else { return nil }
             return ModelInfo(id: token, displayName: token, contextWindow: nil)
         }
     }

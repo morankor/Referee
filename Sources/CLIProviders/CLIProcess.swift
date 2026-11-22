@@ -4,10 +4,11 @@ import RefereeCore
 
 /// One running command-line tool (plan.md section 5.6.3).
 ///
-/// - stdout is read with `readabilityHandler` and cut into lines by `LineSplitter`. (`FileHandle.bytes` was measured on
-///   this machine to serialise reads across handles: with twelve silent children, a thirteenth child's two lines
-///   arrived only after three seconds. One hung CLI would stall every other run.)
+/// - stdout is read by a `PipeReader` (a thread that owns the descriptor) and cut into lines by `LineSplitter`; see
+///   `PipeReader` for why neither `FileHandle.bytes` (it serialises reads across handles: with twelve silent children,
+///   a thirteenth child's two lines arrived only after three seconds) nor `readabilityHandler` is used.
 /// - stderr is drained continuously into a 64 KB ring; `.exit` carries its last 4 KB.
+/// - stdin is written by a `StdinWriter`, a thread of its own, so a large prompt cannot deadlock against a full stdout.
 /// - The output ends with `.exit` once the process has exited and both pipes are closed, or throws
 ///   `LLMError.cliTimeout(phase:)` after a timeout has ended the process.
 /// - Descendants are listed with `proc_listchildpids` twice a second while the process runs, so that a SIGKILL reaches
@@ -18,10 +19,9 @@ final class CLIProcess: @unchecked Sendable {
 
     private let invocation: CLIInvocation
     private let process = Process()
-    private let stdinPipe = Pipe()
-    private let stdoutPipe = Pipe()
-    private let stderrPipe = Pipe()
     private let writer: StdinWriter
+    private var stdoutReader: PipeReader?
+    private var stderrReader: PipeReader?
     private let continuation: AsyncThrowingStream<CLIOutput, Error>.Continuation
     private let clock = ContinuousClock()
     private let startedAt: ContinuousClock.Instant
@@ -42,6 +42,9 @@ final class CLIProcess: @unchecked Sendable {
     private var exitedAt: ContinuousClock.Instant?
     private var orphansKilled = false
     private var pipesForced = false
+    /// Set by `kill()` and by the last step of `terminate()`: from then on the watchdog sweeps the process group on
+    /// every tick until the process is finished.
+    private var killRequested = false
     private var failure: LLMError?
     private var finished = false
     private var terminationTask: Task<Void, Never>?
@@ -49,7 +52,7 @@ final class CLIProcess: @unchecked Sendable {
     private var stderrBuffer = Data()
     private var watchdog: Task<Void, Never>?
 
-    // Touched only by the stdout handler, which FileHandle calls on one serial queue.
+    // Touched only by the stdout reader's thread.
     private var splitter = LineSplitter()
 
     init(_ invocation: CLIInvocation) throws {
@@ -61,15 +64,25 @@ final class CLIProcess: @unchecked Sendable {
         self.startedAt = now
         self.lastLineAt = now
         self.lastTrackedAt = now
-        self.writer = StdinWriter(handle: stdinPipe.fileHandleForWriting)
+
+        var pipes: [ChildPipe] = []
+        do {
+            for _ in 0..<3 { pipes.append(try ChildPipe.make()) }
+        } catch {
+            for pipe in pipes { Darwin.close(pipe.readEnd); Darwin.close(pipe.writeEnd) }
+            continuation.finish()
+            throw LLMError.cliLaunchFailed("could not create pipes for the command-line tool")
+        }
+        let (stdin, stdout, stderr) = (pipes[0], pipes[1], pipes[2])
+        self.writer = StdinWriter(fd: stdin.writeEnd)
 
         process.executableURL = URL(fileURLWithPath: invocation.executable)
         process.arguments = invocation.arguments
         process.environment = invocation.environment
         process.currentDirectoryURL = invocation.workingDirectory
-        process.standardInput = stdinPipe
-        process.standardOutput = stdoutPipe
-        process.standardError = stderrPipe
+        process.standardInput = FileHandle(fileDescriptor: stdin.readEnd, closeOnDealloc: false)
+        process.standardOutput = FileHandle(fileDescriptor: stdout.writeEnd, closeOnDealloc: false)
+        process.standardError = FileHandle(fileDescriptor: stderr.writeEnd, closeOnDealloc: false)
         process.terminationHandler = { [self] finishedProcess in self.rootExited(finishedProcess) }
         continuation.onTermination = { [weak self] reason in
             if case .cancelled = reason { self?.consumerWentAway() }
@@ -78,16 +91,22 @@ final class CLIProcess: @unchecked Sendable {
         do {
             try process.run()
         } catch {
+            for fd in [stdin.readEnd, stdout.readEnd, stdout.writeEnd, stderr.readEnd, stderr.writeEnd] { Darwin.close(fd) }
             writer.close()
             continuation.finish()
             throw LLMError.cliLaunchFailed(error.localizedDescription)
         }
+        // The child has its own copies; `Process` leaves the parent's open when it is given file handles.
+        for fd in [stdin.readEnd, stdout.writeEnd, stderr.writeEnd] { Darwin.close(fd) }
 
         let identity = ProcessTree.identity(of: process.processIdentifier)
         lock.lock(); rootIdentity = identity; lock.unlock()
 
-        stdoutPipe.fileHandleForReading.readabilityHandler = { [self] handle in self.receiveStdout(handle.availableData) }
-        stderrPipe.fileHandleForReading.readabilityHandler = { [self] handle in self.receiveStderr(handle.availableData) }
+        let out = PipeReader(fd: stdout.readEnd, name: "referee.cli.stdout",
+                             onData: { [self] data in self.receiveStdout(data) }, onEnd: { [self] in self.stdoutEnded() })
+        let err = PipeReader(fd: stderr.readEnd, name: "referee.cli.stderr",
+                             onData: { [self] data in self.receiveStderr(data) }, onEnd: { [self] in self.stderrEnded() })
+        lock.lock(); stdoutReader = out; stderrReader = err; lock.unlock()
         if case .data(let data) = invocation.input {
             writer.enqueue(data)
             writer.close()
@@ -108,9 +127,12 @@ final class CLIProcess: @unchecked Sendable {
 
     /// SIGKILL to the process and every descendant, at once (the tripwire).
     func kill() {
+        lock.lock(); killRequested = true; lock.unlock()
         let targets = currentTree()
-        if let root = currentRoot(), ProcessTree.isRunning(root) { _ = killpg(root.pid, SIGKILL) }
+        let root = currentRoot()
+        if let root, ProcessTree.isRunning(root) { _ = killpg(root.pid, SIGKILL) }
         ProcessTree.signal(targets, SIGKILL)
+        if let root { ProcessTree.killGroup(of: root) }
         writer.close()
     }
 
@@ -158,17 +180,16 @@ final class CLIProcess: @unchecked Sendable {
     // MARK: - Pipes and exit
 
     private func receiveStdout(_ data: Data) {
-        if data.isEmpty {
-            stdoutPipe.fileHandleForReading.readabilityHandler = nil
-            let last = splitter.finish()
-            deliver(last.map { [$0] } ?? [], byteCount: 0, endOfFile: true)
-            return
-        }
         var lines: [String] = []
         for byte in data {
             if let line = splitter.push(byte) { lines.append(line) }
         }
         deliver(lines, byteCount: data.count, endOfFile: false)
+    }
+
+    private func stdoutEnded() {
+        let last = splitter.finish()
+        deliver(last.map { [$0] } ?? [], byteCount: 0, endOfFile: true)
     }
 
     private func deliver(_ lines: [String], byteCount: Int, endOfFile: Bool) {
@@ -188,13 +209,12 @@ final class CLIProcess: @unchecked Sendable {
         if endOfFile { maybeFinish() }
     }
 
+    private func stderrEnded() {
+        lock.lock(); stderrClosed = true; lock.unlock()
+        maybeFinish()
+    }
+
     private func receiveStderr(_ data: Data) {
-        if data.isEmpty {
-            stderrPipe.fileHandleForReading.readabilityHandler = nil
-            lock.lock(); stderrClosed = true; lock.unlock()
-            maybeFinish()
-            return
-        }
         lock.lock()
         stderrBuffer.append(data)
         if stderrBuffer.count > Self.stderrCapacity {
@@ -225,9 +245,11 @@ final class CLIProcess: @unchecked Sendable {
         let waiters = goneWaiters
         goneWaiters = []
         let dog = watchdog
+        let sweep = killRequested ? rootIdentity : nil
         lock.unlock()
 
         dog?.cancel()
+        if let sweep { ProcessTree.killGroup(of: sweep) }
         writer.close()
         if let failure {
             continuation.finish(throwing: failure)
@@ -238,20 +260,19 @@ final class CLIProcess: @unchecked Sendable {
         for waiter in waiters { waiter.resume() }
     }
 
-    /// Gives up on pipes that something outside our reach keeps open.
+    /// Gives up on pipes that something outside our reach keeps open: the readers stop within about 250 ms, and their
+    /// end finishes the output; lines that arrive meanwhile are dropped.
     private func forceClosePipes() {
-        stdoutPipe.fileHandleForReading.readabilityHandler = nil
-        stderrPipe.fileHandleForReading.readabilityHandler = nil
         lock.lock()
         pipesForced = true
-        stdoutClosed = true
-        stderrClosed = true
+        let readers = [stdoutReader, stderrReader]
         let root = rootIdentity
         if exitCode == nil, root.map({ !ProcessTree.isRunning($0) }) ?? true {
             exitCode = 128 + SIGKILL
             exitedAt = clock.now
         }
         lock.unlock()
+        for reader in readers { reader?.stop() }
         maybeFinish()
     }
 
@@ -301,7 +322,9 @@ final class CLIProcess: @unchecked Sendable {
                 forcePipes = true
             }
         }
-        let orphans = killOrphans ? Array(tracked.values) : []
+        let sweep = killRequested || killOrphans
+        let orphans = sweep ? Array(tracked.values) : []
+        let root = rootIdentity
         lock.unlock()
 
         if refresh { track() }
@@ -311,7 +334,10 @@ final class CLIProcess: @unchecked Sendable {
             case .immediate: kill()
             }
         }
-        if killOrphans { ProcessTree.signal(orphans, SIGKILL) }
+        if sweep {
+            ProcessTree.signal(orphans, SIGKILL)
+            if let root { ProcessTree.killGroup(of: root) }
+        }
         if forcePipes { forceClosePipes() }
         return false
     }
@@ -368,8 +394,10 @@ final class CLIProcess: @unchecked Sendable {
         var targets: [pid_t: ProcessIdentity] = [:]
         for process in before { targets[process.pid] = process }
         for process in currentTree() { targets[process.pid] = process }
+        lock.lock(); killRequested = true; lock.unlock()
         if let root, ProcessTree.isRunning(root) { _ = killpg(root.pid, SIGKILL) }
         ProcessTree.signal(Array(targets.values), SIGKILL)
+        if let root { ProcessTree.killGroup(of: root) }
         writer.close()
         let deadline = clock.now + .seconds(3)
         while !isFinished && clock.now < deadline {

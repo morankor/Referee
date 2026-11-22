@@ -22,6 +22,9 @@ struct CLIHost: Sendable {
     var temporaryRoot: URL
     /// The cap on `--version`, help commands, sign-in status, model lists and session deletion (section 5.6.1: 20 s).
     var probeTimeout: Duration = .seconds(20)
+    /// False: the resolver looks only at the explicit path and the environment override, never at the built-in
+    /// candidates or the PATH. Tests that run fake CLIs set this, so that a fake that fails cannot let a real CLI run.
+    var searchesDefaultLocations = true
     /// Replaces every adapter's own run timeouts (tests).
     var runTimeouts: CLITimeouts?
     /// How long a CLI may keep running after its last line reported success before it is ended.

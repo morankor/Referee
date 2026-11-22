@@ -220,7 +220,9 @@ final class CLIProvider: LLMProvider, @unchecked Sendable {
 
         var answered: Bool { client.phase == .draining || client.phase == .deleting || client.phase == .done }
 
-        if !(await send(client.start())) { result = .failure(.cliLaunchFailed("Grok Build did not read its input")) }
+        // A write that fails means the agent closed its input, nearly always because it exited: the exit (or a timeout)
+        // decides how the run ends, not the failed write.
+        _ = await send(client.start())
         loop: for await input in inputs.stream {
             if result != nil { break }
             switch input {
@@ -241,7 +243,6 @@ final class CLIProvider: LLMProvider, @unchecked Sendable {
                     break loop
                 }
                 for event in step.events { out.yield(event) }
-                if !sent && !answered { result = .failure(.cliLaunchFailed("Grok Build stopped reading its input")) }
                 if !sent && client.phase == .deleting { client.giveUpDeleting() }
                 if client.phase == .deleting && deleteSentAt == nil { deleteSentAt = clock.now }
             case .tick:

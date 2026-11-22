@@ -6,8 +6,8 @@ import RefereeCore
 struct CLIWorkspace: Sendable {
     static let prefix = "referee-cli-"
 
-    /// The directory with symbolic links resolved (`/var/folders/…` is `/private/var/folders/…`), so that paths the CLI
-    /// reports can be compared with it.
+    /// The directory as `realpath(3)` gives it (`/var/folders/…` is `/private/var/folders/…`), so that paths the CLI
+    /// reports can be compared with it. (`URL.resolvingSymlinksInPath()` would strip the `/private` again.)
     let url: URL
 
     static func create(in root: URL) throws -> CLIWorkspace {
@@ -18,7 +18,14 @@ struct CLIWorkspace: Sendable {
         } catch {
             throw LLMError.cliLaunchFailed("could not create a temporary working directory")
         }
-        return CLIWorkspace(url: directory.resolvingSymlinksInPath())
+        return CLIWorkspace(url: URL(fileURLWithPath: canonicalPath(directory.path), isDirectory: true))
+    }
+
+    /// `realpath(3)`, or the path unchanged when it cannot be resolved.
+    static func canonicalPath(_ path: String) -> String {
+        guard let resolved = realpath(path, nil) else { return path }
+        defer { free(resolved) }
+        return String(cString: resolved)
     }
 
     /// Writes a file of the run (mode 0600) and returns its URL.
