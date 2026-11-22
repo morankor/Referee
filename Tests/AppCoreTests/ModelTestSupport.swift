@@ -209,8 +209,10 @@ enum Sample {
 }
 
 /// A model on fakes. `seed` is put in the session store before the model exists, as a session saved earlier.
+/// `wrap` puts something in front of the scripted engine (the report tests make lint depend on the text).
 @MainActor func makeHarness(paper: LoadedPaper? = nil, settings: AppSettings = Sample.settings(), providers: [any LLMProvider] = Sample.providers(),
-                            engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: Sample.localPlan), index: CitationIndex? = nil,
+                            engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: Sample.localPlan),
+                            wrap: ((ScriptedReviewEngine) -> any ReviewEngineProtocol)? = nil, index: CitationIndex? = nil,
                             seed: ReviewSession? = nil, sessions: (any SessionStoring)? = nil, paperService: (any PaperService)? = nil,
                             clock: ManualClock = ManualClock()) async throws -> Harness {
     let paper = try paper ?? makeSamplePaper()
@@ -218,7 +220,7 @@ enum Sample {
     if let seed { try await store.save(seed) }
     let resolver = FakeResolver()
     let dependencies = AppDependencies(paperService: paperService ?? FakePaperService(paper: paper), matcherFactory: { FakeQuoteMatcher(paper: $0) },
-                                       citationIndexer: FakeCitationIndexer(index: index), engine: engine, resolver: resolver,
+                                       citationIndexer: FakeCitationIndexer(index: index), engine: wrap?(engine) ?? engine, resolver: resolver,
                                        sessions: sessions ?? store, settings: InMemorySettingsStore(settings), providers: ProviderRegistry(providers),
                                        secrets: InMemorySecretStore())
     let model = ReviewSessionModel(dependencies: dependencies, settings: settings, clock: clock)

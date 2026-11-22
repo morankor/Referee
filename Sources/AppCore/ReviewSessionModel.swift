@@ -489,8 +489,9 @@ public final class ReviewSessionModel {
     /// whole paper). The Chat tab opens when the question is sent.
     public func ask(_ question: String, about selection: SelectionInfo?, in conversationID: UUID?) {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty else { return }
+        guard !question.isEmpty, session != nil else { return }
         if let conversationID, session?.conversations.contains(where: { $0.id == conversationID }) != true { return }
+        sidebarTab = .chat
         start(.question(conversationID: conversationID, selection: conversationID == nil ? selection : nil, question: question, sentMessageID: nil))
     }
 
@@ -711,10 +712,14 @@ public final class ReviewSessionModel {
         }
         requestModelList(for: target.descriptor)
         guard await authorize(job: PendingJob(job: job, target: target)), !Task.isCancelled else { return }
+        if job.lane == .review { runState = .running(kind: job.runKind, phase: nil, startedAt: clock.now()) }
         await flushPendingSave()                                // section 4.5: before any run starts
         // The context is built again: the consent card may have been up for a while.
         guard !Task.isCancelled, let paper, session != nil, let current = resolveTarget(for: job.task),
-              current.descriptor.id == target.descriptor.id else { return }
+              current.descriptor.id == target.descriptor.id else {
+            if job.lane == .review { runState = .idle }
+            return
+        }
         Log.event("model.run.start", ["kind": .id(job.runKind.rawValue), "provider": .id(current.descriptor.id)])
         switch job {
         case .review:
