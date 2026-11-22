@@ -1,0 +1,1188 @@
+{
+  "links" : [
+
+  ],
+  "outline" : [
+
+  ],
+  "pages" : [
+    {
+      "index" : 0,
+      "label" : "1",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 18.24498749999998,
+            "pageIndex" : 0,
+            "width" : 359.53078005000003,
+            "x" : 100.89185119999996,
+            "y" : 585.611475
+          },
+          "range" : {
+            "length" : 38,
+            "location" : 0
+          },
+          "text" : "Information Aggregation in Sequential1"
+        },
+        {
+          "bounds" : {
+            "height" : 18.24498749999998,
+            "pageIndex" : 0,
+            "width" : 277.68867880000005,
+            "x" : 100.89185119999999,
+            "y" : 544.390475
+          },
+          "range" : {
+            "length" : 19,
+            "location" : 39
+          },
+          "text" : "Markets: A Fixture2"
+        },
+        {
+          "bounds" : {
+            "height" : 12.667694600000004,
+            "pageIndex" : 0,
+            "width" : 233.98440368,
+            "x" : 100.89185120000002,
+            "y" : 498.3828372
+          },
+          "range" : {
+            "length" : 10,
+            "location" : 59
+          },
+          "text" : "Anonymous3"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436800000012,
+            "pageIndex" : 0,
+            "width" : 3.508851199999995,
+            "x" : 97.38299999999998,
+            "y" : 448.8133456
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 70
+          },
+          "text" : "4"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436800000012,
+            "pageIndex" : 0,
+            "width" : 3.508851199999995,
+            "x" : 97.38299999999998,
+            "y" : 420.5983456
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 72
+          },
+          "text" : "5"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436800000012,
+            "pageIndex" : 0,
+            "width" : 3.508851199999995,
+            "x" : 97.38299999999997,
+            "y" : 398.17434560000004
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 74
+          },
+          "text" : "6"
+        },
+        {
+          "bounds" : {
+            "height" : 9.643644400000028,
+            "pageIndex" : 0,
+            "width" : 47.64440334,
+            "x" : 281.304,
+            "y" : 447.8566346
+          },
+          "range" : {
+            "length" : 8,
+            "location" : 76
+          },
+          "text" : "Abstract"
+        },
+        {
+          "bounds" : {
+            "height" : 9.632735299999979,
+            "pageIndex" : 0,
+            "width" : 313.7413523599999,
+            "x" : 156.39,
+            "y" : 419.64163460000003
+          },
+          "range" : {
+            "length" : 62,
+            "location" : 85
+          },
+          "text" : "We study how sequential traders aggregate private signals. Our"
+        },
+        {
+          "bounds" : {
+            "height" : 9.632735299999979,
+            "pageIndex" : 0,
+            "width" : 330.01336591999984,
+            "x" : 140.11899999999997,
+            "y" : 397.21763460000005
+          },
+          "range" : {
+            "length" : 70,
+            "location" : 148
+          },
+          "text" : "identification strategy exploits the staggered rollout of a disclosure"
+        },
+        {
+          "bounds" : {
+            "height" : 9.632735299999979,
+            "pageIndex" : 0,
+            "width" : 345.7019496499999,
+            "x" : 100.89185119999996,
+            "y" : 374.79463460000005
+          },
+          "range" : {
+            "length" : 70,
+            "location" : 219
+          },
+          "text" : "rule. The effect is statistically significant but economically small.7"
+        },
+        {
+          "bounds" : {
+            "height" : 120.65546106061078,
+            "pageIndex" : 0,
+            "width" : 120.6554610606108,
+            "x" : 247.14563709872343,
+            "y" : 334.19787842416696
+          },
+          "range" : {
+            "length" : 12,
+            "location" : 290
+          },
+          "text" : "CONFIDENTIAL"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436800000012,
+            "pageIndex" : 0,
+            "width" : 3.508851199999995,
+            "x" : 97.38299999999997,
+            "y" : 321.69034560000006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 303
+          },
+          "text" : "8"
+        },
+        {
+          "bounds" : {
+            "height" : 15.21841360000002,
+            "pageIndex" : 0,
+            "width" : 129.86781298,
+            "x" : 110.85399999999997,
+            "y" : 319.51021240000006
+          },
+          "range" : {
+            "length" : 14,
+            "location" : 305
+          },
+          "text" : "1 Introduction"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 0,
+            "width" : 395.25672543999997,
+            "x" : 100.89185119999996,
+            "y" : 284.7866912000001
+          },
+          "range" : {
+            "length" : 67,
+            "location" : 320
+          },
+          "text" : "HerdinghasbeenstudiedextensivelysinceBanerjee[1992]andBikhchandani9"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 0,
+            "width" : 497.7347638399998,
+            "x" : -2.2425276799999665,
+            "y" : 260.8786912000001
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 388
+          },
+          "text" : "et al. [1992]. Later work extends the framework to markets [Avery and Zem-10"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 498.38960992,
+            "x" : -2.243424320000031,
+            "y" : 236.9706912000001
+          },
+          "range" : {
+            "length" : 75,
+            "location" : 465
+          },
+          "text" : "sky, 1998, Smith and Sørensen, 2000]. As shown by Acemoglu et al. [2011],11"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 495.14496863999983,
+            "x" : -2.2446198400000412,
+            "y" : 213.06269120000007
+          },
+          "range" : {
+            "length" : 77,
+            "location" : 541
+          },
+          "text" : "network structure determines whether learning is efficient; see also [Smith12"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 495.13749663999977,
+            "x" : -2.2431254399999716,
+            "y" : 189.15469120000006
+          },
+          "range" : {
+            "length" : 77,
+            "location" : 619
+          },
+          "text" : "and Sørensen, 2000, p. 12] and Kogan [2020], Lee [2021]. The coefficient in13"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 495.7896527999999,
+            "x" : -2.2437232000000336,
+            "y" : 165.24769120000005
+          },
+          "range" : {
+            "length" : 84,
+            "location" : 697
+          },
+          "text" : "Table 2 is 0.91 with a confidence interval that crosses one, which is difficult to14"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 497.7362582399998,
+            "x" : -2.242826560000026,
+            "y" : 141.33969120000006
+          },
+          "range" : {
+            "length" : 82,
+            "location" : 782
+          },
+          "text" : "reconcile with the claim of a robust effect. We define the office-specific iden-15"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 494.8078320000001,
+            "x" : -2.242228800000021,
+            "y" : 117.43169120000005
+          },
+          "range" : {
+            "length" : 80,
+            "location" : 865
+          },
+          "text" : "tification threshold and afterwards verify the differentiability of the payoff16"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 5.852070400000002,
+            "x" : 302.19999999999993,
+            "y" : 87.54369120000004
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 946
+          },
+          "text" : "1"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "Information Aggregation in Sequential1\nMarkets: A Fixture2\nAnonymous3\n4\n5\n6\nAbstract\nWe study how sequential traders aggregate private signals. Our\nidentification strategy exploits the staggered rollout of a disclosure\nrule. The effect is statistically significant but economically small.7\nCONFIDENTIAL\n8\n1 Introduction\nHerdinghasbeenstudiedextensivelysinceBanerjee[1992]andBikhchandani9\net al. [1992]. Later work extends the framework to markets [Avery and Zem-10\nsky, 1998, Smith and Sørensen, 2000]. As shown by Acemoglu et al. [2011],11\nnetwork structure determines whether learning is efficient; see also [Smith12\nand Sørensen, 2000, p. 12] and Kogan [2020], Lee [2021]. The coefficient in13\nTable 2 is 0.91 with a confidence interval that crosses one, which is difficult to14\nreconcile with the claim of a robust effect. We define the office-specific iden-15\ntification threshold and afterwards verify the differentiability of the payoff16\n1"
+    },
+    {
+      "index" : 1,
+      "label" : "2",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 5.487436799999955,
+            "pageIndex" : 1,
+            "width" : 7.017702400000005,
+            "x" : 93.874,
+            "y" : 653.0873455999999
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 0
+          },
+          "text" : "17"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 45.18587392000002,
+            "x" : 110.854,
+            "y" : 651.9276911999999
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 3
+          },
+          "text" : "function."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 497.7367554399999,
+            "x" : -2.2429259999999545,
+            "y" : 628.0196911999999
+          },
+          "range" : {
+            "length" : 72,
+            "location" : 13
+          },
+          "text" : "In Banerjee [1992], agents observe only the actions of their predeces-18"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 497.74074144,
+            "x" : -2.2437232000000336,
+            "y" : 604.1116911999999
+          },
+          "range" : {
+            "length" : 69,
+            "location" : 86
+          },
+          "text" : "sors. The Avery and Zemsky [1998] model adds a market maker who up-19"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 495.1419798399998,
+            "x" : -2.2440220799999793,
+            "y" : 580.2036911999999
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 156
+          },
+          "text" : "dates prices. See Lee [2021] for heterogeneous priors. Following Smith and20"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 495.1404854399999,
+            "x" : -2.2437231999999767,
+            "y" : 556.2956911999999
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 233
+          },
+          "text" : "Sørensen [2000], we allow unbounded signals. Equilibrium notions are taken21"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 496.4459932800001,
+            "x" : -2.2449187200000438,
+            "y" : 532.3876911999998
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 310
+          },
+          "text" : "from Osborne and Rubinstein [1994], and the voting application follows the22"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 333.81880992000004,
+            "x" : 30.670735680000007,
+            "y" : 508.4806911999999
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 387
+          },
+          "text" : "sequential procedure of Dekel and Piccione [2000].23"
+        },
+        {
+          "bounds" : {
+            "height" : 15.21841360000002,
+            "pageIndex" : 1,
+            "width" : 109.77790627000002,
+            "x" : 75.09714911,
+            "y" : 453.1742123999999
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 440
+          },
+          "text" : "2 Model24"
+        },
+        {
+          "bounds" : {
+            "height" : 10.616217600000027,
+            "pageIndex" : 1,
+            "width" : 498.39467592000005,
+            "x" : -2.2444375200000195,
+            "y" : 418.4506911999999
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 450
+          },
+          "text" : "Consider a sequence of agents i= 1,2,... who each observe a private signal25"
+        },
+        {
+          "bounds" : {
+            "height" : 11.6371082,
+            "pageIndex" : 1,
+            "width" : 399.30344448000017,
+            "x" : 17.300751999999846,
+            "y" : 393.5228005999999
+          },
+          "range" : {
+            "length" : 66,
+            "location" : 527
+          },
+          "text" : "si and the history of actions hi. The posterior belief satisfies26"
+        },
+        {
+          "bounds" : {
+            "height" : 11.636108200000024,
+            "pageIndex" : 1,
+            "width" : 22.850080320000018,
+            "x" : 215.85399999999993,
+            "y" : 349.8298005999999
+          },
+          "range" : {
+            "length" : 4,
+            "location" : 594
+          },
+          "text" : "µi ="
+        },
+        {
+          "bounds" : {
+            "height" : 135.42712662505954,
+            "pageIndex" : 1,
+            "width" : 135.42712662505963,
+            "x" : 239.75178131193283,
+            "y" : 326.8200226373764
+          },
+          "range" : {
+            "length" : 12,
+            "location" : 599
+          },
+          "text" : "CONFIDENTIAL"
+        },
+        {
+          "bounds" : {
+            "height" : 12.306599399999982,
+            "pageIndex" : 1,
+            "width" : 54.69354016,
+            "x" : 289.2389999999999,
+            "y" : 357.91680059999993
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 612
+          },
+          "text" : "πf(si |H)"
+        },
+        {
+          "bounds" : {
+            "height" : 19.837108200000046,
+            "pageIndex" : 1,
+            "width" : 151.17781440000007,
+            "x" : 243.22,
+            "y" : 341.62880060000003
+          },
+          "range" : {
+            "length" : 27,
+            "location" : 622
+          },
+          "text" : "πf(si |H) + (1−π)f(si |L). "
+        },
+        {
+          "bounds" : {
+            "height" : 19.837108200000046,
+            "pageIndex" : 1,
+            "width" : 14.954759679999995,
+            "x" : 484.4430000000001,
+            "y" : 341.62880060000003
+          },
+          "range" : {
+            "length" : 3,
+            "location" : 649
+          },
+          "text" : "(1)"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 1,
+            "width" : 497.74671904,
+            "x" : -2.24491871999993,
+            "y" : 307.15569120000004
+          },
+          "range" : {
+            "length" : 78,
+            "location" : 653
+          },
+          "text" : "Proposition 1 states that an information cascade begins with positive proba-27"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 1,
+            "width" : 498.39110432000007,
+            "x" : -2.24491871999993,
+            "y" : 283.2476912
+          },
+          "range" : {
+            "length" : 80,
+            "location" : 732
+          },
+          "text" : "bility. The proof follows Bikhchandani et al. [1992] with minor modifications.28"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 1,
+            "width" : 495.1345078400001,
+            "x" : -2.2425276799999665,
+            "y" : 259.34069120000004
+          },
+          "range" : {
+            "length" : 69,
+            "location" : 813
+          },
+          "text" : "Itiseasytoseethattheinequalityispreservedwhenbothsidesaremultiplied29"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 1,
+            "width" : 159.00240352000003,
+            "x" : 65.63401696000008,
+            "y" : 235.43269120000002
+          },
+          "range" : {
+            "length" : 26,
+            "location" : 883
+          },
+          "text" : "by the likelihood ratio.30"
+        },
+        {
+          "bounds" : {
+            "height" : 15.218413599999991,
+            "pageIndex" : 1,
+            "width" : 117.88377736000004,
+            "x" : 73.04249112000008,
+            "y" : 180.12621240000001
+          },
+          "range" : {
+            "length" : 11,
+            "location" : 910
+          },
+          "text" : "3 Results31"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 1,
+            "width" : 496.44300448,
+            "x" : -2.244320959999868,
+            "y" : 145.40369120000003
+          },
+          "range" : {
+            "length" : 80,
+            "location" : 922
+          },
+          "text" : "Table 2 reports the estimates; the posterior in (1) is evaluated at the sample32"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 1,
+            "width" : 134.29548832,
+            "x" : 70.57540000000009,
+            "y" : 121.49569120000001
+          },
+          "range" : {
+            "length" : 21,
+            "location" : 1003
+          },
+          "text" : "mean of the signal.33"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 1,
+            "width" : 5.852070400000002,
+            "x" : 302.2000000000001,
+            "y" : 87.54369120000001
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 1025
+          },
+          "text" : "2"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "17\nfunction.\nIn Banerjee [1992], agents observe only the actions of their predeces-18\nsors. The Avery and Zemsky [1998] model adds a market maker who up-19\ndates prices. See Lee [2021] for heterogeneous priors. Following Smith and20\nSørensen [2000], we allow unbounded signals. Equilibrium notions are taken21\nfrom Osborne and Rubinstein [1994], and the voting application follows the22\nsequential procedure of Dekel and Piccione [2000].23\n2 Model24\nConsider a sequence of agents i= 1,2,... who each observe a private signal25\nsi and the history of actions hi. The posterior belief satisfies26\nµi =\nCONFIDENTIAL\nπf(si |H)\nπf(si |H) + (1−π)f(si |L). (1)\nProposition 1 states that an information cascade begins with positive proba-27\nbility. The proof follows Bikhchandani et al. [1992] with minor modifications.28\nItiseasytoseethattheinequalityispreservedwhenbothsidesaremultiplied29\nby the likelihood ratio.30\n3 Results31\nTable 2 reports the estimates; the posterior in (1) is evaluated at the sample32\nmean of the signal.33\n2"
+    },
+    {
+      "index" : 2,
+      "label" : "3",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 140.14244096000002,
+            "x" : 235.054,
+            "y" : 645.6856912
+          },
+          "range" : {
+            "length" : 27,
+            "location" : 0
+          },
+          "text" : "Table 2: Baseline estimates"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 226.40638208,
+            "x" : 191.922,
+            "y" : 634.1796912
+          },
+          "range" : {
+            "length" : 35,
+            "location" : 28
+          },
+          "text" : "Specification Estimate 95% interval"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 222.18141439999997,
+            "x" : 191.922,
+            "y" : 619.3346912
+          },
+          "range" : {
+            "length" : 26,
+            "location" : 64
+          },
+          "text" : "Baseline 0.91 [0.78, 1.06]"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 222.18260991999998,
+            "x" : 191.922,
+            "y" : 604.8886911999999
+          },
+          "range" : {
+            "length" : 35,
+            "location" : 91
+          },
+          "text" : "Staggered rollout 0.87 [0.74, 1.02]"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 222.18500095999994,
+            "x" : 191.922,
+            "y" : 590.4436911999999
+          },
+          "range" : {
+            "length" : 38,
+            "location" : 127
+          },
+          "text" : "Office fixed effects 0.95 [0.80, 1.12]"
+        },
+        {
+          "bounds" : {
+            "height" : 15.218413599999963,
+            "pageIndex" : 2,
+            "width" : 116.77768791000003,
+            "x" : 73.26370900999999,
+            "y" : 552.8102124
+          },
+          "range" : {
+            "length" : 12,
+            "location" : 166
+          },
+          "text" : "References34"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 495.14048544,
+            "x" : -2.2437232000000336,
+            "y" : 518.0866911999999
+          },
+          "range" : {
+            "length" : 75,
+            "location" : 179
+          },
+          "text" : "Acemoglu, D., Dahleh, M. A., Lobel, I., and Ozdaglar, A. (2011). Bayesian35"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 498.38410272,
+            "x" : -2.2423228800000174,
+            "y" : 494.17869119999995
+          },
+          "range" : {
+            "length" : 75,
+            "location" : 255
+          },
+          "text" : "learning in social networks. Review of Economic Studies, 78(4):1201–1236.36"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 495.14496864,
+            "x" : -2.2446198399999844,
+            "y" : 460.30869119999994
+          },
+          "range" : {
+            "length" : 72,
+            "location" : 331
+          },
+          "text" : "Avery, C. and Zemsky, P. (1998). Multidimensional uncertainty and herd37"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 498.38909471999995,
+            "x" : -2.243321279999975,
+            "y" : 436.4006911999999
+          },
+          "range" : {
+            "length" : 73,
+            "location" : 404
+          },
+          "text" : "behavior in financial markets. American Economic Review, 88(4):724–748.38"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 498.65741952,
+            "x" : -2.244383359999972,
+            "y" : 402.52969119999995
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 478
+          },
+          "text" : "Banerjee, A. V. (1992). A simple model of herd behavior. Quarterly Journal39"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 221.60699872,
+            "x" : 53.11309792,
+            "y" : 378.62269119999996
+          },
+          "range" : {
+            "length" : 31,
+            "location" : 555
+          },
+          "text" : "of Economics, 107(3):797–817.40"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 498.39259871999997,
+            "x" : -2.244022080000036,
+            "y" : 344.7516912
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 587
+          },
+          "text" : "Bikhchandani, S., Hirshleifer, D., and Welch, I. (1992). A theory of fads,41"
+        },
+        {
+          "bounds" : {
+            "height" : 120.65546106061078,
+            "pageIndex" : 2,
+            "width" : 120.6554610606108,
+            "x" : 247.14563709872343,
+            "y" : 334.19787842416696
+          },
+          "range" : {
+            "length" : 12,
+            "location" : 664
+          },
+          "text" : "CONFIDENTIAL"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436800000012,
+            "pageIndex" : 2,
+            "width" : 7.017702400000005,
+            "x" : 93.87399999999997,
+            "y" : 322.00334559999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 677
+          },
+          "text" : "42"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 376.83979104,
+            "x" : 122.55799999999999,
+            "y" : 320.84369119999997
+          },
+          "range" : {
+            "length" : 71,
+            "location" : 680
+          },
+          "text" : "fashion, custom, and cultural change as informational cascades. Journal"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 276.18458671999997,
+            "x" : 42.19758031999993,
+            "y" : 296.93569119999995
+          },
+          "range" : {
+            "length" : 40,
+            "location" : 752
+          },
+          "text" : "of Political Economy, 100(5):992–1026.43"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 495.46746016,
+            "x" : -2.2443209600000955,
+            "y" : 263.06569119999995
+          },
+          "range" : {
+            "length" : 67,
+            "location" : 793
+          },
+          "text" : "DekelE,PiccioneM(2000)Sequentialvotingproceduresinsymmetricbinary44"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436800000012,
+            "pageIndex" : 2,
+            "width" : 7.017702400000005,
+            "x" : 93.87399999999994,
+            "y" : 240.31734559999992
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 861
+          },
+          "text" : "45"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 46.87753472,
+            "x" : 122.55799999999994,
+            "y" : 239.15769119999993
+          },
+          "range" : {
+            "length" : 10,
+            "location" : 864
+          },
+          "text" : "elections."
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 190.72415520000004,
+            "x" : 58.769376319999935,
+            "y" : 215.24969119999992
+          },
+          "range" : {
+            "length" : 27,
+            "location" : 875
+          },
+          "text" : "J Polit Econ 108(1):34–5546"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 495.7911471999998,
+            "x" : -2.244022080000036,
+            "y" : 181.3796911999999
+          },
+          "range" : {
+            "length" : 73,
+            "location" : 903
+          },
+          "text" : "Kogan, D. (2020). Learning from reviews with strategic sellers. Working47"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436800000012,
+            "pageIndex" : 2,
+            "width" : 7.017702400000005,
+            "x" : 93.87399999999994,
+            "y" : 158.6313455999999
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 977
+          },
+          "text" : "48"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 32.181007360000024,
+            "x" : 122.55799999999994,
+            "y" : 157.4716911999999
+          },
+          "range" : {
+            "length" : 6,
+            "location" : 980
+          },
+          "text" : "paper."
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 5.852070400000002,
+            "x" : 302.19999999999993,
+            "y" : 87.54369119999988
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 987
+          },
+          "text" : "3"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "Table 2: Baseline estimates\nSpecification Estimate 95% interval\nBaseline 0.91 [0.78, 1.06]\nStaggered rollout 0.87 [0.74, 1.02]\nOffice fixed effects 0.95 [0.80, 1.12]\nReferences34\nAcemoglu, D., Dahleh, M. A., Lobel, I., and Ozdaglar, A. (2011). Bayesian35\nlearning in social networks. Review of Economic Studies, 78(4):1201–1236.36\nAvery, C. and Zemsky, P. (1998). Multidimensional uncertainty and herd37\nbehavior in financial markets. American Economic Review, 88(4):724–748.38\nBanerjee, A. V. (1992). A simple model of herd behavior. Quarterly Journal39\nof Economics, 107(3):797–817.40\nBikhchandani, S., Hirshleifer, D., and Welch, I. (1992). A theory of fads,41\nCONFIDENTIAL\n42\nfashion, custom, and cultural change as informational cascades. Journal\nof Political Economy, 100(5):992–1026.43\nDekelE,PiccioneM(2000)Sequentialvotingproceduresinsymmetricbinary44\n45\nelections.\nJ Polit Econ 108(1):34–5546\nKogan, D. (2020). Learning from reviews with strategic sellers. Working47\n48\npaper.\n3"
+    },
+    {
+      "index" : 3,
+      "label" : "4",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 5.487436799999955,
+            "pageIndex" : 3,
+            "width" : 7.017702400000005,
+            "x" : 93.87399999999997,
+            "y" : 653.0873455999999
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 0
+          },
+          "text" : "49"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 388.54756864,
+            "x" : 110.854,
+            "y" : 651.9276911999999
+          },
+          "range" : {
+            "length" : 75,
+            "location" : 3
+          },
+          "text" : "Lee, J. (2021). Observational learning with heterogeneous priors. Games and"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 219.82703512000003,
+            "x" : 53.46909063999996,
+            "y" : 628.0196911999999
+          },
+          "range" : {
+            "length" : 30,
+            "location" : 79
+          },
+          "text" : "Economic Behavior, 125:1–20.50"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 285.1148195200001,
+            "x" : 40.41153375999994,
+            "y" : 594.1486911999999
+          },
+          "range" : {
+            "length" : 43,
+            "location" : 110
+          },
+          "text" : "Osborne, M. J. and Rubinstein, A. (1994).51"
+        },
+        {
+          "bounds" : {
+            "height" : 5.487436799999955,
+            "pageIndex" : 3,
+            "width" : 7.017702400000005,
+            "x" : 93.87399999999997,
+            "y" : 571.4003455999999
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 154
+          },
+          "text" : "52"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 201.6087216,
+            "x" : 122.55799999999996,
+            "y" : 570.2406911999999
+          },
+          "range" : {
+            "length" : 35,
+            "location" : 157
+          },
+          "text" : "A Course in Game Theory. MIT Press."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 498.39558752,
+            "x" : -2.2446198400000412,
+            "y" : 536.3706911999999
+          },
+          "range" : {
+            "length" : 75,
+            "location" : 193
+          },
+          "text" : "Smith, L. and Sørensen, P. (2000). Pathological outcomes of observational53"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 277.34941072000004,
+            "x" : 41.96461551999997,
+            "y" : 512.4626911999999
+          },
+          "range" : {
+            "length" : 40,
+            "location" : 269
+          },
+          "text" : "learning. Econometrica, 68(2):371–398.54"
+        },
+        {
+          "bounds" : {
+            "height" : 120.65546106061078,
+            "pageIndex" : 3,
+            "width" : 120.6554610606108,
+            "x" : 247.14563709872343,
+            "y" : 334.19787842416696
+          },
+          "range" : {
+            "length" : 12,
+            "location" : 310
+          },
+          "text" : "CONFIDENTIAL"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 3,
+            "width" : 5.852070400000002,
+            "x" : 302.19999999999993,
+            "y" : 87.54369119999994
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 323
+          },
+          "text" : "4"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "49\nLee, J. (2021). Observational learning with heterogeneous priors. Games and\nEconomic Behavior, 125:1–20.50\nOsborne, M. J. and Rubinstein, A. (1994).51\n52\nA Course in Game Theory. MIT Press.\nSmith, L. and Sørensen, P. (2000). Pathological outcomes of observational53\nlearning. Econometrica, 68(2):371–398.54\nCONFIDENTIAL\n4"
+    }
+  ]
+}

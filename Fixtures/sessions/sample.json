@@ -1,0 +1,359 @@
+{
+  "comments" : [
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "The coefficient in Table 2 is 0.91 with a confidence interval that crosses one",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The introduction reports a coefficient of 0.91 whose confidence interval crosses one and, in the same sentence, speaks of a robust effect. These cannot both stand. As reported, the data are consistent with no effect.",
+      "category" : "claims",
+      "createdAt" : "2026-11-18T11:06:41Z",
+      "id" : "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "11111111-1111-4111-8111-111111111111"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "proposedRevision" : {
+        "body" : "The introduction itself says the interval crosses one. Calling the effect robust in the same sentence is unsupported. Please delete the word or point to the robustness check it refers to.",
+        "kind" : "minor",
+        "title" : "\"Robust\" is not supported by the reported interval",
+        "withdraw" : false
+      },
+      "status" : "pending",
+      "suggestion" : "State the interval wherever the estimate is quoted and drop \"robust\" unless a specific robustness check supports it.",
+      "thread" : [
+        {
+          "createdAt" : "2026-11-18T11:20:00Z",
+          "id" : "77777777-7777-4777-8777-777777777777",
+          "role" : "user",
+          "text" : "The interval is in the text itself, not only in the table. Is the comment still fair?"
+        },
+        {
+          "createdAt" : "2026-11-18T11:20:20Z",
+          "id" : "88888888-8888-4888-8888-888888888888",
+          "provider" : {
+            "model" : "mock",
+            "providerID" : "mock"
+          },
+          "role" : "assistant",
+          "text" : "You are right that the interval is in the text and not only in the table. The sentence says the interval \"crosses one\", so the comment should not say the paper hides it. The problem that remains is the word \"robust\"."
+        }
+      ],
+      "title" : "The interval includes one, yet the effect is called robust",
+      "updatedAt" : "2026-11-18T11:20:20Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "Our identification strategy uses the staggered rollout of a disclosure rule.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The design rests on the timing of the rollout being as good as random. I could not find any evidence on how the order was decided or any test for pre-trends.",
+      "category" : "assumptions",
+      "createdAt" : "2026-11-18T11:06:42Z",
+      "id" : "BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "11111111-1111-4111-8111-111111111111"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "approved",
+      "suggestion" : "Describe how the rollout order was set and show an event-study plot with pre-period coefficients.",
+      "thread" : [
+
+      ],
+      "title" : "Nothing shows that rollout timing is unrelated to outcomes",
+      "updatedAt" : "2026-11-18T11:15:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 2",
+        "pageIndex" : 1,
+        "quote" : "Proposition 1 states that an information cascade begins with positive probability.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "Proposition 1 is easy to find and easy to read.",
+      "category" : "writing",
+      "createdAt" : "2026-11-18T11:06:43Z",
+      "id" : "CCCCCCCC-CCCC-4CCC-8CCC-CCCCCCCCCCCC",
+      "includeInReport" : true,
+      "kind" : "strength",
+      "origin" : {
+        "ai" : {
+          "runID" : "11111111-1111-4111-8111-111111111111"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "rejected",
+      "thread" : [
+
+      ],
+      "title" : "The main result is stated clearly",
+      "updatedAt" : "2026-11-18T11:16:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "The coefficient in Table 2 is 0.91 with a confidence interval that crosses one",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "With an interval that crosses one, an estimate of 0.91 does not rule out a coefficient of one. The text should say so before it draws conclusions from the estimate.",
+      "category" : "claims",
+      "createdAt" : "2026-11-18T11:06:44Z",
+      "id" : "DDDDDDDD-DDDD-4DDD-8DDD-DDDDDDDDDDDD",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "11111111-1111-4111-8111-111111111111"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "similarTo" : "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA",
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "The estimate cannot be told apart from no effect",
+      "updatedAt" : "2026-11-18T11:06:44Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 3",
+        "pageIndex" : 2,
+        "quote" : "The standard errors are clustered at the office level.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "Table 2 reports intervals without saying how the standard errors were obtained. Are they clustered, and at what level?",
+      "category" : "data",
+      "createdAt" : "2026-11-18T11:06:45Z",
+      "id" : "EEEEEEEE-EEEE-4EEE-8EEE-EEEEEEEEEEEE",
+      "includeInReport" : true,
+      "kind" : "question",
+      "origin" : {
+        "ai" : {
+          "runID" : "11111111-1111-4111-8111-111111111111"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "How are the standard errors computed?",
+      "updatedAt" : "2026-11-18T11:06:45Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "none" : {
+
+          }
+        },
+        "locationLabel" : "",
+        "quote" : "Related work is discussed in Section 5.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The introduction cites the herding literature in two sentences. No section sets the paper against existing results on learning in networks, so the contribution is hard to place.",
+      "category" : "literature",
+      "createdAt" : "2026-11-18T11:06:46Z",
+      "id" : "FFFFFFFF-FFFF-4FFF-8FFF-FFFFFFFFFFFF",
+      "includeInReport" : true,
+      "kind" : "minor",
+      "origin" : {
+        "ai" : {
+          "runID" : "11111111-1111-4111-8111-111111111111"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "There is no discussion of related work",
+      "updatedAt" : "2026-11-18T11:06:46Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "We define the office-specific identification threshold",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The office-specific identification threshold appears here for the first time and is not defined anywhere in the paper. Please define it where it is introduced.",
+      "category" : "other",
+      "createdAt" : "2026-11-18T11:30:00Z",
+      "id" : "66666666-6666-4666-8666-666666666666",
+      "includeInReport" : true,
+      "kind" : "minor",
+      "origin" : {
+        "user" : {
+
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "approved",
+      "thread" : [
+
+      ],
+      "title" : "The threshold is named but never defined",
+      "updatedAt" : "2026-11-18T11:30:00Z"
+    }
+  ],
+  "consents" : [
+
+  ],
+  "conversations" : [
+
+  ],
+  "createdAt" : "2026-11-18T11:06:40Z",
+  "document" : {
+    "byteCount" : 0,
+    "fileName" : "ay_nolinks.pdf",
+    "pageCount" : 4,
+    "sha256" : "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "id" : "55555555-5555-4555-8555-555555555555",
+  "meta" : {
+    "reviewerNotes" : "",
+    "title" : "Information Aggregation in Sequential Markets: A Fixture"
+  },
+  "runs" : [
+    {
+      "destination" : "this Mac",
+      "finishedAt" : "2026-11-18T11:06:46Z",
+      "id" : "11111111-1111-4111-8111-111111111111",
+      "kind" : "review",
+      "provider" : {
+        "model" : "mock",
+        "providerID" : "mock"
+      },
+      "requestCount" : 1,
+      "sentPDF" : false,
+      "startedAt" : "2026-11-18T11:06:40Z",
+      "status" : {
+        "completed" : {
+
+        }
+      },
+      "usage" : {
+        "inputTokens" : 5200,
+        "outputTokens" : 640
+      }
+    },
+    {
+      "destination" : "this Mac",
+      "finishedAt" : "2026-11-18T11:20:20Z",
+      "id" : "99999999-9999-4999-8999-999999999999",
+      "kind" : "discussion",
+      "provider" : {
+        "model" : "mock",
+        "providerID" : "mock"
+      },
+      "requestCount" : 1,
+      "sentPDF" : false,
+      "startedAt" : "2026-11-18T11:20:00Z",
+      "status" : {
+        "completed" : {
+
+        }
+      },
+      "usage" : {
+        "inputTokens" : 5400,
+        "outputTokens" : 120
+      }
+    }
+  ],
+  "schemaVersion" : 1,
+  "updatedAt" : "2026-11-18T11:30:00Z"
+}

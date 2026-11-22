@@ -1,0 +1,1 @@
+Not as written. The abstract calls the effect statistically significant, but the introduction says "The coefficient in Table 2 is 0.91" with a confidence interval that crosses one. Table 2 gives that interval as [0.78, 1.06], so the estimate cannot be told apart from no effect, and the claim in the abstract is not supported.

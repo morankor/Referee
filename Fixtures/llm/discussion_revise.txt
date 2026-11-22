@@ -1,0 +1,7 @@
+You are right that the interval is in the text and not only in the table. The sentence says the interval "crosses one", so the comment should not say the paper hides it. The problem that remains is the word "robust".
+@@REVISED
+kind: minor
+title: "Robust" is not supported by the reported interval
+body:
+The introduction itself says the interval crosses one. Calling the effect robust in the same sentence is unsupported. Please delete the word or point to the robustness check it refers to.
+@@END

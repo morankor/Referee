@@ -1,0 +1,85 @@
+\documentclass[12pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{lineno}
+\usepackage{draftwatermark}
+\SetWatermarkText{CONFIDENTIAL}
+\SetWatermarkScale{0.6}
+\doublespacing
+\linenumbers
+\title{Information Aggregation in Sequential Markets: A Fixture}
+\author{Anonymous}
+\date{}
+\begin{document}
+\maketitle
+\begin{abstract}
+We study how sequential traders aggregate private signals. Our identification strategy exploits the staggered rollout of a disclosure rule. The effect is statistically significant but economically small.
+\end{abstract}
+\section{Introduction}
+Herding has been studied extensively since \citet{banerjee1992} and \citet{bikhchandani1992}. Later work extends the framework to markets \citep{avery1998, smith2000}. As shown by \citet{acemoglu2011}, network structure determines whether learning is efficient; see also \citep[p.~12]{smith2000} and \citet{kogan2020,lee2021}. The coefficient in Table 2 is 0.91 with a confidence interval that crosses one, which is difficult to reconcile with the claim of a robust effect. We define the office-specific identification threshold and afterwards verify the differentiability of the payoff function.
+
+In \citet{banerjee1992}, agents observe only the actions of their predecessors. The \citet{avery1998} model adds a market maker who updates prices. See \citet{lee2021} for heterogeneous priors. Following \citet{smith2000}, we allow unbounded signals. Equilibrium notions are taken from \citet{osborne1994}, and the voting application follows the sequential procedure of \citet{dekel2000}.
+
+\section{Model}
+Consider a sequence of agents $i = 1, 2, \ldots$ who each observe a private signal $s_i$ and the history of actions $h_i$. The posterior belief satisfies
+\begin{equation}
+\mu_i = \frac{\pi \, f(s_i \mid H)}{\pi f(s_i \mid H) + (1-\pi) f(s_i \mid L)} . \label{eq:posterior}
+\end{equation}
+Proposition 1 states that an information cascade begins with positive probability. The proof follows \citet{bikhchandani1992} with minor modifications. It is easy to see that the inequality is preserved when both sides are multiplied by the likelihood ratio.
+
+\section{Results}
+\setcounter{table}{1}
+Table~\ref{tab:main} reports the estimates; the posterior in (\ref{eq:posterior}) is evaluated at the sample mean of the signal.
+\begin{table}[h]
+\centering
+\caption{Baseline estimates}\label{tab:main}
+\begin{tabular}{lcc}
+\hline
+Specification & Estimate & 95\% interval \\
+\hline
+Baseline & 0.91 & [0.78, 1.06] \\
+Staggered rollout & 0.87 & [0.74, 1.02] \\
+Office fixed effects & 0.95 & [0.80, 1.12] \\
+\hline
+\end{tabular}
+\end{table}
+
+\bibliographystyle{plainnat}
+\begin{thebibliography}{9}
+\bibitem[Acemoglu et~al.(2011)Acemoglu, Dahleh, Lobel, and Ozdaglar]{acemoglu2011}
+Acemoglu, D., Dahleh, M.~A., Lobel, I., and Ozdaglar, A. (2011).
+\newblock Bayesian learning in social networks.
+\newblock {\em Review of Economic Studies}, 78(4):1201--1236.
+\bibitem[Avery and Zemsky(1998)]{avery1998}
+Avery, C. and Zemsky, P. (1998).
+\newblock Multidimensional uncertainty and herd behavior in financial markets.
+\newblock {\em American Economic Review}, 88(4):724--748.
+\bibitem[Banerjee(1992)]{banerjee1992}
+Banerjee, A.~V. (1992).
+\newblock A simple model of herd behavior.
+\newblock {\em Quarterly Journal of Economics}, 107(3):797--817.
+\bibitem[Bikhchandani et~al.(1992)Bikhchandani, Hirshleifer, and Welch]{bikhchandani1992}
+Bikhchandani, S., Hirshleifer, D., and Welch, I. (1992).
+\newblock A theory of fads, fashion, custom, and cultural change as informational cascades.
+\newblock {\em Journal of Political Economy}, 100(5):992--1026.
+\bibitem[Dekel and Piccione(2000)]{dekel2000}
+Dekel E, Piccione M (2000) Sequential voting procedures in symmetric binary elections.\\
+J Polit Econ 108(1):34--55
+\bibitem[Kogan(2020)]{kogan2020}
+Kogan, D. (2020).
+\newblock Learning from reviews with strategic sellers.
+\newblock Working paper.
+\bibitem[Lee(2021)]{lee2021}
+Lee, J. (2021).
+\newblock Observational learning with heterogeneous priors.
+\newblock {\em Games and Economic Behavior}, 125:1--20.
+\bibitem[Osborne and Rubinstein(1994)]{osborne1994}
+Osborne, M.~J. and Rubinstein, A. (1994).\\
+\newblock {\em A Course in Game Theory}. MIT Press.
+\bibitem[Smith and S{\o}rensen(2000)]{smith2000}
+Smith, L. and S{\o}rensen, P. (2000).
+\newblock Pathological outcomes of observational learning.
+\newblock {\em Econometrica}, 68(2):371--398.
+\end{thebibliography}
+\end{document}

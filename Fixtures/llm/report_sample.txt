@@ -1,0 +1,24 @@
+## Summary assessment
+
+The paper studies how sequential traders aggregate private signals, using the staggered rollout of a disclosure rule. I do not think the main empirical claim holds as stated: the reported interval includes one, and the identifying assumption is not defended.
+
+## Recommendation
+
+Major revision. The concerns below go to the main result — they are not matters of presentation.
+
+## Publication probability
+
+10–20% at a top field journal. The design could work, but the paper has to show that rollout timing is unrelated to outcomes, and the headline estimate may not survive.
+
+## Major concerns
+
+1. The interval includes one (p. 1). The introduction reports 0.91 with a confidence interval that crosses one and still calls the effect robust.
+2. Rollout timing (p. 1). Nothing in the paper serves as evidence that the order of the rollout was unrelated to outcomes.
+
+## Minor concerns
+
+1. The step before Proposition 1 multiplies an inequality by the likelihood ratio without stating its sign or behaviour at the boundary (p. 2).
+
+## Questions for the authors
+
+1. Does Proposition 1 require bounded signals?

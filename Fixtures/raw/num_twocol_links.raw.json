@@ -1,0 +1,2304 @@
+{
+  "links" : [
+    {
+      "bounds" : {
+        "height" : 8.384000000000015,
+        "pageIndex" : 0,
+        "width" : 6.973000000000013,
+        "x" : 157.233,
+        "y" : 453.294
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 341.509
+        }
+      },
+      "text" : "4"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.972999999999999,
+        "x" : 73.77,
+        "y" : 441.339
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 488.956
+        }
+      },
+      "text" : "2"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.972999999999999,
+        "x" : 85.468,
+        "y" : 441.339
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 534.729
+        }
+      },
+      "text" : "1"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.972000000000008,
+        "x" : 206.596,
+        "y" : 441.339
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 534.729
+        }
+      },
+      "text" : "1"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.972999999999985,
+        "x" : 218.293,
+        "y" : 441.339
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 297.12
+        }
+      },
+      "text" : "5"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.972999999999985,
+        "x" : 229.991,
+        "y" : 441.339
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 397.742
+        }
+      },
+      "text" : "3"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.973000000000013,
+        "x" : 139.381,
+        "y" : 429.384
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 341.509
+        }
+      },
+      "text" : "4"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.97199999999998,
+        "x" : 150.247,
+        "y" : 429.384
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 488.956
+        }
+      },
+      "text" : "2"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.973000000000013,
+        "x" : 161.112,
+        "y" : 429.384
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 534.729
+        }
+      },
+      "text" : "1"
+    },
+    {
+      "bounds" : {
+        "height" : 8.382999999999981,
+        "pageIndex" : 0,
+        "width" : 6.972000000000008,
+        "x" : 171.978,
+        "y" : 429.384
+      },
+      "pageIndex" : 0,
+      "target" : {
+        "internalDestination" : {
+          "pageIndex" : 1,
+          "x" : 310.605,
+          "y" : 297.12
+        }
+      },
+      "text" : "5"
+    },
+    {
+      "bounds" : {
+        "height" : 11.12299999999999,
+        "pageIndex" : 1,
+        "width" : 143.178,
+        "x" : 397.06600000000003,
+        "y" : 411.967
+      },
+      "pageIndex" : 1,
+      "target" : {
+        "url" : {
+          "_0" : "https://doi.org/10.3115/v1/D14-1179"
+        }
+      },
+      "text" : "https://doi.org/10.3115/v1/"
+    },
+    {
+      "bounds" : {
+        "height" : 9.574000000000012,
+        "pageIndex" : 1,
+        "width" : 44.323000000000036,
+        "x" : 325.104,
+        "y" : 400.731
+      },
+      "pageIndex" : 1,
+      "target" : {
+        "url" : {
+          "_0" : "https://doi.org/10.3115/v1/D14-1179"
+        }
+      },
+      "text" : "D14-1179"
+    }
+  ],
+  "outline" : [
+    {
+      "depth" : 0,
+      "id" : 0,
+      "pageIndex" : 0,
+      "title" : "Introduction"
+    },
+    {
+      "depth" : 0,
+      "id" : 1,
+      "pageIndex" : 0,
+      "title" : "Method"
+    },
+    {
+      "depth" : 0,
+      "id" : 2,
+      "pageIndex" : 1,
+      "title" : "Results"
+    }
+  ],
+  "pages" : [
+    {
+      "index" : 0,
+      "label" : "1",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 15.201198200000022,
+            "pageIndex" : 0,
+            "width" : 316.80984158,
+            "x" : 147.219,
+            "y" : 622.0202124
+          },
+          "range" : {
+            "length" : 39,
+            "location" : 0
+          },
+          "text" : "A Two-Column Numeric Fixture With Links"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 0,
+            "width" : 60.20399616000003,
+            "x" : 275.523,
+            "y" : 594.1526911999999
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 40
+          },
+          "text" : "Anonymous"
+        },
+        {
+          "bounds" : {
+            "height" : 12.682040799999982,
+            "pageIndex" : 0,
+            "width" : 60.474971479999994,
+            "x" : 72.00000000000003,
+            "y" : 554.6388372
+          },
+          "range" : {
+            "length" : 8,
+            "location" : 50
+          },
+          "text" : "Abstract"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 228.63768495999997,
+            "x" : 72.00000000000003,
+            "y" : 533.1262555999999
+          },
+          "range" : {
+            "length" : 48,
+            "location" : 59
+          },
+          "text" : "We evaluate attention models on translation. The"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 228.63768495999997,
+            "x" : 72.00000000000003,
+            "y" : 521.1702555999999
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 108
+          },
+          "text" : "proposed architecture is clearly superior, a claim we"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 57.903627460000024,
+            "x" : 72.00000000000003,
+            "y" : 509.2152556
+          },
+          "range" : {
+            "length" : 14,
+            "location" : 162
+          },
+          "text" : "revisit below."
+        },
+        {
+          "bounds" : {
+            "height" : 12.682040799999982,
+            "pageIndex" : 0,
+            "width" : 110.38827052000002,
+            "x" : 72.00000000000003,
+            "y" : 473.86983719999995
+          },
+          "range" : {
+            "length" : 14,
+            "location" : 177
+          },
+          "text" : "1 Introduction"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63868121999994,
+            "x" : 72.00000000000003,
+            "y" : 452.3572556
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 192
+          },
+          "text" : "Recurrent models [4] were the dominant approach"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64465877999984,
+            "x" : 72.00000000000003,
+            "y" : 440.4022556
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 240
+          },
+          "text" : "[2, 1]. Attention mechanisms [1, 5, 3] changed this."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64166999999995,
+            "x" : 72.00000000000003,
+            "y" : 428.4472556
+          },
+          "range" : {
+            "length" : 57,
+            "location" : 293
+          },
+          "text" : "Several results [4, 2, 1, 5] are relevant here. The first"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63868121999994,
+            "x" : 72.00000000000003,
+            "y" : 416.4922556
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 351
+          },
+          "text" : "column of this page contains the sentence that must"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64465877999996,
+            "x" : 72.00000000000003,
+            "y" : 404.5362556
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 403
+          },
+          "text" : "be anchored before the second column begins, which"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63967748000002,
+            "x" : 72.00000000000003,
+            "y" : 392.5812556
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 454
+          },
+          "text" : "tests reading order. Lorem ipsum dolor sit amet, con-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63768495999997,
+            "x" : 72.00000000000003,
+            "y" : 380.62625560000004
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 508
+          },
+          "text" : "sectetueradipiscingelit. Utpuruselit,vestibulumut,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64465877999996,
+            "x" : 72.00000000000003,
+            "y" : 368.67125560000005
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 559
+          },
+          "text" : "placerat ac, adipiscing vitae, felis. Curabitur dictum"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64266626000003,
+            "x" : 72.00000000000003,
+            "y" : 356.71625560000007
+          },
+          "range" : {
+            "length" : 46,
+            "location" : 614
+          },
+          "text" : "gravida mauris. Nam arcu libero, nonummy eget,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64565503999992,
+            "x" : 72.00000000000003,
+            "y" : 344.7612556000001
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 661
+          },
+          "text" : "consectetuer id, vulputate a, magna. Donec vehicula"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64366252,
+            "x" : 72.00000000000003,
+            "y" : 332.80525560000007
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 713
+          },
+          "text" : "augue eu neque. Pellentesque habitant morbi tristi-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64465877999996,
+            "x" : 72.00000000000003,
+            "y" : 320.8502556000001
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 765
+          },
+          "text" : "que senectus et netus et malesuada fames ac turpis"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64565503999998,
+            "x" : 72.00000000000003,
+            "y" : 308.8952556000001
+          },
+          "range" : {
+            "length" : 48,
+            "location" : 816
+          },
+          "text" : "egestas. Mauris ut leo. Cras viverra metus rhon-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64166999999995,
+            "x" : 72.00000000000003,
+            "y" : 296.9402556000001
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 865
+          },
+          "text" : "cus sem. Nulla et lectus vestibulum urna fringilla"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63868122,
+            "x" : 72.00000000000003,
+            "y" : 284.98525560000013
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 916
+          },
+          "text" : "ultrices. Phasellus eu tellus sit amet tortor gravida"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64067373999993,
+            "x" : 72.00000000000003,
+            "y" : 273.03025560000015
+          },
+          "range" : {
+            "length" : 55,
+            "location" : 970
+          },
+          "text" : "placerat. Integer sapien est, iaculis in, pretium quis,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64465877999996,
+            "x" : 72.00000000000003,
+            "y" : 261.07425560000013
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 1026
+          },
+          "text" : "viverra ac, nunc. Praesent eget sem vel leo ultrices"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64266626000003,
+            "x" : 72.00000000000003,
+            "y" : 249.11925560000012
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 1079
+          },
+          "text" : "bibendum. Aenean faucibus. Morbi dolor nulla, ma-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64565503999992,
+            "x" : 72.00000000000003,
+            "y" : 237.1642556000001
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 1129
+          },
+          "text" : "lesuada eu, pulvinar at, mollis ac, nulla. Curabitur"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.63868121999994,
+            "x" : 72.00000000000003,
+            "y" : 225.2092556000001
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 1182
+          },
+          "text" : "auctor semper nulla. Donec varius orci eget risus."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64067373999993,
+            "x" : 72.00000000000003,
+            "y" : 213.25425560000008
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 1233
+          },
+          "text" : "Duis nibh mi, congue eu, accumsan eleifend, sagit-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64366252,
+            "x" : 72.00000000000003,
+            "y" : 201.29925560000007
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 1284
+          },
+          "text" : "tis quis, diam. Duis eget orci sit amet orci dignissim"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 33.80907936,
+            "x" : 72.00000000000003,
+            "y" : 189.34325560000008
+          },
+          "range" : {
+            "length" : 7,
+            "location" : 1339
+          },
+          "text" : "rutrum."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 218.68106251999995,
+            "x" : 81.96300000000002,
+            "y" : 177.0952556000001
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 1347
+          },
+          "text" : "Nam dui ligula, fringilla a, euismod sodales, sollici-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64266626000003,
+            "x" : 72.00000000000003,
+            "y" : 165.14025560000007
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 1402
+          },
+          "text" : "tudin vel, wisi. Morbi auctor lorem non justo. Nam"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.63768495999997,
+            "x" : 72.00000000000003,
+            "y" : 153.18525560000006
+          },
+          "range" : {
+            "length" : 55,
+            "location" : 1453
+          },
+          "text" : "lacus libero, pretium at, lobortis vitae, ultricies et,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64565503999992,
+            "x" : 72.00000000000003,
+            "y" : 141.23025560000005
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 1509
+          },
+          "text" : "tellus. Donec aliquet, tortor sed accumsan biben-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64067373999998,
+            "x" : 72.00000000000003,
+            "y" : 129.27525560000004
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 1559
+          },
+          "text" : "dum, erat ligula aliquet magna, vitae ornare odio"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 0,
+            "width" : 228.63967747999996,
+            "x" : 72.00000000000003,
+            "y" : 117.32025560000002
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 1609
+          },
+          "text" : "metus a mi. Morbi ac orci et nisl hendrerit mollis."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 228.64266625999994,
+            "x" : 310.605,
+            "y" : 555.4892556
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 1661
+          },
+          "text" : "Suspendisse ut massa. Cras nec ante. Pellentesque"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 228.64366252000002,
+            "x" : 310.605,
+            "y" : 543.5332556
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 1711
+          },
+          "text" : "a nulla. Cum sociis natoque penatibus et magnis dis"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 228.63868122000008,
+            "x" : 310.605,
+            "y" : 531.5782555999999
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 1763
+          },
+          "text" : "parturient montes, nascetur ridiculus mus. Aliquam"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 228.64166999999998,
+            "x" : 310.605,
+            "y" : 519.6232555999999
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 1814
+          },
+          "text" : "tincidunt urna. Nulla ullamcorper vestibulum turpis."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 149.04547730000002,
+            "x" : 310.605,
+            "y" : 507.66825559999995
+          },
+          "range" : {
+            "length" : 34,
+            "location" : 1867
+          },
+          "text" : "Pellentesque cursus luctus mauris."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 218.68006625999993,
+            "x" : 320.56800000000004,
+            "y" : 495.6212555999999
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 1902
+          },
+          "text" : "Nulla malesuada porttitor diam. Donec felis erat,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63967747999993,
+            "x" : 310.605,
+            "y" : 483.66625559999994
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 1952
+          },
+          "text" : "congue non, volutpat at, tincidunt tristique, libero."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63868121999997,
+            "x" : 310.605,
+            "y" : 471.7102555999999
+          },
+          "range" : {
+            "length" : 46,
+            "location" : 2006
+          },
+          "text" : "Vivamus viverra fermentum felis. Donec nonummy"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64166999999986,
+            "x" : 310.605,
+            "y" : 459.75525559999994
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 2053
+          },
+          "text" : "pellentesque ante. Phasellus adipiscing semper elit."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64266625999994,
+            "x" : 310.605,
+            "y" : 447.80025559999996
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 2106
+          },
+          "text" : "Proin fermentum massa ac quam. Sed diam turpis,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64764755999977,
+            "x" : 310.605,
+            "y" : 435.8452556
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 2154
+          },
+          "text" : "molestie vitae, placerat a, molestie nec, leo. Maece-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.6436625199999,
+            "x" : 310.605,
+            "y" : 423.8902556
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 2208
+          },
+          "text" : "nas lacinia. Nam ipsum ligula, eleifend at, accumsan"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.6406737399999,
+            "x" : 310.605,
+            "y" : 411.9352556
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 2261
+          },
+          "text" : "nec, suscipit a, ipsum. Morbi blandit ligula feugiat"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64565503999995,
+            "x" : 310.605,
+            "y" : 399.9792556
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 2314
+          },
+          "text" : "magna. Nunc eleifend consequat lorem. Sed lacinia"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64166999999998,
+            "x" : 310.605,
+            "y" : 388.0242556
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 2364
+          },
+          "text" : "nulla vitae enim. Pellentesque tincidunt purus vel"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.63868121999997,
+            "x" : 310.605,
+            "y" : 376.0692556
+          },
+          "range" : {
+            "length" : 46,
+            "location" : 2415
+          },
+          "text" : "magna. Integer non enim. Praesent euismod nunc"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64067374,
+            "x" : 310.605,
+            "y" : 364.11425560000004
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 2462
+          },
+          "text" : "eu purus. Donec bibendum quam in tellus. Nullam"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64665130000003,
+            "x" : 310.605,
+            "y" : 352.15925560000005
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 2510
+          },
+          "text" : "cursus pulvinar lectus. Donec et mi. Nam vulpu-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64465877999987,
+            "x" : 310.605,
+            "y" : 340.20425560000007
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 2558
+          },
+          "text" : "tate metus eu enim. Vestibulum pellentesque felis eu"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 28.883569920000014,
+            "x" : 310.605,
+            "y" : 328.24825560000005
+          },
+          "range" : {
+            "length" : 6,
+            "location" : 2611
+          },
+          "text" : "massa."
+        },
+        {
+          "bounds" : {
+            "height" : 12.682040799999982,
+            "pageIndex" : 0,
+            "width" : 77.79226950000003,
+            "x" : 310.605,
+            "y" : 293.9678372
+          },
+          "range" : {
+            "length" : 8,
+            "location" : 2618
+          },
+          "text" : "2 Method"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64366252000002,
+            "x" : 310.605,
+            "y" : 272.82925560000007
+          },
+          "range" : {
+            "length" : 57,
+            "location" : 2627
+          },
+          "text" : "The efficient configuration is defined in the first para-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 0,
+            "width" : 228.64665129999992,
+            "x" : 310.605,
+            "y" : 260.87325560000005
+          },
+          "range" : {
+            "length" : 55,
+            "location" : 2685
+          },
+          "text" : "graph of this section, and the difficult identification"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.63868121999985,
+            "x" : 310.605,
+            "y" : 248.91825560000004
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 2741
+          },
+          "text" : "problem is deferred. Quisque ullamcorper placerat"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.63967747999993,
+            "x" : 310.605,
+            "y" : 236.96325560000002
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 2791
+          },
+          "text" : "ipsum. Cras nibh. Morbi vel justo vitae lacus tinci-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64565503999995,
+            "x" : 310.605,
+            "y" : 225.0082556
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 2844
+          },
+          "text" : "dunt ultrices. Lorem ipsum dolor sit amet, consecte-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64665130000003,
+            "x" : 310.605,
+            "y" : 213.0532556
+          },
+          "range" : {
+            "length" : 55,
+            "location" : 2897
+          },
+          "text" : "tuer adipiscing elit. In hac habitasse platea dictumst."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64565503999995,
+            "x" : 310.605,
+            "y" : 201.0982556
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 2953
+          },
+          "text" : "Integertempusconvallisaugue. Etiamfacilisis. Nunc"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.63868121999997,
+            "x" : 310.605,
+            "y" : 189.1422556
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 3003
+          },
+          "text" : "elementum fermentum wisi. Aenean placerat. Ut im-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.6436625199999,
+            "x" : 310.605,
+            "y" : 177.1872556
+          },
+          "range" : {
+            "length" : 55,
+            "location" : 3053
+          },
+          "text" : "perdiet, enim sed gravida sollicitudin, felis odio pla-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.63868121999997,
+            "x" : 310.605,
+            "y" : 165.23225559999997
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 3109
+          },
+          "text" : "cerat quam, ac pulvinar elit purus eget enim. Nunc"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 228.64166999999998,
+            "x" : 310.605,
+            "y" : 153.27725559999996
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 3160
+          },
+          "text" : "vitae tortor. Proin tempus nibh sit amet nisl. Viva-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 183.49017053999995,
+            "x" : 310.605,
+            "y" : 141.32225559999995
+          },
+          "range" : {
+            "length" : 43,
+            "location" : 3213
+          },
+          "text" : "mus quis tortor vitae risus porta vehicula."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 0,
+            "width" : 218.6840512999999,
+            "x" : 320.56800000000004,
+            "y" : 129.27525559999995
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 3257
+          },
+          "text" : "Fusce mauris. Vestibulum luctus nibh at lectus."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 0,
+            "width" : 228.64166999999998,
+            "x" : 310.605,
+            "y" : 117.31925559999993
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 3305
+          },
+          "text" : "Sed bibendum, nulla a faucibus semper, leo velit ul-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 0,
+            "width" : 4.980303740000011,
+            "x" : 303.134,
+            "y" : 87.43225559999993
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 3358
+          },
+          "text" : "1"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "A Two-Column Numeric Fixture With Links\nAnonymous\nAbstract\nWe evaluate attention models on translation. The\nproposed architecture is clearly superior, a claim we\nrevisit below.\n1 Introduction\nRecurrent models [4] were the dominant approach\n[2, 1]. Attention mechanisms [1, 5, 3] changed this.\nSeveral results [4, 2, 1, 5] are relevant here. The first\ncolumn of this page contains the sentence that must\nbe anchored before the second column begins, which\ntests reading order. Lorem ipsum dolor sit amet, con-\nsectetueradipiscingelit. Utpuruselit,vestibulumut,\nplacerat ac, adipiscing vitae, felis. Curabitur dictum\ngravida mauris. Nam arcu libero, nonummy eget,\nconsectetuer id, vulputate a, magna. Donec vehicula\naugue eu neque. Pellentesque habitant morbi tristi-\nque senectus et netus et malesuada fames ac turpis\negestas. Mauris ut leo. Cras viverra metus rhon-\ncus sem. Nulla et lectus vestibulum urna fringilla\nultrices. Phasellus eu tellus sit amet tortor gravida\nplacerat. Integer sapien est, iaculis in, pretium quis,\nviverra ac, nunc. Praesent eget sem vel leo ultrices\nbibendum. Aenean faucibus. Morbi dolor nulla, ma-\nlesuada eu, pulvinar at, mollis ac, nulla. Curabitur\nauctor semper nulla. Donec varius orci eget risus.\nDuis nibh mi, congue eu, accumsan eleifend, sagit-\ntis quis, diam. Duis eget orci sit amet orci dignissim\nrutrum.\nNam dui ligula, fringilla a, euismod sodales, sollici-\ntudin vel, wisi. Morbi auctor lorem non justo. Nam\nlacus libero, pretium at, lobortis vitae, ultricies et,\ntellus. Donec aliquet, tortor sed accumsan biben-\ndum, erat ligula aliquet magna, vitae ornare odio\nmetus a mi. Morbi ac orci et nisl hendrerit mollis.\nSuspendisse ut massa. Cras nec ante. Pellentesque\na nulla. Cum sociis natoque penatibus et magnis dis\nparturient montes, nascetur ridiculus mus. Aliquam\ntincidunt urna. Nulla ullamcorper vestibulum turpis.\nPellentesque cursus luctus mauris.\nNulla malesuada porttitor diam. Donec felis erat,\ncongue non, volutpat at, tincidunt tristique, libero.\nVivamus viverra fermentum felis. Donec nonummy\npellentesque ante. Phasellus adipiscing semper elit.\nProin fermentum massa ac quam. Sed diam turpis,\nmolestie vitae, placerat a, molestie nec, leo. Maece-\nnas lacinia. Nam ipsum ligula, eleifend at, accumsan\nnec, suscipit a, ipsum. Morbi blandit ligula feugiat\nmagna. Nunc eleifend consequat lorem. Sed lacinia\nnulla vitae enim. Pellentesque tincidunt purus vel\nmagna. Integer non enim. Praesent euismod nunc\neu purus. Donec bibendum quam in tellus. Nullam\ncursus pulvinar lectus. Donec et mi. Nam vulpu-\ntate metus eu enim. Vestibulum pellentesque felis eu\nmassa.\n2 Method\nThe efficient configuration is defined in the first para-\ngraph of this section, and the difficult identification\nproblem is deferred. Quisque ullamcorper placerat\nipsum. Cras nibh. Morbi vel justo vitae lacus tinci-\ndunt ultrices. Lorem ipsum dolor sit amet, consecte-\ntuer adipiscing elit. In hac habitasse platea dictumst.\nIntegertempusconvallisaugue. Etiamfacilisis. Nunc\nelementum fermentum wisi. Aenean placerat. Ut im-\nperdiet, enim sed gravida sollicitudin, felis odio pla-\ncerat quam, ac pulvinar elit purus eget enim. Nunc\nvitae tortor. Proin tempus nibh sit amet nisl. Viva-\nmus quis tortor vitae risus porta vehicula.\nFusce mauris. Vestibulum luctus nibh at lectus.\nSed bibendum, nulla a faucibus semper, leo velit ul-\n1"
+    },
+    {
+      "index" : 1,
+      "label" : "2",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64166999999998,
+            "x" : 72,
+            "y" : 655.3022556
+          },
+          "range" : {
+            "length" : 57,
+            "location" : 0
+          },
+          "text" : "tricies tellus, ac venenatis arcu wisi vel nisl. Vestibu-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64166999999998,
+            "x" : 72,
+            "y" : 643.3472555999999
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 58
+          },
+          "text" : "lum diam. Aliquam pellentesque, augue quis sagittis"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.63768496,
+            "x" : 72,
+            "y" : 631.3922555999999
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 110
+          },
+          "text" : "posuere, turpis lacus congue quam, in hendrerit risus"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64167000000003,
+            "x" : 72,
+            "y" : 619.4372555999998
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 164
+          },
+          "text" : "eros eget felis. Maecenas eget erat in sapien mattis"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64565503999995,
+            "x" : 72,
+            "y" : 607.4822555999998
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 217
+          },
+          "text" : "porttitor. Vestibulum porttitor. Nulla facilisi. Sed"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.6376849599999,
+            "x" : 72,
+            "y" : 595.5262555999998
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 270
+          },
+          "text" : "a turpis eu lacus commodo facilisis. Morbi fringilla,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64166999999998,
+            "x" : 72,
+            "y" : 583.5712555999997
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 324
+          },
+          "text" : "wisi in dignissim interdum, justo lectus sagittis dui,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64366252000002,
+            "x" : 72,
+            "y" : 571.6162555999997
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 379
+          },
+          "text" : "et vehicula libero dui cursus dui. Mauris tempor li-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64067374,
+            "x" : 72,
+            "y" : 559.6612555999997
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 432
+          },
+          "text" : "gula sed lacus. Duis cursus enim ut augue. Cras ac"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.63967747999993,
+            "x" : 72,
+            "y" : 547.7062555999996
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 483
+          },
+          "text" : "magna. Cras nulla. Nulla egestas. Curabitur a leo."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64465878,
+            "x" : 72,
+            "y" : 535.7512555999996
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 534
+          },
+          "text" : "Quisque egestas wisi eget nunc. Nam feugiat lacus"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 137.9720474,
+            "x" : 72,
+            "y" : 523.7952555999996
+          },
+          "range" : {
+            "length" : 32,
+            "location" : 584
+          },
+          "text" : "vel est. Curabitur consectetuer."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 218.68205877999995,
+            "x" : 81.963,
+            "y" : 511.29325559999967
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 617
+          },
+          "text" : "Suspendisse vel felis. Ut lorem lorem, interdum"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64665129999992,
+            "x" : 72,
+            "y" : 499.3382555999997
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 665
+          },
+          "text" : "eu, tincidunt sit amet, laoreet vitae, arcu. Aenean"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63868121999997,
+            "x" : 72,
+            "y" : 487.3832555999997
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 717
+          },
+          "text" : "faucibus pede eu ante. Praesent enim elit, rutrum"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64465877999993,
+            "x" : 72,
+            "y" : 475.4282555999997
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 767
+          },
+          "text" : "at, molestie non, nonummy vel, nisl. Ut lectus eros,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64366252000002,
+            "x" : 72,
+            "y" : 463.4722555999997
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 820
+          },
+          "text" : "malesuada sit amet, fermentum eu, sodales cursus,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63967747999993,
+            "x" : 72,
+            "y" : 451.5172555999997
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 870
+          },
+          "text" : "magna. Donec eu purus. Quisque vehicula, urna sed"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64266625999994,
+            "x" : 72,
+            "y" : 439.56225559999973
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 920
+          },
+          "text" : "ultricies auctor, pede lorem egestas dui, et convallis"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.6436625199999,
+            "x" : 72,
+            "y" : 427.60725559999975
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 975
+          },
+          "text" : "elit erat sed nulla. Donec luctus. Curabitur et nunc."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64366251999996,
+            "x" : 72,
+            "y" : 415.65225559999976
+          },
+          "range" : {
+            "length" : 51,
+            "location" : 1029
+          },
+          "text" : "Aliquam dolor odio, commodo pretium, ultricies non,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63868121999997,
+            "x" : 72,
+            "y" : 403.6972555999998
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 1081
+          },
+          "text" : "pharetra in, velit. Integer arcu est, nonummy in, fer-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 154.2758423,
+            "x" : 72,
+            "y" : 391.74125559999976
+          },
+          "range" : {
+            "length" : 35,
+            "location" : 1136
+          },
+          "text" : "mentum faucibus, egestas vel, odio."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64565503999984,
+            "x" : 310.605,
+            "y" : 655.3022555999996
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 1172
+          },
+          "text" : "neque lectus, consectetuer at, consectetuer sed, elei-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.64665129999992,
+            "x" : 310.605,
+            "y" : 643.3472555999996
+          },
+          "range" : {
+            "length" : 55,
+            "location" : 1227
+          },
+          "text" : "fend ac, lectus. Nulla facilisi. Pellentesque eget lec-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.63967747999993,
+            "x" : 310.605,
+            "y" : 631.3922555999995
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 1283
+          },
+          "text" : "tus. Proin eu metus. Sed porttitor. In hac habitasse"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.63967748000005,
+            "x" : 310.605,
+            "y" : 619.4372555999995
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 1336
+          },
+          "text" : "platea dictumst. Suspendisse eu lectus. Ut mi mi,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.63868121999985,
+            "x" : 310.605,
+            "y" : 607.4812555999995
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 1386
+          },
+          "text" : "lacinia sit amet, placerat et, mollis vitae, dui. Sed"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.6406737399999,
+            "x" : 310.605,
+            "y" : 595.5262555999994
+          },
+          "range" : {
+            "length" : 57,
+            "location" : 1440
+          },
+          "text" : "ante tellus, tristique ut, iaculis eu, malesuada ac, dui."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.6406737399999,
+            "x" : 310.605,
+            "y" : 583.5712555999994
+          },
+          "range" : {
+            "length" : 57,
+            "location" : 1498
+          },
+          "text" : "Mauris nibh leo, facilisis non, adipiscing quis, ultrices"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 27.664147679999985,
+            "x" : 310.605,
+            "y" : 571.6162555999994
+          },
+          "range" : {
+            "length" : 7,
+            "location" : 1556
+          },
+          "text" : "a, dui."
+        },
+        {
+          "bounds" : {
+            "height" : 12.682040799999982,
+            "pageIndex" : 1,
+            "width" : 73.64191384000003,
+            "x" : 310.605,
+            "y" : 537.8238371999994
+          },
+          "range" : {
+            "length" : 10,
+            "location" : 1564
+          },
+          "text" : "References"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 228.63868122000008,
+            "x" : 310.605,
+            "y" : 516.8552555999994
+          },
+          "range" : {
+            "length" : 42,
+            "location" : 1575
+          },
+          "text" : "[1] DzmitryBahdanau,KyunghyunCho,andYoshua"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 213.15082326000004,
+            "x" : 326.1,
+            "y" : 504.90025559999947
+          },
+          "range" : {
+            "length" : 45,
+            "location" : 1618
+          },
+          "text" : "Bengio. Neural machine translation by jointly"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 204.14898879999998,
+            "x" : 326.1,
+            "y" : 492.9452555999995
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 1664
+          },
+          "text" : "learning to align and translate. In ICLR, 2015."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64067374,
+            "x" : 310.605,
+            "y" : 473.0202555999995
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 1712
+          },
+          "text" : "[2] Kyunghyun Cho, Bart van Merrienboer, Caglar"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.14285317999997,
+            "x" : 326.1,
+            "y" : 461.06425559999946
+          },
+          "range" : {
+            "length" : 43,
+            "location" : 1760
+          },
+          "text" : "Gulcehre, Dzmitry Bahdanau, Fethi Bougares,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.15181952,
+            "x" : 326.1,
+            "y" : 449.10925559999947
+          },
+          "range" : {
+            "length" : 41,
+            "location" : 1804
+          },
+          "text" : "Holger Schwenk, and Yoshua Bengio. Learn-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.14584195999998,
+            "x" : 326.1,
+            "y" : 437.1542555999995
+          },
+          "range" : {
+            "length" : 45,
+            "location" : 1846
+          },
+          "text" : "ing phrase representations using RNN encoder-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.14982699999996,
+            "x" : 326.1,
+            "y" : 425.1992555999995
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 1892
+          },
+          "text" : "decoder for statistical machine translation. In"
+        },
+        {
+          "bounds" : {
+            "height" : 9.075928599999997,
+            "pageIndex" : 1,
+            "width" : 213.14499338000007,
+            "x" : 326.1,
+            "y" : 412.9653027999995
+          },
+          "range" : {
+            "length" : 40,
+            "location" : 1940
+          },
+          "text" : "EMNLP, 2014. https://doi.org/10.3115/v1/"
+        },
+        {
+          "bounds" : {
+            "height" : 8.298845799999981,
+            "pageIndex" : 1,
+            "width" : 42.33307991999999,
+            "x" : 326.1000000000001,
+            "y" : 401.0103027999995
+          },
+          "range" : {
+            "length" : 8,
+            "location" : 1981
+          },
+          "text" : "D14-1179"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64665129999997,
+            "x" : 310.6050000000001,
+            "y" : 381.36325559999955
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 1990
+          },
+          "text" : "[3] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.14584195999993,
+            "x" : 326.1000000000001,
+            "y" : 369.40825559999956
+          },
+          "range" : {
+            "length" : 46,
+            "location" : 2040
+          },
+          "text" : "Kristina Toutanova. BERT: Pre-training of deep"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.14883073999994,
+            "x" : 326.1000000000001,
+            "y" : 357.4532555999996
+          },
+          "range" : {
+            "length" : 46,
+            "location" : 2087
+          },
+          "text" : "bidirectional transformers for language under-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 200.58560374000007,
+            "x" : 326.1000000000001,
+            "y" : 345.4982555999996
+          },
+          "range" : {
+            "length" : 43,
+            "location" : 2134
+          },
+          "text" : "standing. In NAACL, 2019. arXiv:1810.04805."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63868122000002,
+            "x" : 310.6050000000001,
+            "y" : 325.5722555999996
+          },
+          "range" : {
+            "length" : 43,
+            "location" : 2178
+          },
+          "text" : "[4] Sepp Hochreiter and Jürgen Schmidhuber."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.14761402000005,
+            "x" : 326.1000000000001,
+            "y" : 313.6172555999996
+          },
+          "range" : {
+            "length" : 43,
+            "location" : 2222
+          },
+          "text" : "Long short-term memory. Neural Computation,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 94.06886172000003,
+            "x" : 326.10000000000014,
+            "y" : 301.66225559999964
+          },
+          "range" : {
+            "length" : 21,
+            "location" : 2266
+          },
+          "text" : "9(8):1735–1780, 1997."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63768496,
+            "x" : 310.60500000000013,
+            "y" : 281.7372555999996
+          },
+          "range" : {
+            "length" : 46,
+            "location" : 2288
+          },
+          "text" : "[5] Ashish Vaswani, Noam Shazeer, Niki Parmar,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.15181952,
+            "x" : 326.10000000000014,
+            "y" : 269.78225559999964
+          },
+          "range" : {
+            "length" : 45,
+            "location" : 2335
+          },
+          "text" : "Jakob Uszkoreit, Llion Jones, Aidan N. Gomez,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 213.14584195999998,
+            "x" : 326.10000000000014,
+            "y" : 257.8262555999996
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 2381
+          },
+          "text" : "Lukasz Kaiser, and Illia Polosukhin. Attention is"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 137.60398880000002,
+            "x" : 326.10000000000014,
+            "y" : 245.8712555999996
+          },
+          "range" : {
+            "length" : 31,
+            "location" : 2431
+          },
+          "text" : "all you need. In NeurIPS, 2017."
+        },
+        {
+          "bounds" : {
+            "height" : 12.682040799999982,
+            "pageIndex" : 1,
+            "width" : 74.29896980000001,
+            "x" : 72,
+            "y" : 355.04683719999974
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 2463
+          },
+          "text" : "3 Results"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63967747999993,
+            "x" : 72,
+            "y" : 333.0602555999998
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 2473
+          },
+          "text" : "Table 1 reports a BLEU score of 28.4 for the base"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63868122000008,
+            "x" : 72,
+            "y" : 321.1052555999998
+          },
+          "range" : {
+            "length" : 47,
+            "location" : 2523
+          },
+          "text" : "model. Sed commodo posuere pede. Mauris ut est."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64565503999984,
+            "x" : 72,
+            "y" : 309.1502555999998
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 2571
+          },
+          "text" : "Ut quis purus. Sed ac odio. Sed vehicula hendrerit"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.6406737399999,
+            "x" : 72,
+            "y" : 297.1942555999998
+          },
+          "range" : {
+            "length" : 46,
+            "location" : 2622
+          },
+          "text" : "sem. Duis non odio. Morbi ut dui. Sed accumsan"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.63868121999997,
+            "x" : 72,
+            "y" : 285.2392555999998
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 2669
+          },
+          "text" : "risus eget odio. In hac habitasse platea dictumst."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.6406737399999,
+            "x" : 72,
+            "y" : 273.2842555999998
+          },
+          "range" : {
+            "length" : 52,
+            "location" : 2720
+          },
+          "text" : "Pellentesque non elit. Fusce sed justo eu urna porta"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999984,
+            "pageIndex" : 1,
+            "width" : 228.64465877999993,
+            "x" : 72,
+            "y" : 261.32925559999984
+          },
+          "range" : {
+            "length" : 56,
+            "location" : 2773
+          },
+          "text" : "tincidunt. Mauris felis odio, sollicitudin sed, volutpat"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.6406737399999,
+            "x" : 72,
+            "y" : 249.37425559999983
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 2830
+          },
+          "text" : "a, ornare ac, erat. Morbi quis dolor. Donec pellentes-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.64266625999994,
+            "x" : 72,
+            "y" : 237.41925559999981
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 2885
+          },
+          "text" : "que, erat ac sagittis semper, nunc dui lobortis purus,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.64266625999994,
+            "x" : 72,
+            "y" : 225.46325559999983
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 2940
+          },
+          "text" : "quis congue purus metus ultricies tellus. Proin et"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.64266625999994,
+            "x" : 72,
+            "y" : 213.5082555999998
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 2991
+          },
+          "text" : "quam. Class aptent taciti sociosqu ad litora torquent"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.63967747999993,
+            "x" : 72,
+            "y" : 201.5532555999998
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 3045
+          },
+          "text" : "per conubia nostra, per inceptos hymenaeos. Prae-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.63967747999982,
+            "x" : 72,
+            "y" : 189.5982555999998
+          },
+          "range" : {
+            "length" : 53,
+            "location" : 3095
+          },
+          "text" : "sent sapien turpis, fermentum vel, eleifend faucibus,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 79.18374106000002,
+            "x" : 72,
+            "y" : 177.64325559999978
+          },
+          "range" : {
+            "length" : 19,
+            "location" : 3149
+          },
+          "text" : "vehicula eu, lacus."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 218.68006625999985,
+            "x" : 81.963,
+            "y" : 165.14025559999976
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 3169
+          },
+          "text" : "Pellentesque habitant morbi tristique senectus et"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.63967748,
+            "x" : 72,
+            "y" : 153.18525559999975
+          },
+          "range" : {
+            "length" : 49,
+            "location" : 3219
+          },
+          "text" : "netus et malesuada fames ac turpis egestas. Donec"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.64366252000002,
+            "x" : 72,
+            "y" : 141.23025559999974
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 3269
+          },
+          "text" : "odio elit, dictum in, hendrerit sit amet, egestas sed,"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000013,
+            "pageIndex" : 1,
+            "width" : 228.64366251999996,
+            "x" : 72,
+            "y" : 129.27525559999972
+          },
+          "range" : {
+            "length" : 54,
+            "location" : 3324
+          },
+          "text" : "leo. Praesent feugiat sapien aliquet odio. Integer vi-"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 1,
+            "width" : 228.64366251999996,
+            "x" : 72,
+            "y" : 117.32025559999971
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 3379
+          },
+          "text" : "tae justo. Aliquam vestibulum fringilla lorem. Sed"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 1,
+            "width" : 4.980303740000011,
+            "x" : 303.1340000000001,
+            "y" : 87.4322555999996
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 3430
+          },
+          "text" : "2"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "tricies tellus, ac venenatis arcu wisi vel nisl. Vestibu-\nlum diam. Aliquam pellentesque, augue quis sagittis\nposuere, turpis lacus congue quam, in hendrerit risus\neros eget felis. Maecenas eget erat in sapien mattis\nporttitor. Vestibulum porttitor. Nulla facilisi. Sed\na turpis eu lacus commodo facilisis. Morbi fringilla,\nwisi in dignissim interdum, justo lectus sagittis dui,\net vehicula libero dui cursus dui. Mauris tempor li-\ngula sed lacus. Duis cursus enim ut augue. Cras ac\nmagna. Cras nulla. Nulla egestas. Curabitur a leo.\nQuisque egestas wisi eget nunc. Nam feugiat lacus\nvel est. Curabitur consectetuer.\nSuspendisse vel felis. Ut lorem lorem, interdum\neu, tincidunt sit amet, laoreet vitae, arcu. Aenean\nfaucibus pede eu ante. Praesent enim elit, rutrum\nat, molestie non, nonummy vel, nisl. Ut lectus eros,\nmalesuada sit amet, fermentum eu, sodales cursus,\nmagna. Donec eu purus. Quisque vehicula, urna sed\nultricies auctor, pede lorem egestas dui, et convallis\nelit erat sed nulla. Donec luctus. Curabitur et nunc.\nAliquam dolor odio, commodo pretium, ultricies non,\npharetra in, velit. Integer arcu est, nonummy in, fer-\nmentum faucibus, egestas vel, odio.\nneque lectus, consectetuer at, consectetuer sed, elei-\nfend ac, lectus. Nulla facilisi. Pellentesque eget lec-\ntus. Proin eu metus. Sed porttitor. In hac habitasse\nplatea dictumst. Suspendisse eu lectus. Ut mi mi,\nlacinia sit amet, placerat et, mollis vitae, dui. Sed\nante tellus, tristique ut, iaculis eu, malesuada ac, dui.\nMauris nibh leo, facilisis non, adipiscing quis, ultrices\na, dui.\nReferences\n[1] DzmitryBahdanau,KyunghyunCho,andYoshua\nBengio. Neural machine translation by jointly\nlearning to align and translate. In ICLR, 2015.\n[2] Kyunghyun Cho, Bart van Merrienboer, Caglar\nGulcehre, Dzmitry Bahdanau, Fethi Bougares,\nHolger Schwenk, and Yoshua Bengio. Learn-\ning phrase representations using RNN encoder-\ndecoder for statistical machine translation. In\nEMNLP, 2014. https://doi.org/10.3115/v1/\nD14-1179\n[3] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and\nKristina Toutanova. BERT: Pre-training of deep\nbidirectional transformers for language under-\nstanding. In NAACL, 2019. arXiv:1810.04805.\n[4] Sepp Hochreiter and Jürgen Schmidhuber.\nLong short-term memory. Neural Computation,\n9(8):1735–1780, 1997.\n[5] Ashish Vaswani, Noam Shazeer, Niki Parmar,\nJakob Uszkoreit, Llion Jones, Aidan N. Gomez,\nLukasz Kaiser, and Illia Polosukhin. Attention is\nall you need. In NeurIPS, 2017.\n3 Results\nTable 1 reports a BLEU score of 28.4 for the base\nmodel. Sed commodo posuere pede. Mauris ut est.\nUt quis purus. Sed ac odio. Sed vehicula hendrerit\nsem. Duis non odio. Morbi ut dui. Sed accumsan\nrisus eget odio. In hac habitasse platea dictumst.\nPellentesque non elit. Fusce sed justo eu urna porta\ntincidunt. Mauris felis odio, sollicitudin sed, volutpat\na, ornare ac, erat. Morbi quis dolor. Donec pellentes-\nque, erat ac sagittis semper, nunc dui lobortis purus,\nquis congue purus metus ultricies tellus. Proin et\nquam. Class aptent taciti sociosqu ad litora torquent\nper conubia nostra, per inceptos hymenaeos. Prae-\nsent sapien turpis, fermentum vel, eleifend faucibus,\nvehicula eu, lacus.\nPellentesque habitant morbi tristique senectus et\nnetus et malesuada fames ac turpis egestas. Donec\nodio elit, dictum in, hendrerit sit amet, egestas sed,\nleo. Praesent feugiat sapien aliquet odio. Integer vi-\ntae justo. Aliquam vestibulum fringilla lorem. Sed\n2"
+    }
+  ]
+}

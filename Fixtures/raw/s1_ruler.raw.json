@@ -1,0 +1,4520 @@
+{
+  "links" : [
+
+  ],
+  "outline" : [
+
+  ],
+  "pages" : [
+    {
+      "index" : 0,
+      "label" : "1",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 741.0888006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 0
+          },
+          "text" : "1"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 729.1338006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 2
+          },
+          "text" : "2"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 717.1788005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 4
+          },
+          "text" : "3"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 705.2238005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 6
+          },
+          "text" : "4"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 693.2678005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 8
+          },
+          "text" : "5"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 681.3128005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 10
+          },
+          "text" : "6"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 669.3578005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 12
+          },
+          "text" : "7"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 657.4028005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 14
+          },
+          "text" : "8"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 645.4478005999997
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 16
+          },
+          "text" : "9"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 633.4928005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 18
+          },
+          "text" : "10"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 621.5368005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 21
+          },
+          "text" : "11"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 609.5818005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 24
+          },
+          "text" : "12"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 597.6268005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 27
+          },
+          "text" : "13"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 585.6718005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 30
+          },
+          "text" : "14"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 573.7168005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 33
+          },
+          "text" : "15"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 561.7618005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 36
+          },
+          "text" : "16"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 549.8058005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 39
+          },
+          "text" : "17"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 537.8508005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 42
+          },
+          "text" : "18"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 525.8958005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 45
+          },
+          "text" : "19"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 513.9408005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 48
+          },
+          "text" : "20"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 501.9858005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 51
+          },
+          "text" : "21"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 490.03080059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 54
+          },
+          "text" : "22"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 478.0748005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 57
+          },
+          "text" : "23"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 466.11980059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 60
+          },
+          "text" : "24"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 454.16480059999935
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 63
+          },
+          "text" : "25"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 442.20980059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 66
+          },
+          "text" : "26"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 430.2548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 69
+          },
+          "text" : "27"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 418.29880059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 72
+          },
+          "text" : "28"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 406.3438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 75
+          },
+          "text" : "29"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 394.3888005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 78
+          },
+          "text" : "30"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 382.4338005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 81
+          },
+          "text" : "31"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 370.47880059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 84
+          },
+          "text" : "32"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 358.52380059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 87
+          },
+          "text" : "33"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 346.56780059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 90
+          },
+          "text" : "34"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 334.61280059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 93
+          },
+          "text" : "35"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 322.65780059999946
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 96
+          },
+          "text" : "36"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 310.7028005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 99
+          },
+          "text" : "37"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 298.7478005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 102
+          },
+          "text" : "38"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 286.7928005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 105
+          },
+          "text" : "39"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 274.8368005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 108
+          },
+          "text" : "40"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 262.8818005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 111
+          },
+          "text" : "41"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 250.92680059999947
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 114
+          },
+          "text" : "42"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 238.97180059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 117
+          },
+          "text" : "43"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 227.01680059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 120
+          },
+          "text" : "44"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 215.06180059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 123
+          },
+          "text" : "45"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 203.10580059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 126
+          },
+          "text" : "46"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 191.15080059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 129
+          },
+          "text" : "47"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 179.19580059999942
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 132
+          },
+          "text" : "48"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 167.2408005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 135
+          },
+          "text" : "49"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 155.2858005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 138
+          },
+          "text" : "50"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 143.3298005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 141
+          },
+          "text" : "51"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 131.3748005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 144
+          },
+          "text" : "52"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 119.41980059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 147
+          },
+          "text" : "53"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 107.46480059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 150
+          },
+          "text" : "54"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 95.5098005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 153
+          },
+          "text" : "55"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 83.5548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 156
+          },
+          "text" : "56"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 71.5988005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 159
+          },
+          "text" : "57"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000006,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 59.6438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 162
+          },
+          "text" : "58"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 47.688800599999404
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 165
+          },
+          "text" : "59"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 0,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 35.733800599999405
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 168
+          },
+          "text" : "60"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 137.86445132,
+            "x" : 110.854,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 31,
+            "location" : 171
+          },
+          "text" : "Journal of Synthetic Economics "
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 0,
+            "width" : 48.83367641999973,
+            "x" : 450.56072732000007,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 11,
+            "location" : 202
+          },
+          "text" : "Page 1 of 4"
+        },
+        {
+          "bounds" : {
+            "height" : 18.24498749999998,
+            "pageIndex" : 0,
+            "width" : 321.20476125,
+            "x" : 144.524,
+            "y" : 585.611475
+          },
+          "range" : {
+            "length" : 37,
+            "location" : 214
+          },
+          "text" : "Information Aggregation in Sequential"
+        },
+        {
+          "bounds" : {
+            "height" : 18.24498749999998,
+            "pageIndex" : 0,
+            "width" : 163.89288375,
+            "x" : 223.18200000000002,
+            "y" : 544.390475
+          },
+          "range" : {
+            "length" : 18,
+            "location" : 252
+          },
+          "text" : "Markets: A Fixture"
+        },
+        {
+          "bounds" : {
+            "height" : 12.667694600000004,
+            "pageIndex" : 0,
+            "width" : 70.26481835999999,
+            "x" : 269.997,
+            "y" : 498.3828372
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 271
+          },
+          "text" : "Anonymous"
+        },
+        {
+          "bounds" : {
+            "height" : 9.643644400000028,
+            "pageIndex" : 0,
+            "width" : 47.64440334,
+            "x" : 281.30400000000003,
+            "y" : 447.4766346
+          },
+          "range" : {
+            "length" : 8,
+            "location" : 281
+          },
+          "text" : "Abstract"
+        },
+        {
+          "bounds" : {
+            "height" : 9.632735299999979,
+            "pageIndex" : 0,
+            "width" : 313.7413523599999,
+            "x" : 156.39000000000004,
+            "y" : 419.6906346
+          },
+          "range" : {
+            "length" : 62,
+            "location" : 290
+          },
+          "text" : "We study how sequential traders aggregate private signals. Our"
+        },
+        {
+          "bounds" : {
+            "height" : 9.632735299999979,
+            "pageIndex" : 0,
+            "width" : 330.01336591999984,
+            "x" : 140.11900000000003,
+            "y" : 397.26663460000003
+          },
+          "range" : {
+            "length" : 70,
+            "location" : 353
+          },
+          "text" : "identification strategy exploits the staggered rollout of a disclosure"
+        },
+        {
+          "bounds" : {
+            "height" : 9.632735299999979,
+            "pageIndex" : 0,
+            "width" : 309.4900760899999,
+            "x" : 140.11900000000003,
+            "y" : 374.84363460000003
+          },
+          "range" : {
+            "length" : 69,
+            "location" : 424
+          },
+          "text" : "rule. The effect is statistically significant but economically small."
+        },
+        {
+          "bounds" : {
+            "height" : 92.54628692264345,
+            "pageIndex" : 0,
+            "width" : 92.54628692264345,
+            "x" : 260.9516975822695,
+            "y" : 348.4960653534725
+          },
+          "range" : {
+            "length" : 15,
+            "location" : 494
+          },
+          "text" : "For Peer Review"
+        },
+        {
+          "bounds" : {
+            "height" : 15.21841360000002,
+            "pageIndex" : 0,
+            "width" : 129.86781298,
+            "x" : 110.85400000000003,
+            "y" : 319.5102124
+          },
+          "range" : {
+            "length" : 14,
+            "location" : 510
+          },
+          "text" : "1 Introduction"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 0,
+            "width" : 388.5440000000002,
+            "x" : 110.85400000000003,
+            "y" : 284.7866912
+          },
+          "range" : {
+            "length" : 72,
+            "location" : 525
+          },
+          "text" : "Herding has been studied extensively since Banerjee (1992) and Bikhchan-"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 0,
+            "width" : 388.5392179199999,
+            "x" : 110.85400000000003,
+            "y" : 260.8786912
+          },
+          "range" : {
+            "length" : 74,
+            "location" : 598
+          },
+          "text" : "dani et al. (1992). Later work extends the framework to markets (Avery and"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 388.5451955200001,
+            "x" : 110.85400000000003,
+            "y" : 236.97069119999998
+          },
+          "range" : {
+            "length" : 68,
+            "location" : 673
+          },
+          "text" : "Zemsky, 1998; Smith and Sørensen, 2000). As shown by Acemoglu et al."
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 388.54041343999995,
+            "x" : 110.85400000000003,
+            "y" : 213.06269119999996
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 742
+          },
+          "text" : "(2011), network structure determines whether learning is efficient; see also"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 388.5416089600001,
+            "x" : 110.85400000000003,
+            "y" : 189.15469119999995
+          },
+          "range" : {
+            "length" : 73,
+            "location" : 819
+          },
+          "text" : "(Smith and Sørensen, 2000, p. 12) and Kogan (2020); Lee (2021). The coef-"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 388.5428044799999,
+            "x" : 110.85400000000003,
+            "y" : 165.24769119999993
+          },
+          "range" : {
+            "length" : 80,
+            "location" : 893
+          },
+          "text" : "ficient in Table 2 is 0.91 with a confidence interval that crosses one, which is"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 388.5451955200001,
+            "x" : 110.85400000000003,
+            "y" : 141.33969119999995
+          },
+          "range" : {
+            "length" : 79,
+            "location" : 974
+          },
+          "text" : "difficult to reconcile with the claim of a robust effect. We define the office-"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 0,
+            "width" : 388.5428044800001,
+            "x" : 110.85400000000003,
+            "y" : 117.43169119999993
+          },
+          "range" : {
+            "length" : 80,
+            "location" : 1054
+          },
+          "text" : "specific identification threshold and afterwards verify the differentiability of"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 0,
+            "width" : 119.37984327999999,
+            "x" : 245.43400000000003,
+            "y" : 87.93025559999992
+          },
+          "range" : {
+            "length" : 26,
+            "location" : 1135
+          },
+          "text" : "https://mc.example.org/jse"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\nJournal of Synthetic Economics Page 1 of 4\nInformation Aggregation in Sequential\nMarkets: A Fixture\nAnonymous\nAbstract\nWe study how sequential traders aggregate private signals. Our\nidentification strategy exploits the staggered rollout of a disclosure\nrule. The effect is statistically significant but economically small.\nFor Peer Review\n1 Introduction\nHerding has been studied extensively since Banerjee (1992) and Bikhchan-\ndani et al. (1992). Later work extends the framework to markets (Avery and\nZemsky, 1998; Smith and Sørensen, 2000). As shown by Acemoglu et al.\n(2011), network structure determines whether learning is efficient; see also\n(Smith and Sørensen, 2000, p. 12) and Kogan (2020); Lee (2021). The coef-\nficient in Table 2 is 0.91 with a confidence interval that crosses one, which is\ndifficult to reconcile with the claim of a robust effect. We define the office-\nspecific identification threshold and afterwards verify the differentiability of\nhttps://mc.example.org/jse"
+    },
+    {
+      "index" : 1,
+      "label" : "2",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 741.0888006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 0
+          },
+          "text" : "1"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 729.1338006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 2
+          },
+          "text" : "2"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 717.1788005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 4
+          },
+          "text" : "3"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 705.2238005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 6
+          },
+          "text" : "4"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 693.2678005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 8
+          },
+          "text" : "5"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 681.3128005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 10
+          },
+          "text" : "6"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 669.3578005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 12
+          },
+          "text" : "7"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 657.4028005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 14
+          },
+          "text" : "8"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 645.4478005999997
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 16
+          },
+          "text" : "9"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 633.4928005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 18
+          },
+          "text" : "10"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 621.5368005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 21
+          },
+          "text" : "11"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 609.5818005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 24
+          },
+          "text" : "12"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 597.6268005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 27
+          },
+          "text" : "13"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 585.6718005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 30
+          },
+          "text" : "14"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 573.7168005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 33
+          },
+          "text" : "15"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 561.7618005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 36
+          },
+          "text" : "16"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 549.8058005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 39
+          },
+          "text" : "17"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 537.8508005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 42
+          },
+          "text" : "18"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 525.8958005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 45
+          },
+          "text" : "19"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 513.9408005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 48
+          },
+          "text" : "20"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 501.9858005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 51
+          },
+          "text" : "21"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 490.03080059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 54
+          },
+          "text" : "22"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 478.0748005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 57
+          },
+          "text" : "23"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 466.11980059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 60
+          },
+          "text" : "24"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 454.16480059999935
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 63
+          },
+          "text" : "25"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 442.20980059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 66
+          },
+          "text" : "26"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 430.2548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 69
+          },
+          "text" : "27"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 418.29880059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 72
+          },
+          "text" : "28"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 406.3438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 75
+          },
+          "text" : "29"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 394.3888005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 78
+          },
+          "text" : "30"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 382.4338005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 81
+          },
+          "text" : "31"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 370.47880059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 84
+          },
+          "text" : "32"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 358.52380059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 87
+          },
+          "text" : "33"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 346.56780059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 90
+          },
+          "text" : "34"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 334.61280059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 93
+          },
+          "text" : "35"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 322.65780059999946
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 96
+          },
+          "text" : "36"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 310.7028005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 99
+          },
+          "text" : "37"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 298.7478005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 102
+          },
+          "text" : "38"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 286.7928005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 105
+          },
+          "text" : "39"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 274.8368005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 108
+          },
+          "text" : "40"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 262.8818005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 111
+          },
+          "text" : "41"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 250.92680059999947
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 114
+          },
+          "text" : "42"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 238.97180059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 117
+          },
+          "text" : "43"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 227.01680059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 120
+          },
+          "text" : "44"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 215.06180059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 123
+          },
+          "text" : "45"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 203.10580059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 126
+          },
+          "text" : "46"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 191.15080059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 129
+          },
+          "text" : "47"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 179.19580059999942
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 132
+          },
+          "text" : "48"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 167.2408005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 135
+          },
+          "text" : "49"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 155.2858005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 138
+          },
+          "text" : "50"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 143.3298005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 141
+          },
+          "text" : "51"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 131.3748005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 144
+          },
+          "text" : "52"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 119.41980059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 147
+          },
+          "text" : "53"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 107.46480059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 150
+          },
+          "text" : "54"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 95.5098005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 153
+          },
+          "text" : "55"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 83.5548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 156
+          },
+          "text" : "56"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 71.5988005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 159
+          },
+          "text" : "57"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000006,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 59.6438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 162
+          },
+          "text" : "58"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 47.688800599999404
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 165
+          },
+          "text" : "59"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 1,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 35.733800599999405
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 168
+          },
+          "text" : "60"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 137.86445132,
+            "x" : 110.854,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 31,
+            "location" : 171
+          },
+          "text" : "Journal of Synthetic Economics "
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 1,
+            "width" : 48.83367641999973,
+            "x" : 450.56072732000007,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 11,
+            "location" : 202
+          },
+          "text" : "Page 2 of 4"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 99.79842304000003,
+            "x" : 110.854,
+            "y" : 651.9276912
+          },
+          "range" : {
+            "length" : 20,
+            "location" : 214
+          },
+          "text" : "the payoff function."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 370.98898431999993,
+            "x" : 128.413,
+            "y" : 628.0196912
+          },
+          "range" : {
+            "length" : 70,
+            "location" : 235
+          },
+          "text" : "In Banerjee (1992), agents observe only the actions of their predeces-"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 388.53921792000006,
+            "x" : 110.85400000000001,
+            "y" : 604.1116912
+          },
+          "range" : {
+            "length" : 67,
+            "location" : 306
+          },
+          "text" : "sors. The Avery and Zemsky (1998) model adds a market maker who up-"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 388.54041343999995,
+            "x" : 110.85400000000001,
+            "y" : 580.2036912
+          },
+          "range" : {
+            "length" : 74,
+            "location" : 374
+          },
+          "text" : "dates prices. See Lee (2021) for heterogeneous priors. Following Smith and"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 388.53921791999994,
+            "x" : 110.85400000000001,
+            "y" : 556.2956912
+          },
+          "range" : {
+            "length" : 74,
+            "location" : 449
+          },
+          "text" : "Sørensen (2000), we allow unbounded signals. Equilibrium notions are taken"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 388.544,
+            "x" : 110.85400000000001,
+            "y" : 532.3876912
+          },
+          "range" : {
+            "length" : 74,
+            "location" : 524
+          },
+          "text" : "from Osborne and Rubinstein (1994), and the voting application follows the"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 1,
+            "width" : 259.487616,
+            "x" : 110.85400000000001,
+            "y" : 508.4806912
+          },
+          "range" : {
+            "length" : 50,
+            "location" : 599
+          },
+          "text" : "sequential procedure of Dekel and Piccione (2000)."
+        },
+        {
+          "bounds" : {
+            "height" : 15.21841360000002,
+            "pageIndex" : 1,
+            "width" : 79.18051076,
+            "x" : 110.85400000000001,
+            "y" : 453.1742124
+          },
+          "range" : {
+            "length" : 7,
+            "location" : 650
+          },
+          "text" : "2 Model"
+        },
+        {
+          "bounds" : {
+            "height" : 10.616217600000027,
+            "pageIndex" : 1,
+            "width" : 388.54685728000004,
+            "x" : 110.85400000000001,
+            "y" : 418.4506912
+          },
+          "range" : {
+            "length" : 74,
+            "location" : 658
+          },
+          "text" : "Consider a sequence of agents i= 1,2,... who each observe a private signal"
+        },
+        {
+          "bounds" : {
+            "height" : 11.6371082,
+            "pageIndex" : 1,
+            "width" : 310.36609920000006,
+            "x" : 110.85399999999998,
+            "y" : 393.52280060000004
+          },
+          "range" : {
+            "length" : 64,
+            "location" : 733
+          },
+          "text" : "si and the history of actions hi. The posterior belief satisfies"
+        },
+        {
+          "bounds" : {
+            "height" : 11.636108200000024,
+            "pageIndex" : 1,
+            "width" : 22.850080320000018,
+            "x" : 215.85399999999993,
+            "y" : 349.8298006
+          },
+          "range" : {
+            "length" : 4,
+            "location" : 798
+          },
+          "text" : "µi ="
+        },
+        {
+          "bounds" : {
+            "height" : 19.837108200000046,
+            "pageIndex" : 1,
+            "width" : 151.17781440000007,
+            "x" : 243.22,
+            "y" : 341.62880060000003
+          },
+          "range" : {
+            "length" : 27,
+            "location" : 803
+          },
+          "text" : "πf(si |H) + (1−π)f(si |L). "
+        },
+        {
+          "bounds" : {
+            "height" : 92.54628692264345,
+            "pageIndex" : 1,
+            "width" : 92.54628692264345,
+            "x" : 260.9516975822695,
+            "y" : 348.4960653534725
+          },
+          "range" : {
+            "length" : 15,
+            "location" : 830
+          },
+          "text" : "For Peer Review"
+        },
+        {
+          "bounds" : {
+            "height" : 12.305599400000006,
+            "pageIndex" : 1,
+            "width" : 54.69354016,
+            "x" : 289.2389999999999,
+            "y" : 357.9178006
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 846
+          },
+          "text" : "πf(si |H)"
+        },
+        {
+          "bounds" : {
+            "height" : 19.837108200000046,
+            "pageIndex" : 1,
+            "width" : 14.954759679999995,
+            "x" : 484.4430000000001,
+            "y" : 341.62880060000003
+          },
+          "range" : {
+            "length" : 3,
+            "location" : 856
+          },
+          "text" : "(1)"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 1,
+            "width" : 388.54878208,
+            "x" : 110.8540000000001,
+            "y" : 307.15569120000004
+          },
+          "range" : {
+            "length" : 76,
+            "location" : 860
+          },
+          "text" : "Proposition 1 states that an information cascade begins with positive proba-"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 1,
+            "width" : 388.5440000000002,
+            "x" : 110.8540000000001,
+            "y" : 283.2476912
+          },
+          "range" : {
+            "length" : 69,
+            "location" : 937
+          },
+          "text" : "bility. TheprooffollowsBikhchandanietal.(1992)withminormodifications."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 1,
+            "width" : 388.53921792000006,
+            "x" : 110.8540000000001,
+            "y" : 259.34069120000004
+          },
+          "range" : {
+            "length" : 67,
+            "location" : 1007
+          },
+          "text" : "Itiseasytoseethattheinequalityispreservedwhenbothsidesaremultiplied"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 1,
+            "width" : 117.03303936000003,
+            "x" : 110.8540000000001,
+            "y" : 235.43269120000002
+          },
+          "range" : {
+            "length" : 24,
+            "location" : 1075
+          },
+          "text" : "by the likelihood ratio."
+        },
+        {
+          "bounds" : {
+            "height" : 15.218413599999991,
+            "pageIndex" : 1,
+            "width" : 87.39914272000001,
+            "x" : 110.8540000000001,
+            "y" : 180.12621240000001
+          },
+          "range" : {
+            "length" : 9,
+            "location" : 1100
+          },
+          "text" : "3 Results"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 1,
+            "width" : 388.54639103999995,
+            "x" : 110.8540000000001,
+            "y" : 145.40369120000003
+          },
+          "range" : {
+            "length" : 78,
+            "location" : 1110
+          },
+          "text" : "Table 2 reports the estimates; the posterior in (1) is evaluated at the sample"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 1,
+            "width" : 97.26750720000001,
+            "x" : 110.8540000000001,
+            "y" : 121.49569120000001
+          },
+          "range" : {
+            "length" : 19,
+            "location" : 1189
+          },
+          "text" : "mean of the signal."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 1,
+            "width" : 119.37984328000002,
+            "x" : 245.4340000000001,
+            "y" : 87.93025560000001
+          },
+          "range" : {
+            "length" : 26,
+            "location" : 1209
+          },
+          "text" : "https://mc.example.org/jse"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\nJournal of Synthetic Economics Page 2 of 4\nthe payoff function.\nIn Banerjee (1992), agents observe only the actions of their predeces-\nsors. The Avery and Zemsky (1998) model adds a market maker who up-\ndates prices. See Lee (2021) for heterogeneous priors. Following Smith and\nSørensen (2000), we allow unbounded signals. Equilibrium notions are taken\nfrom Osborne and Rubinstein (1994), and the voting application follows the\nsequential procedure of Dekel and Piccione (2000).\n2 Model\nConsider a sequence of agents i= 1,2,... who each observe a private signal\nsi and the history of actions hi. The posterior belief satisfies\nµi =\nπf(si |H) + (1−π)f(si |L). For Peer Review\nπf(si |H)\n(1)\nProposition 1 states that an information cascade begins with positive proba-\nbility. TheprooffollowsBikhchandanietal.(1992)withminormodifications.\nItiseasytoseethattheinequalityispreservedwhenbothsidesaremultiplied\nby the likelihood ratio.\n3 Results\nTable 2 reports the estimates; the posterior in (1) is evaluated at the sample\nmean of the signal.\nhttps://mc.example.org/jse"
+    },
+    {
+      "index" : 2,
+      "label" : "3",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 741.0888006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 0
+          },
+          "text" : "1"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 729.1338006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 2
+          },
+          "text" : "2"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 717.1788005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 4
+          },
+          "text" : "3"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 705.2238005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 6
+          },
+          "text" : "4"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 693.2678005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 8
+          },
+          "text" : "5"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 681.3128005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 10
+          },
+          "text" : "6"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 669.3578005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 12
+          },
+          "text" : "7"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 657.4028005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 14
+          },
+          "text" : "8"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 645.4478005999997
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 16
+          },
+          "text" : "9"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 633.4928005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 18
+          },
+          "text" : "10"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 621.5368005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 21
+          },
+          "text" : "11"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 609.5818005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 24
+          },
+          "text" : "12"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 597.6268005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 27
+          },
+          "text" : "13"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 585.6718005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 30
+          },
+          "text" : "14"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 573.7168005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 33
+          },
+          "text" : "15"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 561.7618005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 36
+          },
+          "text" : "16"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 549.8058005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 39
+          },
+          "text" : "17"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 537.8508005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 42
+          },
+          "text" : "18"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 525.8958005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 45
+          },
+          "text" : "19"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 513.9408005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 48
+          },
+          "text" : "20"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 501.9858005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 51
+          },
+          "text" : "21"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 490.03080059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 54
+          },
+          "text" : "22"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 478.0748005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 57
+          },
+          "text" : "23"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 466.11980059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 60
+          },
+          "text" : "24"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 454.16480059999935
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 63
+          },
+          "text" : "25"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 442.20980059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 66
+          },
+          "text" : "26"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 430.2548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 69
+          },
+          "text" : "27"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 418.29880059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 72
+          },
+          "text" : "28"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 406.3438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 75
+          },
+          "text" : "29"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 394.3888005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 78
+          },
+          "text" : "30"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 382.4338005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 81
+          },
+          "text" : "31"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 370.47880059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 84
+          },
+          "text" : "32"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 358.52380059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 87
+          },
+          "text" : "33"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 346.56780059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 90
+          },
+          "text" : "34"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 334.61280059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 93
+          },
+          "text" : "35"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 322.65780059999946
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 96
+          },
+          "text" : "36"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 310.7028005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 99
+          },
+          "text" : "37"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 298.7478005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 102
+          },
+          "text" : "38"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 286.7928005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 105
+          },
+          "text" : "39"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 274.8368005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 108
+          },
+          "text" : "40"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 262.8818005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 111
+          },
+          "text" : "41"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 250.92680059999947
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 114
+          },
+          "text" : "42"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 238.97180059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 117
+          },
+          "text" : "43"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 227.01680059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 120
+          },
+          "text" : "44"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 215.06180059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 123
+          },
+          "text" : "45"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 203.10580059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 126
+          },
+          "text" : "46"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 191.15080059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 129
+          },
+          "text" : "47"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 179.19580059999942
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 132
+          },
+          "text" : "48"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 167.2408005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 135
+          },
+          "text" : "49"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 155.2858005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 138
+          },
+          "text" : "50"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 143.3298005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 141
+          },
+          "text" : "51"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 131.3748005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 144
+          },
+          "text" : "52"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 119.41980059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 147
+          },
+          "text" : "53"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 107.46480059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 150
+          },
+          "text" : "54"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 95.5098005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 153
+          },
+          "text" : "55"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 83.5548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 156
+          },
+          "text" : "56"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 71.5988005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 159
+          },
+          "text" : "57"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000006,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 59.6438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 162
+          },
+          "text" : "58"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 47.688800599999404
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 165
+          },
+          "text" : "59"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 2,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 35.733800599999405
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 168
+          },
+          "text" : "60"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 2,
+            "width" : 137.86445132,
+            "x" : 110.854,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 31,
+            "location" : 171
+          },
+          "text" : "Journal of Synthetic Economics "
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 2,
+            "width" : 48.83367641999973,
+            "x" : 450.56072732000007,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 11,
+            "location" : 202
+          },
+          "text" : "Page 3 of 4"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 140.14244096000002,
+            "x" : 235.054,
+            "y" : 645.6856912000001
+          },
+          "range" : {
+            "length" : 27,
+            "location" : 214
+          },
+          "text" : "Table 2: Baseline estimates"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 226.40638208,
+            "x" : 191.922,
+            "y" : 634.1796912
+          },
+          "range" : {
+            "length" : 35,
+            "location" : 242
+          },
+          "text" : "Specification Estimate 95% interval"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 222.18141439999997,
+            "x" : 191.922,
+            "y" : 619.3346912
+          },
+          "range" : {
+            "length" : 26,
+            "location" : 278
+          },
+          "text" : "Baseline 0.91 [0.78, 1.06]"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 222.18260991999998,
+            "x" : 191.922,
+            "y" : 604.8886911999999
+          },
+          "range" : {
+            "length" : 35,
+            "location" : 305
+          },
+          "text" : "Staggered rollout 0.87 [0.74, 1.02]"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 222.18500095999994,
+            "x" : 191.922,
+            "y" : 590.4436911999999
+          },
+          "range" : {
+            "length" : 38,
+            "location" : 341
+          },
+          "text" : "Office fixed effects 0.95 [0.80, 1.12]"
+        },
+        {
+          "bounds" : {
+            "height" : 15.218413599999963,
+            "pageIndex" : 2,
+            "width" : 86.51427116,
+            "x" : 110.854,
+            "y" : 552.8102124
+          },
+          "range" : {
+            "length" : 10,
+            "location" : 380
+          },
+          "text" : "References"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 2,
+            "width" : 388.544,
+            "x" : 110.854,
+            "y" : 518.0866911999999
+          },
+          "range" : {
+            "length" : 73,
+            "location" : 391
+          },
+          "text" : "Acemoglu, D., Dahleh, M. A., Lobel, I., and Ozdaglar, A. (2011). Bayesian"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 376.83439871999997,
+            "x" : 122.55799999999999,
+            "y" : 494.17869119999995
+          },
+          "range" : {
+            "length" : 73,
+            "location" : 465
+          },
+          "text" : "learning in social networks. Review of Economic Studies, 78(4):1201–1236."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 388.54758656,
+            "x" : 110.85399999999998,
+            "y" : 460.30869119999994
+          },
+          "range" : {
+            "length" : 70,
+            "location" : 539
+          },
+          "text" : "Avery, C. and Zemsky, P. (1998). Multidimensional uncertainty and herd"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 376.83839232,
+            "x" : 122.55799999999999,
+            "y" : 436.4006911999999
+          },
+          "range" : {
+            "length" : 71,
+            "location" : 610
+          },
+          "text" : "behavior in financial markets. American Economic Review, 88(4):724–748."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 388.54664064,
+            "x" : 110.85400000000004,
+            "y" : 402.52969119999995
+          },
+          "range" : {
+            "length" : 74,
+            "location" : 682
+          },
+          "text" : "Banerjee, A. V. (1992). A simple model of herd behavior. Quarterly Journal"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 155.41271552,
+            "x" : 122.55800000000005,
+            "y" : 378.62269119999996
+          },
+          "range" : {
+            "length" : 29,
+            "location" : 757
+          },
+          "text" : "of Economics, 107(3):797–817."
+        },
+        {
+          "bounds" : {
+            "height" : 92.54628692264345,
+            "pageIndex" : 2,
+            "width" : 92.54628692264345,
+            "x" : 260.9516975822695,
+            "y" : 348.4960653534725
+          },
+          "range" : {
+            "length" : 15,
+            "location" : 787
+          },
+          "text" : "For Peer Review"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 388.54519552,
+            "x" : 110.85400000000006,
+            "y" : 344.7516912
+          },
+          "range" : {
+            "length" : 74,
+            "location" : 803
+          },
+          "text" : "Bikhchandani, S., Hirshleifer, D., and Welch, I. (1992). A theory of fads,"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 376.83979104,
+            "x" : 122.55800000000005,
+            "y" : 320.84369119999997
+          },
+          "range" : {
+            "length" : 71,
+            "location" : 878
+          },
+          "text" : "fashion, custom, and cultural change as informational cascades. Journal"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 199.07478592,
+            "x" : 122.55800000000005,
+            "y" : 296.93569119999995
+          },
+          "range" : {
+            "length" : 38,
+            "location" : 950
+          },
+          "text" : "of Political Economy, 100(5):992–1026."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441600000028,
+            "pageIndex" : 2,
+            "width" : 388.54639103999995,
+            "x" : 110.85400000000006,
+            "y" : 263.06569119999995
+          },
+          "range" : {
+            "length" : 65,
+            "location" : 989
+          },
+          "text" : "DekelE,PiccioneM(2000)Sequentialvotingproceduresinsymmetricbinary"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 46.87753472,
+            "x" : 122.55800000000005,
+            "y" : 239.15769119999993
+          },
+          "range" : {
+            "length" : 10,
+            "location" : 1055
+          },
+          "text" : "elections."
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 132.78760192000004,
+            "x" : 122.55800000000005,
+            "y" : 215.24969119999992
+          },
+          "range" : {
+            "length" : 25,
+            "location" : 1066
+          },
+          "text" : "J Polit Econ 108(1):34–55"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 388.5451955199998,
+            "x" : 110.85400000000004,
+            "y" : 181.3796911999999
+          },
+          "range" : {
+            "length" : 71,
+            "location" : 1092
+          },
+          "text" : "Kogan, D. (2020). Learning from reviews with strategic sellers. Working"
+        },
+        {
+          "bounds" : {
+            "height" : 10.5564416,
+            "pageIndex" : 2,
+            "width" : 32.181007360000024,
+            "x" : 122.55800000000005,
+            "y" : 157.4716911999999
+          },
+          "range" : {
+            "length" : 6,
+            "location" : 1164
+          },
+          "text" : "paper."
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 2,
+            "width" : 119.37984328000002,
+            "x" : 245.43400000000005,
+            "y" : 87.93025559999988
+          },
+          "range" : {
+            "length" : 26,
+            "location" : 1171
+          },
+          "text" : "https://mc.example.org/jse"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\nJournal of Synthetic Economics Page 3 of 4\nTable 2: Baseline estimates\nSpecification Estimate 95% interval\nBaseline 0.91 [0.78, 1.06]\nStaggered rollout 0.87 [0.74, 1.02]\nOffice fixed effects 0.95 [0.80, 1.12]\nReferences\nAcemoglu, D., Dahleh, M. A., Lobel, I., and Ozdaglar, A. (2011). Bayesian\nlearning in social networks. Review of Economic Studies, 78(4):1201–1236.\nAvery, C. and Zemsky, P. (1998). Multidimensional uncertainty and herd\nbehavior in financial markets. American Economic Review, 88(4):724–748.\nBanerjee, A. V. (1992). A simple model of herd behavior. Quarterly Journal\nof Economics, 107(3):797–817.\nFor Peer Review\nBikhchandani, S., Hirshleifer, D., and Welch, I. (1992). A theory of fads,\nfashion, custom, and cultural change as informational cascades. Journal\nof Political Economy, 100(5):992–1026.\nDekelE,PiccioneM(2000)Sequentialvotingproceduresinsymmetricbinary\nelections.\nJ Polit Econ 108(1):34–55\nKogan, D. (2020). Learning from reviews with strategic sellers. Working\npaper.\nhttps://mc.example.org/jse"
+    },
+    {
+      "index" : 3,
+      "label" : "4",
+      "lines" : [
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 741.0888006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 0
+          },
+          "text" : "1"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 729.1338006
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 2
+          },
+          "text" : "2"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 717.1788005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 4
+          },
+          "text" : "3"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 705.2238005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 6
+          },
+          "text" : "4"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 693.2678005999999
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 8
+          },
+          "text" : "5"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 681.3128005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 10
+          },
+          "text" : "6"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 669.3578005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 12
+          },
+          "text" : "7"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 657.4028005999998
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 14
+          },
+          "text" : "8"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 4.232920110000002,
+            "x" : 35.617,
+            "y" : 645.4478005999997
+          },
+          "range" : {
+            "length" : 1,
+            "location" : 16
+          },
+          "text" : "9"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 633.4928005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 18
+          },
+          "text" : "10"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 621.5368005999997
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 21
+          },
+          "text" : "11"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 609.5818005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 24
+          },
+          "text" : "12"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 597.6268005999996
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 27
+          },
+          "text" : "13"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 585.6718005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 30
+          },
+          "text" : "14"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 573.7168005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 33
+          },
+          "text" : "15"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 561.7618005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 36
+          },
+          "text" : "16"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 549.8058005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 39
+          },
+          "text" : "17"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 537.8508005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 42
+          },
+          "text" : "18"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 525.8958005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 45
+          },
+          "text" : "19"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 513.9408005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 48
+          },
+          "text" : "20"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 501.9858005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 51
+          },
+          "text" : "21"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 490.03080059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 54
+          },
+          "text" : "22"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 478.0748005999993
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 57
+          },
+          "text" : "23"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 466.11980059999934
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 60
+          },
+          "text" : "24"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 454.16480059999935
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 63
+          },
+          "text" : "25"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 442.20980059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 66
+          },
+          "text" : "26"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 430.2548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 69
+          },
+          "text" : "27"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 418.29880059999937
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 72
+          },
+          "text" : "28"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 406.3438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 75
+          },
+          "text" : "29"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 394.3888005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 78
+          },
+          "text" : "30"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 382.4338005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 81
+          },
+          "text" : "31"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 370.47880059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 84
+          },
+          "text" : "32"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 358.52380059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 87
+          },
+          "text" : "33"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 346.56780059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 90
+          },
+          "text" : "34"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 334.61280059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 93
+          },
+          "text" : "35"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 322.65780059999946
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 96
+          },
+          "text" : "36"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 310.7028005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 99
+          },
+          "text" : "37"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 298.7478005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 102
+          },
+          "text" : "38"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 286.7928005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 105
+          },
+          "text" : "39"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 274.8368005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 108
+          },
+          "text" : "40"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 262.8818005999995
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 111
+          },
+          "text" : "41"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 250.92680059999947
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 114
+          },
+          "text" : "42"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 238.97180059999945
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 117
+          },
+          "text" : "43"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 227.01680059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 120
+          },
+          "text" : "44"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 215.06180059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 123
+          },
+          "text" : "45"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 203.10580059999944
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 126
+          },
+          "text" : "46"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 191.15080059999943
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 129
+          },
+          "text" : "47"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 179.19580059999942
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 132
+          },
+          "text" : "48"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 167.2408005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 135
+          },
+          "text" : "49"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 155.2858005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 138
+          },
+          "text" : "50"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 143.3298005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 141
+          },
+          "text" : "51"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000013,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 131.3748005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 144
+          },
+          "text" : "52"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 119.41980059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 147
+          },
+          "text" : "53"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 107.46480059999939
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 150
+          },
+          "text" : "54"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 95.5098005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 153
+          },
+          "text" : "55"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 83.5548005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 156
+          },
+          "text" : "56"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 71.5988005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 159
+          },
+          "text" : "57"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598300000006,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 59.6438005999994
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 162
+          },
+          "text" : "58"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 47.688800599999404
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 165
+          },
+          "text" : "59"
+        },
+        {
+          "bounds" : {
+            "height" : 7.037598299999999,
+            "pageIndex" : 3,
+            "width" : 8.46584022,
+            "x" : 31.383999999999997,
+            "y" : 35.733800599999405
+          },
+          "range" : {
+            "length" : 2,
+            "location" : 168
+          },
+          "text" : "60"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 3,
+            "width" : 137.86445132,
+            "x" : 110.854,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 31,
+            "location" : 171
+          },
+          "text" : "Journal of Synthetic Economics "
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975800000041,
+            "pageIndex" : 3,
+            "width" : 48.83367641999973,
+            "x" : 450.56072732000007,
+            "y" : 692.7622556
+          },
+          "range" : {
+            "length" : 11,
+            "location" : 202
+          },
+          "text" : "Page 4 of 4"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 388.54756864,
+            "x" : 110.854,
+            "y" : 651.9276912
+          },
+          "range" : {
+            "length" : 75,
+            "location" : 214
+          },
+          "text" : "Lee, J. (2021). Observational learning with heterogeneous priors. Games and"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 153.98874464,
+            "x" : 122.55799999999999,
+            "y" : 628.0196912
+          },
+          "range" : {
+            "length" : 28,
+            "location" : 290
+          },
+          "text" : "Economic Behavior, 125:1–20."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 217.92297216000003,
+            "x" : 110.85399999999998,
+            "y" : 594.1486912
+          },
+          "range" : {
+            "length" : 41,
+            "location" : 319
+          },
+          "text" : "Osborne, M. J. and Rubinstein, A. (1994)."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 201.60872160000002,
+            "x" : 122.55799999999999,
+            "y" : 570.2406912
+          },
+          "range" : {
+            "length" : 35,
+            "location" : 361
+          },
+          "text" : "A Course in Game Theory. MIT Press."
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 388.54758656,
+            "x" : 110.85400000000004,
+            "y" : 536.3706912
+          },
+          "range" : {
+            "length" : 73,
+            "location" : 397
+          },
+          "text" : "Smith, L. and Sørensen, P. (2000). Pathological outcomes of observational"
+        },
+        {
+          "bounds" : {
+            "height" : 10.556441599999971,
+            "pageIndex" : 3,
+            "width" : 200.00664511999997,
+            "x" : 122.55800000000005,
+            "y" : 512.4626912
+          },
+          "range" : {
+            "length" : 38,
+            "location" : 471
+          },
+          "text" : "learning. Econometrica, 68(2):371–398."
+        },
+        {
+          "bounds" : {
+            "height" : 92.54628692264345,
+            "pageIndex" : 3,
+            "width" : 92.54628692264345,
+            "x" : 260.9516975822695,
+            "y" : 348.4960653534725
+          },
+          "range" : {
+            "length" : 15,
+            "location" : 510
+          },
+          "text" : "For Peer Review"
+        },
+        {
+          "bounds" : {
+            "height" : 8.796975799999998,
+            "pageIndex" : 3,
+            "width" : 119.37984328000002,
+            "x" : 245.43400000000005,
+            "y" : 87.93025560000005
+          },
+          "range" : {
+            "length" : 26,
+            "location" : 526
+          },
+          "text" : "https://mc.example.org/jse"
+        }
+      ],
+      "size" : {
+        "height" : 792,
+        "width" : 612
+      },
+      "string" : "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\nJournal of Synthetic Economics Page 4 of 4\nLee, J. (2021). Observational learning with heterogeneous priors. Games and\nEconomic Behavior, 125:1–20.\nOsborne, M. J. and Rubinstein, A. (1994).\nA Course in Game Theory. MIT Press.\nSmith, L. and Sørensen, P. (2000). Pathological outcomes of observational\nlearning. Econometrica, 68(2):371–398.\nFor Peer Review\nhttps://mc.example.org/jse"
+    }
+  ]
+}
