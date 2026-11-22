@@ -1,0 +1,238 @@
+{
+  "comments" : [
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "Our identification strategy uses the staggered rollout of a disclosure rule.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "No table lists when each office adopted the rule.",
+      "category" : "claims",
+      "createdAt" : "2026-11-18T09:00:01Z",
+      "id" : "51DEBA50-0000-4000-8000-000000000001",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "51DEBA50-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "approved",
+      "thread" : [
+
+      ],
+      "title" : "Staggered adoption is asserted, not shown",
+      "updatedAt" : "2026-11-18T09:10:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "Our identification strategy uses the staggered rollout of a disclosure rule.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The order in which the offices adopted the rule is never given.",
+      "category" : "claims",
+      "createdAt" : "2026-11-18T09:00:02Z",
+      "id" : "51DEBA50-0000-4000-8000-000000000002",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "51DEBA50-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "similarTo" : "51DEBA50-0000-4000-8000-000000000001",
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "The rollout dates are never reported",
+      "updatedAt" : "2026-11-18T09:00:02Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 2",
+        "pageIndex" : 1,
+        "quote" : "Proposition 1 states that an information cascade begins with positive probability.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "Proposition 1 is stated early and in plain terms.",
+      "category" : "writing",
+      "createdAt" : "2026-11-18T09:00:03Z",
+      "id" : "51DEBA50-0000-4000-8000-000000000003",
+      "includeInReport" : true,
+      "kind" : "strength",
+      "origin" : {
+        "ai" : {
+          "runID" : "51DEBA50-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "rejected",
+      "thread" : [
+
+      ],
+      "title" : "The main result is easy to find",
+      "updatedAt" : "2026-11-18T09:12:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 3",
+        "pageIndex" : 2,
+        "quote" : "The standard errors are clustered at the office level.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "Table 2 gives intervals without saying how they were obtained.",
+      "category" : "data",
+      "createdAt" : "2026-11-18T09:00:04Z",
+      "id" : "51DEBA50-0000-4000-8000-000000000004",
+      "includeInReport" : true,
+      "kind" : "question",
+      "origin" : {
+        "ai" : {
+          "runID" : "51DEBA50-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "How are the standard errors computed?",
+      "updatedAt" : "2026-11-18T09:00:04Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "none" : {
+
+          }
+        },
+        "locationLabel" : "",
+        "quote" : "Related work is discussed in Section 5.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The herding papers are cited, but none is compared with these results.",
+      "category" : "literature",
+      "createdAt" : "2026-11-18T09:00:05Z",
+      "id" : "51DEBA50-0000-4000-8000-000000000005",
+      "includeInReport" : true,
+      "kind" : "minor",
+      "origin" : {
+        "ai" : {
+          "runID" : "51DEBA50-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "No section places the paper in the literature",
+      "updatedAt" : "2026-11-18T09:00:05Z"
+    }
+  ],
+  "consents" : [
+
+  ],
+  "conversations" : [
+
+  ],
+  "createdAt" : "2026-11-18T09:00:00Z",
+  "document" : {
+    "byteCount" : 0,
+    "fileName" : "ay_nolinks.pdf",
+    "pageCount" : 4,
+    "sha256" : "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "id" : "51DEBA50-0000-4000-8000-0000000000FF",
+  "meta" : {
+    "reviewerNotes" : "",
+    "title" : "Information Aggregation in Sequential Markets: A Fixture"
+  },
+  "runs" : [
+    {
+      "destination" : "this Mac",
+      "finishedAt" : "2026-11-18T09:00:05Z",
+      "id" : "51DEBA50-0000-4000-8000-0000000000AA",
+      "kind" : "review",
+      "provider" : {
+        "model" : "mock",
+        "providerID" : "mock"
+      },
+      "requestCount" : 1,
+      "sentPDF" : false,
+      "startedAt" : "2026-11-18T09:00:00Z",
+      "status" : {
+        "completed" : {
+
+        }
+      },
+      "usage" : {
+        "inputTokens" : 5200,
+        "outputTokens" : 360
+      }
+    }
+  ],
+  "schemaVersion" : 1,
+  "updatedAt" : "2026-11-18T09:12:00Z"
+}
