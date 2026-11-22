@@ -100,7 +100,8 @@ struct ShellCommitField: View {
     }
 
     var body: some View {
-        TextField(placeholder, text: $draft)
+        TextField(placeholder, text: $draft, prompt: Text(placeholder))
+            .labelsHidden()                             // in a Form the title would otherwise be drawn as a label beside the field
             .textFieldStyle(.roundedBorder)
             .font(monospaced ? .system(.body, design: .monospaced) : .body)
             .focused($focused)

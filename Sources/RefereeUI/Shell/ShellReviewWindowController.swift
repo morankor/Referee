@@ -86,7 +86,7 @@ import AppCore
     /// key and no text is being edited. While the consent card is up the window is blocked: Esc answers it "no" and the
     /// other triage keys do nothing. Esc also closes the destination menu.
     func handleKeyDown(_ event: NSEvent) -> Bool {
-        guard let window, event.window === window, window.isKeyWindow, window.attachedSheet == nil, !isEditingText else { return false }
+        guard event.window === window, keysReachTriage else { return false }
         let intent = TriageKeymap.intent(characters: event.charactersIgnoringModifiers ?? "", keyCode: event.keyCode, modifiers: event.modifierFlags)
         if model.consentRequest != nil {
             if intent == .dismiss { model.answerConsent(granted: false) }
@@ -104,6 +104,14 @@ import AppCore
     /// A text view or a field editor has the keyboard.
     private var isEditingText: Bool {
         window?.firstResponder is NSText
+    }
+
+    /// Single keys mean triage only while this window itself is key (not a sheet over it, not another window) and no
+    /// text is being edited. The menu's single-key items are enabled under the same condition: a key equivalent of an
+    /// enabled item would otherwise take a letter typed into a sheet's text field.
+    private var keysReachTriage: Bool {
+        guard let window else { return false }
+        return window.isKeyWindow && window.attachedSheet == nil && !isEditingText
     }
 
     // ---- menu commands of this window (target: the first responder; the window's delegate answers) ----
@@ -203,7 +211,7 @@ import AppCore
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         let blocked = model.consentRequest != nil
         let ready = model.phase == .ready && model.session != nil
-        let triage = ready && !blocked && !isEditingText
+        let triage = ready && !blocked && keysReachTriage
         let reviewLaneRunning: Bool = { if case .running = model.runState { return true } else { return false } }()
         switch item.action {
         case #selector(shellFind(_:)), #selector(shellFindNext(_:)), #selector(shellFindPrevious(_:)),

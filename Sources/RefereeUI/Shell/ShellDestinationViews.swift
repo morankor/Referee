@@ -105,10 +105,11 @@ struct ShellDestinationMenu: View {
             .padding(.top, 4)
         }
         .padding(.vertical, 8)
-        .frame(width: 420)
+        .frame(minWidth: 0, maxWidth: 420)                     // narrower than 420 in a narrow column, never clipped
         .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.12)))
         .shadow(color: .black.opacity(0.2), radius: 16, y: 6)
+        .padding(.horizontal, 10)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Destination")
     }
