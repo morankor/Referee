@@ -92,7 +92,7 @@ One SwiftPM package, zero third-party dependencies. Reason: everything needed is
 | Target | Kind | Imports | Responsibility |
 |---|---|---|---|
 | `RefereeCore` | library | Foundation, CoreGraphics, os | All shared value types, protocols and error types (Appendix A); default settings and prompts; `LineSplitter`, `Log`, `ProviderRegistry`. No behaviour beyond trivial helpers. |
-| `TestSupport` | library | RefereeCore | `MockLLMProvider`, in-memory stores, `StubURLProtocol`, fixture locator, simple fakes of every protocol. Used by tests, the snapshot mode and `referee-cli --provider mock`. |
+| `TestSupport` | library | RefereeCore, CryptoKit | `MockLLMProvider`, in-memory stores, `StubURLProtocol`, fixture locator, simple fakes of every protocol. Used by tests, the snapshot mode and `referee-cli --provider mock`. CryptoKit gives `makeSamplePaper` the real SHA-256 of its PDF. |
 | `PaperText` | library | RefereeCore | Pure text algorithms: line classification, margin line-number removal, quote matching, LLM-facing rendering, chunking. No PDFKit. |
 | `PDFBridge` | library | RefereeCore, PDFKit, CryptoKit | Everything that touches PDFKit outside the UI: loading, raw extraction, geometry for spans, link annotations, outline. |
 | `CitationKit` | library | RefereeCore | Pure: reference-list segmentation and parsing, in-text citation detection, link-target matching. |
@@ -1000,7 +1000,7 @@ Implemented once, in `LLMKit`, as a wrapper every HTTP provider's `stream` goes 
 
 - A `MockLLMProvider` answers each request with the next `MockResponse` scripted for the request's `purpose` (the last one repeats), cut into deltas of `chunkSize` characters, `delayPerChunk` apart. Same script, same deltas, same order. `recordedRequests` keeps every request it received.
 - `failAfterChunks: n` with a `failure`: after n deltas the stream throws that error. `stallAfterChunks: n`: after n deltas it emits nothing and never finishes until the consuming task is cancelled.
-- `MockScript.sample` is built from `Fixtures/llm` (Appendix D.9). `.failsAfterTwoComments` and `.stallsAfterTwoComments` answer a review with the first two blocks of `review_clean.txt` and half of the third, then throw `.overloaded` or fall silent.
+- `MockScript.sample` is built from `Fixtures/llm` (Appendix D.9). `.failsAfterTwoComments` and `.stallsAfterTwoComments` answer a review with the first two blocks of `review_clean.txt` and the third block up to its quote line, then throw `.overloaded` or fall silent. The cut is counted in lines: the first half of the third block's lines (five of nine: `@@COMMENT`, kind, category, page and quote), so the third block has neither title nor body. The parser drops such a block when the stream ends (§6.5, rule 5), so a review through either script keeps exactly two comments; while `mock-stall` is silent, the third block is a draft that shows its kind, category, page and quote.
 - `SnapshotSupport.providers()` returns four mocks, `mock` (local), `mock-remote` (not local, destination `mock.example.org`), `mock-fail`, `mock-stall`, followed by one `StaticProvider` per real provider id with a scripted status and model list for the settings scenes.
 - `Composition` registers `MockLLMProvider()` under the id `mock` when `REFEREE_ENABLE_MOCK=1` and for `referee-cli --provider mock`, and uses `SnapshotSupport.providers()` as the whole registry when `REFEREE_SNAPSHOT=1` (§10.1).
 
@@ -1601,7 +1601,7 @@ The shell sets real closures with `.environment(\.uiActions, …)` on every wind
 │ |References  │   PDF  (highlights; Reader overlays: find     │  filter chips · "12 of 31 decided"      │
 │              │   bar, selection bar, citation card)          │  comment cards …                        │
 │ thumbnails   │                                               │                                         │
-│ 160–240 pt   │   flexible, min 480 pt                        │  320–520 pt, ideal 380                  │
+│ 160–240 pt   │   flexible, no minimum                        │  320–520 pt, ideal 380                  │
 └──────────────┴───────────────────────────────────────────────┴─────────────────────────────────────────┘
         consent card and destination menu: Shell overlays over the whole window
 ```
@@ -1618,6 +1618,8 @@ Structure (verified to render in a hosted window [V]):
 ```
 
 Who draws what: the **Reader** draws the PDF and the three overlays tied to positions in it (find bar, selection bar, citation card). The **Shell** draws everything tied to the window: toolbar, banner (above the PDF, inside the detail column), consent card and destination menu (over the whole window). The **Sidebar** draws the inspector's content. No pane draws another's parts.
+
+Widths: `ReaderPane` declares no minimum width, and nothing else in the detail column does either. With `.inspector` attached to the `NavigationSplitView`, SwiftUI on macOS 26 adds the inspector's width to whatever minimum the detail column declares: `.frame(minWidth: 480)` on the PDF makes the smallest possible window 1448 pt wide, so a review window could be neither 1280 nor 1000 pt wide [V, WP0b]. The window's 1000 × 640 minimum (§9.1) is what keeps the PDF readable; at that size the three columns are 208, 412 and 380 pt. A snapshot scene whose window does not keep the size it was given fails (§10.1), so a pane that brings the problem back is caught.
 
 Toolbar, left to right: navigator toggle; the **destination indicator** (principal position, §9.7); Review button (label "Review", becomes "Cancel" with a spinner and the phase text "Reading part 2 of 5…" while running; disabled with a tooltip when `model.canStartReview` is false, the tooltip being `sendPlan.blockingReason` when there is one); Report button (switches the sidebar to Report); sidebar toggle. Toolbar buttons that must show their word use `.labelStyle(.titleAndIcon)`: on macOS 26 a `Button("Review", systemImage:)` in a toolbar shows the icon alone [V, reviewer].
 
@@ -1751,7 +1753,7 @@ The banner (`BannerView`, Shell) sits above the PDF in the detail column, one at
 
 ### 9.10 Shared theme (`RefereeUI/Common/CommonTheme.swift`, written in Wave 0, frozen)
 
-Kind colours: major red, minor grey, question purple, strength teal. Status colours: pending yellow, approved green, rejected grey, own blue. Highlight colours and alphas as in §7.3. Card corner radius 8, card padding 10, list spacing 10, sidebar padding 10. Fonts: system; card title `.headline`, body `.callout`, quote `.callout.italic()`, metadata `.caption`. Light and dark appearance both supported through semantic colours.
+Kind colours: major red, minor grey, question purple, strength teal. Status colours: pending yellow, approved green, rejected grey, own blue. Highlight colours and alphas as in §7.3. Card corner radius 8, card padding 10, list spacing 10, sidebar padding 10. Fonts: system; card title `.headline`, body `.callout`, quote `.callout.italic()`, metadata `.caption`. Light and dark appearance both supported through semantic colours. The public surface of `Theme` is printed in §11.3.
 
 ---
 
@@ -1765,15 +1767,23 @@ The building agents cannot see the screen and may lack screen-recording permissi
 Referee --ui-snapshot <outDir> [--scene <name>]… [--dark] [--size 1280x800]
 ```
 
-Mechanism, verified end to end on this machine without any Screen Recording permission [V, also reviewer]:
+Mechanism, verified end to end on this machine without any Screen Recording permission [V, also reviewer], as `RefereeUI/Common/CommonSnapshotRunner.swift` implements it (Wave 0b; the comment at the top of that file lists the same decisions):
 
-1. `NSApplication.shared.setActivationPolicy(.accessory)`; create a fresh temporary directory; write `SnapshotSupport.settings()` there as `settings.json` (the four mock providers enabled, `mock` the review default); build dependencies with the overrides `REFEREE_HOME=<that directory>`, `REFEREE_SNAPSHOT=1` and `REFEREE_NO_KEYCHAIN=1`. `LiveDependencies.make` sees `REFEREE_SNAPSHOT` and builds the whole graph, **the engine included**, on `SnapshotSupport.providers()` and `FakeResolver()` (§11.3). A snapshot run therefore starts no process and makes no network request, and the engine and the model agree on which providers exist. Nothing of the user's is read or written.
-2. For each scene: if it names a `fixtureSession`, copy that file to `<home>/sessions/<sha256>/session.json`, where the hash and `byteCount` are computed from the fixture PDF as it is on disk right now and written into the copy's `document` (a rebuilt fixture has a different hash). Create the window exactly as the app does (`NSWindow(contentViewController: NSHostingController(rootView: …))`), fixed content size, `window.appearance` forced to aqua (or dark aqua), `orderFrontRegardless()`, then `setFrameOrigin(NSPoint(x: -6000, y: -6000))`: AppKit keeps only a corner of such a window on screen, and the capture is identical [V, reviewer], so a snapshot run does not flash windows over the user's work. For review scenes create the `ReaderController` and call `attach()`.
-3. Run the scene's `prepare` closure (it drives the model through its public methods; a scene that needs another provider calls `model.setActiveProvider(ProviderRef(providerID: "mock-remote", model: nil))`, abbreviated in the table below), then keep the main run loop turning for the scene's settle time (default 2.0 s; PDF pages render asynchronously).
+1. `NSApplication.shared.setActivationPolicy(.accessory)`; create a fresh temporary directory for the run, removed at its end. **Each scene gets a data folder of its own** in it (named after the scene) and a dependency graph of its own, so that no scene sees what an earlier one saved and no picture depends on which scenes ran before it. For each scene: write `SnapshotSupport.settings()` into its folder as `settings.json` (the four mock providers enabled, `mock` the review default) and build the dependencies with the overrides `REFEREE_HOME=<that folder>`, `REFEREE_SNAPSHOT=1` and `REFEREE_NO_KEYCHAIN=1`; the same settings are also saved through `dependencies.settings`, and the scene's models are created with them. `LiveDependencies.make` sees `REFEREE_SNAPSHOT` and builds the whole graph, **the engine included**, on `SnapshotSupport.providers()` and `FakeResolver()` (§11.3). A snapshot run therefore starts no process and makes no network request, and the engine and the model agree on which providers exist. Nothing of the user's is read or written.
+2. If the scene names a `fixtureSession` (it must then name a `fixturePDF` too), copy that file to `<home>/sessions/<sha256>/session.json`, where the hash and `byteCount` are computed from the fixture PDF as it is on disk right now and written into the copy's `document` (a rebuilt fixture has a different hash). Create the window as the app does, with an `NSHostingController(rootView: …)` as its content view controller; `window.appearance` forced to aqua (or dark aqua); content, size, style and title as in the table below; then `orderFrontRegardless()`. The window is a private subclass of `NSWindow` that overrides one method, `constrainFrameRect(_:to:)`, to return the frame unchanged: a plain window is cut down to the visible part of the screen when it is shown (a scene of 1500 × 1000 came out 1500 × 828 on a display with 828 points between menu bar and Dock), and a scene must have its size on any display. It is placed where AppKit puts a plain window sent to (−6000, −6000): only its top right corner, 40 × 74 points, lies inside the bottom left of the main screen, and the capture is complete [V, reviewer; WP0b], so a snapshot run does not flash windows over the user's work. In a review scene the runner then calls `reader.attach()`, opens the `fixturePDF` with `model.open(url:)`, and waits until the reader shows the display document (three seconds at most), so that `prepare` can use the PDF view at once.
+
+   | Kind | Window content | Content size (points) | Style mask | Title |
+   |---|---|---|---|---|
+   | `review` | `ReviewWindowView` on a new `ReviewSessionModel` and its `ReaderController` | 1280 × 800, or `--size` | titled, closable, resizable, miniaturizable, full-size content view (§9.1) | the `fixturePDF` file name, or "Referee" |
+   | `referenceViewer` | `ReferenceViewerView(fileURL:title:)` on the `fixturePDF`, which this kind requires | 900 × 700, or `--size` | as `review` | the file name without its extension |
+   | `settings` | `SettingsRootView` on a new `SettingsModel` | 780 × 560 | titled, closable, miniaturizable | "Settings" |
+   | `welcome` | `WelcomeView` with two sample summaries of recent reviews and an `open` that does nothing | what the view asks for, or 640 × 440 when that is under 300 × 200 in either direction | titled, closable, miniaturizable | "Referee" |
+
+3. Run the scene's `prepare` closure with a `SnapshotContext`: the window, plus the model and the attached reader in a review scene, or the settings model in a settings scene; welcome and reference-viewer scenes get the window alone. `prepare` drives the models through their public methods; a scene that needs another provider calls `model.setActiveProvider(ProviderRef(providerID: "mock-remote", model: nil))`, abbreviated in the table below. Then keep the main run loop turning for the scene's settle time (default 2.0 s; PDF pages render asynchronously).
 4. Capture the app's own window: resolve `CGWindowListCreateImage` with `dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGWindowListCreateImage")` (the symbol is marked unavailable in the macOS 15+ Swift SDK), cast to `@convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?`, call with `(.null, 8 /* including window */, UInt32(window.windowNumber), 1 | 8 /* ignore framing, best resolution */)`.
-5. Run the scene's `verify` closure, if any; it returns the expectations that failed.
-6. Write `<outDir>/<scene>.png`; append one JSON line to stdout and to `<outDir>/manifest.jsonl`: `{"scene":"review-pending","file":"…","width":2560,"height":1600,"nonBlank":true,"failures":[]}`. `nonBlank` is true when at least 2% of pixels differ from the top-left pixel by more than 8/255 in any channel.
-7. Close the window; after the last scene exit 0 if every scene was captured, non-blank and without failures, else 1.
+5. Check that the window still has the content size it was given (a view whose minimum size is larger makes the window grow, in the app as here; §9.2), then run the scene's `verify` closure, if any, with the same context; it returns the expectations that failed.
+6. Write `<outDir>/<scene>.png`; append one JSON line to stdout and to `<outDir>/manifest.jsonl` (appended to and never emptied, so it keeps the lines of earlier runs): `{"scene":"review-pending","file":"…","width":2560,"height":1600,"nonBlank":true,"failures":[]}`. `file` is `<outDir>/<scene>.png` with the directory spelled as it was given; `width` and `height` are pixels of the display the run happens on (2560 × 1600 for 1280 × 800 points on a Retina display). `nonBlank` is true when at least 2% of pixels differ from the top-left pixel by more than 8/255 in any channel. `failures` holds what `verify` returned and any of these: the fixture PDF did not open; the window did not keep its size; the scene's data folder could not be prepared (a `fixtureSession` without a `fixturePDF` is one such case); a reference-viewer scene names no `fixturePDF`; the window could not be captured; the PNG could not be written.
+7. Close the window. After the last scene exit 0 if every scene was captured, non-blank and without failures, else 1. Exit 1 also when a name given with `--scene` matches no scene (the known names are printed to stderr) or there is no scene to run, and 2 when the arguments are wrong: an unknown argument, an option without its value, or a `--size` that is not `<width>x<height>` with both between 200 and 8000 points. `--size` applies to review and reference-viewer scenes only. The arguments may start with the program name.
 
 Things that do **not** work and must not be tried again: `NSView.cacheDisplay(in:to:)` and `CALayer.render(in:)` capture empty frames for SwiftUI and PDF content [V]. Known cosmetics: the window is drawn in its inactive look. Child windows (popovers, sheets) are not captured, which is why transient UI is built as in-window overlays (§7.4, §9.7).
 
@@ -1783,6 +1793,7 @@ Required scenes:
 
 | Scene | Owner | Shows |
 |---|---|---|
+| `placeholder` | Shell | Wave 0's check of the runner, kept as it is in every wave (a test in `Tests/RefereeUITests/Common` checks it): `ay_round_nolinks.pdf` in the review window; `verify`: the display document has 4 pages |
 | `welcome` | Shell | welcome window with two recent reviews |
 | `review-empty` | Shell | `ay_round_nolinks.pdf` open, no comments, destination indicator "Local · mock" |
 | `consent` | Shell | `setActiveProvider("mock-remote")`, `startReview()`: the consent card, with the text-only sentence |
@@ -1845,7 +1856,7 @@ All in `TestSupport`, declared in §11.3.
 - `StubURLProtocol`: a handler maps a request to a status, headers and a body delivered in chunks with optional delays, so stream parsers see realistic chunk boundaries; `StubURLProtocol.session()` returns a `URLSession` wired to it.
 - Fake CLIs (`Tests/CLIProvidersTests/FakeCLI/claude`, `codex`, `agy`, `grok`): executable shell scripts selected through `REFEREE_CLI_PATH_<NAME>`. They answer `--version` and `--help` (printing the protected flags, or omitting one when `FAKE_HELP=missing-flag`), read stdin, and print canned stream lines (Appendix D). `FAKE_MODE` selects `ok`, `auth`, `quota`, `garbage`, `hang` (sleep 600), `slow` (one line per second), `tool` (a stream in which a tool appears), `tools-on` (an init line that does not show tools off), `echo-bytes` (print the stdin byte count) and `print-env` (print the environment and argument list, for the scrubbing and no-manuscript-in-arguments tests). The fake `grok` speaks enough JSON-RPC to answer the four requests of §5.6.4 in order.
 - In-memory `SessionStoring`, `SettingsStoring`, `SecretStoring` (with `failReads`); `FakePaperService`, `FakeQuoteMatcher`, `FakeResolver`, `ScriptedReviewEngine` for `AppCore` and UI tests.
-- `Log.setTestSink` (Appendix A.8) lets a test see every logged event.
+- `Log.addTestSink` and `Log.removeTestSink` (Appendix A.8) let a test see every logged event. The tests of all targets run in parallel in one process, so several sinks can be active at once and a sink sees the events of every test running at that moment: a test filters by its own event names, or asserts only what must hold for every event, and removes only its own sink.
 
 ### 10.4 End-to-end with a real local model
 
@@ -1978,12 +1989,12 @@ public struct MockScript: Sendable {
     public var responses: [RequestPurpose: [MockResponse]]       // consumed in order per purpose; the last one repeats
     public init(responses: [RequestPurpose: [MockResponse]])
     public static var sample: MockScript { get }                    // Fixtures/llm: review_clean, discussion_revise, question_answer, report_sample
-    public static var failsAfterTwoComments: MockScript { get }     // review: two complete blocks of review_clean, half of the third, then .overloaded
+    public static var failsAfterTwoComments: MockScript { get }     // review: two complete blocks of review_clean, the third up to its quote line, then .overloaded
     public static var stallsAfterTwoComments: MockScript { get }    // review: the same text, then silence
 }
 public final class MockLLMProvider: LLMProvider, @unchecked Sendable {
     public init(id: ProviderID = "mock", script: MockScript = .sample, isLocal: Bool = true, supportsNativePDF: Bool = false)
-    public var recordedRequests: [LLMRequest] { get }               // lock-protected
+    public var recordedRequests: [LLMRequest] { get }               // lock-protected; a request is recorded when stream(_:) is called, before it is read
 }
 /// Scripted availability and model list; `stream` throws .notConfigured.
 public struct StaticProvider: LLMProvider {
@@ -2004,11 +2015,17 @@ public final class StubURLProtocol: URLProtocol {
         public var delayPerChunk: Duration
         public init(status: Int = 200, headers: [String: String] = [:], chunks: [Data], delayPerChunk: Duration = .zero)
     }
+    /// The handler and the recorded requests belong to the calling test's task, because tests run in parallel: call setHandler,
+    /// session() and recordedRequests in the test function itself (not in a child task), and start every test that uses the stub
+    /// with setHandler, nil included. The type's doc comment has the details.
     public static func setHandler(_ handler: (@Sendable (URLRequest) -> Response?)?)   // nil response = connection refused
     public static func session() -> URLSession                                          // a URLSession that only talks to the handler
     public static var recordedRequests: [URLRequest] { get }                                   // bodies included (httpBodyStream is read)
 }
-public final class InMemorySessionStore: SessionStoring, @unchecked Sendable { public init() }
+public final class InMemorySessionStore: SessionStoring, @unchecked Sendable {
+    public init()
+    public var saveCount: Int { get }         // calls of save(_:) so far, whatever was saved (WP8b: several changes within the debounce, one save)
+}
 public final class InMemorySettingsStore: SettingsStoring, @unchecked Sendable { public init(_ settings: AppSettings = DefaultSettings.make()) }
 public final class InMemorySecretStore: SecretStoring, @unchecked Sendable {
     public init(_ secrets: [String: String] = [:])
@@ -2025,7 +2042,10 @@ public struct FakeCitationIndexer: CitationIndexing { public init(index: Citatio
 /// chunkPageRanges adds consecutive pages to a range while its rendering stays within maxCharacters (a single page may exceed it).
 public struct FakePaperRenderer: PaperRendering { public init() }
 /// Every entry resolves at once: status .resolved, title "Resolved: " + first 30 characters, an example.org open-access URL.
-public final class FakeResolver: ReferenceResolving, @unchecked Sendable { public init() }
+public final class FakeResolver: ReferenceResolving, @unchecked Sendable {
+    public init()
+    public var forgottenDocuments: [String] { get }   // documentSHA256 of every forget call, in order (WP8b: delete review data)
+}
 /// Plays the given events; `calls` lists the jobs requested, in order ("plan", "review", "discuss", "ask", "report", "revise").
 public final class ScriptedReviewEngine: ReviewEngineProtocol, @unchecked Sendable {
     public init(plan: SendPlan, review: [ReviewEvent] = [], reply: [ReplyEvent] = [], report: [ReportEvent] = [], lint: [LintFinding] = [],
@@ -2132,6 +2152,28 @@ public enum SelectionNormalizer {
     public static func run(arguments: [String], makeDependencies: @escaping @Sendable ([String: String]) async -> AppDependencies) async -> Int32
 }
 @MainActor public enum IntegrationScenes { public static var all: [SnapshotScene] { get } }    // empty until Wave 3
+/// The look the three panes share (section 9.10; highlights of section 7.3). Every colour is a system colour, so light and dark both work.
+public enum Theme {
+    public static func kindColor(_ kind: CommentKind) -> Color             // major red, minor grey, question purple, strength teal
+    public static func statusColor(_ status: CommentStatus) -> Color       // pending yellow, approved green, rejected grey
+    public static let ownColor: Color                                      // blue: the reviewer's own comments, whatever their status
+    /// own: a comment the reviewer wrote, whatever its status; question: the passage a conversation of the Chat tab started from.
+    public enum Highlight: Sendable, Equatable, CaseIterable { case pending, approved, rejected, own, question }
+    public static func highlightHue(_ highlight: Highlight) -> NSColor     // opaque: yellow, green, grey, blue, purple
+    public static func highlightAlpha(_ highlight: Highlight, selected: Bool = false) -> CGFloat    // 0.35, 0.30, 0.15, 0.30, 0.25; selected 0.60
+    public static func highlightColor(_ highlight: Highlight, selected: Bool = false) -> NSColor    // the hue at that alpha
+    public static let fuzzyBorderWidth: CGFloat                            // 1: a fuzzy anchor's highlight also gets a dashed border in its hue
+    public static let fuzzyBorderDash: [CGFloat]                           // [3, 2]
+    public static var pdfBackground: NSColor { get }                       // around the pages: .underPageBackgroundColor
+    public static let cardCornerRadius: CGFloat                            // 8
+    public static let cardPadding: CGFloat                                 // 10
+    public static let listSpacing: CGFloat                                 // 10
+    public static let sidebarPadding: CGFloat                              // 10
+    public static let cardTitleFont: Font                                  // .headline
+    public static let bodyFont: Font                                       // .callout
+    public static let quoteFont: Font                                      // .callout.italic()
+    public static let metadataFont: Font                                   // .caption
+}
 
 // ====== RefereeUI/Reader (WP9) ========================================================================================
 public final class RefereePDFView: PDFView {}             // overrides mouseDown(with:) and areaOfInterest(for:) (section 7.4)
@@ -2498,7 +2540,7 @@ Acceptance: `scripts/build.sh`, `scripts/test.sh --filter ReviewEngineTests`:
 | ask | the selected passage and its label appear in the request; a general question has no passage section |
 | report | the request lists only approved, included comments in the order major, minor, question, strength with prefixes and labels; zero approved → the job fails without a request; the recommendation is parsed from four sample reports |
 | lint | a table of sentences → expected rule ids (Appendix B.7), including a clean report with no findings and the recommendation/severity mismatch |
-| privacy | with `Log.setTestSink`: during a full review no logged value contains any 12-character substring of the paper text or of a prompt, and no `.id` value is "invalid-id" |
+| privacy | with a sink added by `Log.addTestSink` before a full review and removed with `Log.removeTestSink` after it: among the engine's events (pick them by the engine's own event names, since the sink also sees the events of every other test running at the time), no value contains any 12-character substring of the paper text or of a prompt, and no `.id` value is "invalid-id" |
 
 #### WP7 — ScholarKit (Wave 1)
 
@@ -2630,7 +2672,7 @@ Wave 2 does not start until all of these pass. If `e2e-ollama.sh` cannot pass be
 
 Read: §7, §8.6, §9.2, §9.5, §9.9, §9.10, §10.1, §11.3 (Reader and Common).
 
-Build: `ReaderController` with the surface of §11.3, `RefereePDFView` (`mouseDown`, `areaOfInterest`), `ReaderPDFViewRepresentable`, `ReaderHighlightController`, `ReaderPane` (PDF, find bar, selection bar, citation card; no banner), `NavigatorPane` (Pages / Outline / References), `ReferenceViewerView`, `ReaderScenes` (seven scenes of §10.1). Every file name starts with `Reader`. Pure helpers with unit tests: desired-highlight computation (comments + filter + selection → list of `(rect, colour, alpha, id)`), hit-testing (point + rect lists → comment id or mention id; smallest rectangle wins), overlay placement (page rect in bottom-left coordinates + view bounds → top-left SwiftUI origin that stays inside the view).
+Build: `ReaderController` with the surface of §11.3, `RefereePDFView` (`mouseDown`, `areaOfInterest`), `ReaderPDFViewRepresentable`, `ReaderHighlightController`, `ReaderPane` (PDF, find bar, selection bar, citation card; no banner; no minimum width: the window's 1000 × 640 minimum is what keeps the PDF readable, and a declared minimum makes every review scene fail, §9.2), `NavigatorPane` (Pages / Outline / References), `ReferenceViewerView`, `ReaderScenes` (seven scenes of §10.1). Every file name starts with `Reader`. Pure helpers with unit tests: desired-highlight computation (comments + filter + selection → list of `(rect, colour, alpha, id)`), hit-testing (point + rect lists → comment id or mention id; smallest rectangle wins), overlay placement (page rect in bottom-left coordinates + view bounds → top-left SwiftUI origin that stays inside the view).
 
 Acceptance:
 
@@ -2681,7 +2723,7 @@ and, by looking at the PNGs: three columns with toolbar, the Review button showi
 1. Merge the three UI branches; `scripts/build.sh` after each, `scripts/test.sh` after the last. Read their notes; resolve "Contract problems" as Gate 1 did.
 2. Write the three integration scenes of §10.1 (`check-document-loaded`, `check-citation-click`, `check-triage-keys`) in `CommonIntegrationScenes.swift`.
 3. `scripts/snapshots.sh`: every scene, exit 0, no failures; look at every PNG now that all panes are real.
-4. `scripts/e2e-ollama.sh`; `scripts/bundle.sh`; launch `build/Referee.app` once with `open -n build/Referee.app --args <fixture pdf>` and confirm from `log show --last 1m --predicate 'subsystem == "local.referee.app"'` that the document reached `.ready`; run the bundled binary's snapshot mode.
+4. `scripts/e2e-ollama.sh`; `scripts/bundle.sh`; launch `build/Referee.app` once with `open -n build/Referee.app --args <fixture pdf>` and confirm from `/usr/bin/log show --info --last 1m --predicate 'subsystem == "local.referee.app"'` that the document reached `.ready` (`Log.event` writes at info level, which `log show` leaves out without `--info`; in zsh `log` is a builtin, hence the full path); run the bundled binary's snapshot mode.
 5. The smoke prompts of §11.6: `REFEREE_CLI_SMOKE=1 scripts/test.sh --filter CLIProvidersTests`. Record which CLIs ran and the result.
 6. Final `README.md`: install, first run, provider set-up (including what "experimental" means and the test-prompt button), privacy summary (§12.3, §12.5), troubleshooting (Codex reinstall, the Keychain prompt after a rebuild and the self-signed identity that removes it, Ollama not running), and a checklist of checks that need the user's accounts and are not run unasked: one real review per configured API provider and per installed CLI on a non-confidential PDF.
 
@@ -2711,7 +2753,7 @@ Local Ollama models are free and are used wherever a real model is needed. A CLI
 
 ### 12.2 No manuscript text in logs
 
-- `Log.event(name, [String: LogValue])` is the only logging call in libraries. A `LogValue` is a number, a boolean, or an `.id`, and an `.id` that is longer than 64 characters or contains anything but letters, digits and `. _ : / -` is written as `invalid-id` (Appendix A.8). A sentence of a manuscript cannot pass that filter; a test with `Log.setTestSink` checks a whole review.
+- `Log.event(name, [String: LogValue])` is the only logging call in libraries. A `LogValue` is a number, a boolean, or an `.id`, and an `.id` that is longer than 64 characters or contains anything but letters, digits and `. _ : / -` is written as `invalid-id` (Appendix A.8). A sentence of a manuscript cannot pass that filter; a test with a sink from `Log.addTestSink` checks a whole review (WP6, "privacy").
 - File names are treated as manuscript content (they often contain manuscript numbers or author names): never logged, never sent to a provider (`manuscript.pdf` is sent instead).
 - Error messages shown to the user may quote a provider's message; they are not logged. CLI stderr is shown, not logged.
 - The only switch that writes prompts or model output outside the session file is `REFEREE_DEBUG_DUMP` (§10.5).
@@ -4899,7 +4941,7 @@ Toolchain and build:
 - † Swift Testing runs under Command Line Tools only with command-line flags; manifest `unsafeFlags` give a silent zero-test run.
 - † ‡ Window capture with `CGWindowListCreateImage` via `dlsym` works without Screen Recording permission; `cacheDisplay` and `CALayer.render` capture empty frames. ‡ SwiftUI overlays above the PDF and in-memory highlights are in the capture; a window moved to (−6000, −6000) captures identically.
 - The manifest of §3.2 builds from clean with every declaration of §11.3 as a stub, Appendix A as printed, and the `Composition` file of §11.3 as printed; `scripts/build.sh`, `test.sh`, `run.sh`, `bundle.sh`, `snapshots.sh` and `make-fixtures.sh --pdf-only` run as printed; `test.sh` returns 0 / 1 / 3 for pass / failing test / zero tests, and `--filter <TestTarget>` selects one target (‡ confirmed on the first version).
-- Appendix A compiles as printed (Swift 5 mode, no warnings), including the 46 generated initialisers; the JSON in §4.3 is its output; a file written without the two new optional fields still decodes; `Log.setTestSink` and the id filter behave as described. A memberwise initialiser in an extension collides with the synthesised one; two files with one base name in a target fail the build.
+- Appendix A compiles as printed (Swift 5 mode, no warnings), including the 46 generated initialisers; the JSON in §4.3 is its output; a file written without the two new optional fields still decodes; the test sink of `Log` and the id filter behave as described (Gate 0 replaced the single `setTestSink` with `addTestSink` and `removeTestSink`; `LogTests` runs several sinks at once). A memberwise initialiser in an extension collides with the synthesised one; two files with one base name in a target fail the build.
 - `main.swift` of §9.1 compiles and runs with a non-isolated `AppMain.run` that uses `MainActor.assumeIsolated`.
 - A hand-assembled, ad-hoc-signed `.app` verifies and runs; from inside it, HTTP to `127.0.0.1:11434` works.
 - `@Test @MainActor` runs on the main thread; an unmarked `@Test` does not.
@@ -5027,3 +5069,21 @@ WP0a built the scaffold and reported nine contract problems (`docs/contract-note
 | 9 The release binary carried the checkout's absolute path | `Fixtures.root` uses `#filePath` in debug builds only; `REFEREE_REPO_ROOT` overrides; `scripts/bundle.sh` fails when the binary contains a home-directory path | §3.4, §3.6, §10.6, §11.3 |
 | `__pycache__/` | Added to `.gitignore` | §3.3 |
 | An `osascript` check hung | Agents never drive the screen; nothing in the tree carries a name, an address or a home-directory path | §11.1 |
+
+### G.5 Amendments after WP0b and Gate 0
+
+WP0b reported six contract problems (`docs/contract-notes/wp0b-testsupport.md`). The coordinator decided them; the Gate 0 reviewer applied the decisions in the code and here, and brought §10.1 and §11.3 in line with the code where they differed and the code was right (`docs/contract-notes/gate0.md`). Every change below is in the code and in the sections named.
+
+| Problem | Decision | Where |
+|---|---|---|
+| WP0b 1: a minimum width on the PDF pane makes the window wider than 1280 pt | `ReaderPane` declares no minimum width; the window's 1000 × 640 minimum is what keeps the PDF readable; the diagram says "no minimum" | §9.2, WP9 |
+| WP0b 2: "half of the third block" left three comments when counted in characters | The failing and stalling scripts cut after the third block's quote line, counted in lines as WP0b built it, so two comments are kept | §5.9, §11.3 |
+| WP0b 3: `FakeResolver` could not show that `forget` was called, nor the session store how often it saved | `FakeResolver.forgottenDocuments` stays and is printed; `InMemorySessionStore.saveCount` added, with a test, so WP8b's "autosave" row needs no wrapper | §11.3 |
+| WP0b 4: one log sink per process, while the tests of all targets run in parallel | `Log.setTestSink` replaced by `Log.addTestSink(_:) -> UUID` and `Log.removeTestSink(_:)`, changed identically in `Support.swift`; a sink sees the events of every test running at that moment, so a test filters by its own event names. `scripts/test.sh` keeps running tests in parallel | A.8, §10.3, WP6 "privacy", §12.2, Appendix F |
+| WP0b 5: `log show` prints no info-level event without `--info` | `/usr/bin/log show --info --last 1m --predicate …` | §11.5 |
+| WP0b decision 9: `Theme` was written but not printed, and three UI agents use it | Its public surface, taken from the code | §11.3, §9.10 |
+| §10.1 described a runner other than the one built | Brought in line with the code: a data folder and a dependency graph per scene; the window subclass that AppKit cannot shrink, and where it is placed; content, size, style and title per scene kind; when the fixture PDF is opened; what `prepare` and `verify` receive; what counts as a failed scene; `manifest.jsonl` is never emptied; exit codes | §10.1 |
+| The `placeholder` scene could be dropped by WP11, which would break a test in `Tests/RefereeUITests/Common` that WP11 cannot edit | Listed in the scene table and kept in every wave; `ShellScenes.swift` says so | §10.1 |
+| `TestSupport` imports CryptoKit | Added to the table | §2.1 |
+| §11.3 did not say that `StubURLProtocol`'s handler belongs to the calling test's task (WP0b decision 2) | A comment on `setHandler` | §11.3 |
+| §11.3 did not say when `MockLLMProvider` records a request | "when `stream(_:)` is called" in the comment on `recordedRequests` | §11.3 |
