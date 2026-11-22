@@ -1,9 +1,10 @@
 import Foundation
 import RefereeCore
 
-// Wave 0a placeholder (see Placeholder.swift).
-
 /// Scripted availability and model list; `stream` throws .notConfigured.
+///
+/// It stands for a provider in the settings scenes of the snapshot mode: it has a status and models to show, and it
+/// can never send anything.
 public struct StaticProvider: LLMProvider {
     public let descriptor: ProviderDescriptor
     private let scriptedAvailability: ProviderAvailability
