@@ -23,7 +23,7 @@ Run them from the repository root. These are the only commands used in this proj
 | Run the app unbundled | `scripts/run.sh [app arguments]` |
 | Assemble and sign the app | `scripts/bundle.sh`, which makes `build/Referee.app`; then `open build/Referee.app` |
 | Render UI snapshots | `scripts/snapshots.sh [--out dir] [--scene name]…` |
-| Real local-LLM end-to-end | `scripts/e2e-ollama.sh [model]` |
+| Real local-LLM end-to-end | `scripts/e2e-ollama.sh [model] [pdf] [--expect-parts]` |
 | Regenerate fixture PDFs | `scripts/make-fixtures.sh` (needs MacTeX) |
 | Fetch optional real papers | `scripts/fetch-optional-fixtures.sh` (network; public arXiv PDFs into `Fixtures/private/`) |
 
@@ -34,8 +34,10 @@ What works at this stage:
 - `build.sh`, `test.sh`, `bundle.sh` and `make-icon.sh` work.
 - `run.sh Fixtures/pdf/ay_round_nolinks.pdf` opens a review window: the PDF between two placeholder panes. Without a file it opens a placeholder welcome window. Quit with ⌘Q.
 - `snapshots.sh` works. There is one scene so far, `placeholder`; `scripts/snapshots.sh --scene placeholder` writes `build/snapshots/placeholder.png` and a line in `build/snapshots/manifest.jsonl`. The app shows its own window off screen and captures it itself, so no Screen Recording permission is needed; while a scene runs, a corner of that window is visible at the edge of the screen.
-- `make-fixtures.sh` rebuilds the seven fixture PDFs from `Fixtures/tex` and their raw dumps. It needs `pdflatex` on the `PATH` (MacTeX puts it in `/Library/TeX/texbin`). The PDFs and dumps are committed, so tests never need TeX.
-- `referee-cli` has one subcommand so far: `referee-cli dump-raw <pdf>` prints what PDFKit extracts from a file. The rest arrives with Gate 1, as do `e2e-ollama.sh` and `fetch-optional-fixtures.sh`.
+- `make-fixtures.sh` rebuilds the eight fixture PDFs from `Fixtures/tex` and their raw dumps. It needs `pdflatex` on the `PATH` (MacTeX puts it in `/Library/TeX/texbin`). The PDFs and dumps are committed, so tests never need TeX.
+- `referee-cli` runs the app's pipeline without the UI (plan §10.2): `providers`, `dump-raw`, `extract`, `anchor`, `citations`, `plan`, `review` and `ask`; `referee-cli review Fixtures/pdf/ay_round_nolinks.pdf --provider mock` needs no setup. It uses a temporary data folder unless given `--home`, and keys from `REFEREE_KEY_*` variables only unless given `--use-keychain`.
+- `e2e-ollama.sh` reviews a fixture with a local Ollama model and asks one question about it, at no cost (`scripts/e2e-ollama.sh phi4 Fixtures/pdf/ay_long.pdf --expect-parts` reads a long paper in parts). `fetch-optional-fixtures.sh` downloads three public arXiv papers into the git-ignored `Fixtures/private/`; journal-system PDFs of your own go in `Fixtures/private/journal/`.
+- The integration tests run the built `referee-cli`, so run `scripts/build.sh` before `scripts/test.sh` after a change.
 
 Rules that keep builds and tests reliable:
 

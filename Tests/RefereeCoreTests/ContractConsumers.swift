@@ -250,6 +250,8 @@ private func callEveryRequirement(of dependencies: AppDependencies, builder: any
     await dependencies.resolver.forget(documentSHA256: paper.ref.sha256)
     await #expect(throws: ResolverError.noOpenAccessPDF) { _ = try await dependencies.resolver.fetchPDF(for: resolved) }
     #expect(dependencies.resolver.searchURL(for: entry).scheme == "https")
+    #expect(await dependencies.resolver.cachedPDFBytes() == 0)            // Gate 1: the protocol's defaults
+    await dependencies.resolver.clearPDFCache()
 
     // A.5
     #expect(dependencies.providers.all.map(\.descriptor.id) == ["consumer"])
@@ -258,6 +260,7 @@ private func callEveryRequirement(of dependencies: AppDependencies, builder: any
     #expect(provider.descriptor.isLocal)
     #expect(await provider.availability() == .ready(detail: "Always"))
     #expect(try await provider.listModels().map(\.id) == ["echo"])
+    #expect(try await provider.listModels(includeHidden: true).map(\.id) == ["echo"])   // Gate 1: the default is listModels()
     var events: [LLMEvent] = []
     for try await event in provider.stream(LLMRequest(system: "Repeat.", parts: [.text("Hello")], purpose: .ping)) { events.append(event) }
     #expect(events == [.status("Echoing"), .textDelta("Hello"), .finished(.endOfTurn, Usage(inputTokens: 1, outputTokens: 1))])
@@ -297,6 +300,8 @@ private func callEveryRequirement(of dependencies: AppDependencies, builder: any
         reports.append(event)
     }
     #expect(reports.count == 5)
+    #expect(ReplyEvent.notice("The PDF was refused.") != ReplyEvent.textDelta("The PDF was refused."))   // Gate 1
+    #expect(ReportEvent.notice("The PDF was refused.") != ReportEvent.textDelta("The PDF was refused."))
     #expect(dependencies.engine.lint(reportMarkdown: "A robust effect.").map(\.rule) == ["banned-word"])
 
     // A.7
@@ -307,8 +312,15 @@ private func callEveryRequirement(of dependencies: AppDependencies, builder: any
     try await dependencies.sessions.save(session)
     #expect(try await dependencies.sessions.loadSession(sha256: paper.ref.sha256) == session)
     #expect(await dependencies.sessions.listSessions().map(\.id) == [paper.ref.sha256])
+    #expect(await dependencies.sessions.recoveryNotice(sha256: paper.ref.sha256) == nil)   // Gate 1: the default
     try await dependencies.sessions.deleteSession(sha256: paper.ref.sha256)
     #expect(try await dependencies.sessions.loadSession(sha256: paper.ref.sha256) == nil)
+    try await dependencies.sessions.save(session)
+    try await dependencies.sessions.deleteAllSessions()                    // Gate 1: the default deletes what the list shows
+    #expect(await dependencies.sessions.listSessions().isEmpty)
+
+    // A.8
+    #expect(dependencies.dataDirectory == nil)
 }
 
 @Suite struct ContractConsumersTests {

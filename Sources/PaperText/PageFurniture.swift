@@ -15,7 +15,9 @@ enum PageFurniture {
 
     /// Lines matching `^(for peer review( only)?|confidential|manuscript (id|number)\b.*|click here to
     /// (download|view|access).*|powered by editorial manager.*|.*scholarone.*|electronic copy available at.*)$`,
-    /// case-insensitive, become `.watermark`. Runs of whitespace count as one space.
+    /// case-insensitive, become `.watermark`. Runs of whitespace count as one space. So does the stamp arXiv prints
+    /// up the left margin of page 1, "arXiv:1409.0473v7 [cs.CL] 19 May 2016" (Gate 1: rotated, it was the tallest line
+    /// of the page and became the title guess of every arXiv paper).
     static func markBoilerplate(_ pages: inout [PageText]) {
         for position in pages.indices {
             for index in pages[position].lines.indices where pages[position].lines[index].kind == .body {
@@ -36,8 +38,12 @@ enum PageFurniture {
                        "electronic copy available at"] where line.hasPrefix(prefix) {
             return true
         }
-        return line.contains("scholarone")
+        if line.contains("scholarone") { return true }
+        return line.range(of: arxivStamp, options: .regularExpression) != nil
     }
+
+    /// "arxiv:1409.0473v7 [cs.cl] 19 may 2016", and the old form "arxiv:hep-th/9901001v1 [hep-th] 4 jan 1999".
+    static let arxivStamp = #"^arxiv:\s?(\d{4}\.\d{4,5}|[a-z-]+(\.[a-z-]+)?/\d{7})(v\d+)?\s?\[[a-z.-]+\]\s\d{1,2}\s[a-z]{3,9}\s\d{4}$"#
 
     // MARK: - Step 3: page numbers
 

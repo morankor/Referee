@@ -54,6 +54,9 @@ func surfaceCheckOfTheLibraries(raw: RawDocument, paper: PaperText, loaded: Load
                                                    matcherFactory: matcherFactory, renderer: PaperRenderer(), physicalMemoryBytes: 24 << 30)
     let _: any ReviewEngineProtocol = ReviewEngine(providers: ProviderRegistry([]), paperService: FakePaperService(paper: loaded),
                                                    matcherFactory: matcherFactory, renderer: FakePaperRenderer())
+    let _: any ReviewEngineProtocol = ReviewEngine(providers: ProviderRegistry([]), paperService: FakePaperService(paper: loaded),
+                                                   matcherFactory: matcherFactory, renderer: PaperRenderer(), physicalMemoryBytes: 24 << 30,
+                                                   debugDumpDirectory: folder)      // Gate 1
     isClass(ReviewEngine.self)
 
     // ---- ScholarKit (WP7) ----

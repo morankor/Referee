@@ -150,6 +150,14 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let format: ExportFormat = .docx
     switch format { case .markdown, .plainText, .docx, .pdf: break }
     let _: [ExportFormat] = ExportFormat.allCases
+    var failure = ReplyFailure(targetID: id, message: "The provider is overloaded.")       // Gate 1
+    failure.targetID = id
+    failure.message = ""
+    isValue(ReplyFailure.self)
+    let exportError: ExportError = .couldNotWrite("disk full")
+    switch exportError { case .couldNotCreate(_), .couldNotWrite(_): break }
+    let _: any RefereeError = exportError
+    isValue(ExportError.self)
     let command: ReaderCommand = .reveal(rects: [], flash: true)
     switch command { case .reveal(rects: _, flash: _), .goToPage(_), .clearSelection: break }
     let lookup: CitationLookup = .resolved(target: .entry(0), entries: [], references: [reference])
@@ -193,6 +201,8 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: (serial: Int, command: ReaderCommand)? = model.readerCommand
     let _: SelectionInfo? = model.selection
     let _: ComposingComment? = model.composing
+    let _: ReplyFailure? = model.replyFailure
+    let _: [Int: ResolvedReference] = model.references
     model.selectedCommentID = id
     model.openThreadCommentID = nil
     model.editingCommentID = nil
@@ -207,15 +217,18 @@ private struct SurfaceBuilder: PaperTextBuilding {
     await model.deleteReviewData()
     model.setActiveProvider(ProviderRef(providerID: "mock-remote", model: nil))
     model.answerConsent(granted: true)
+    model.answerConsent(granted: true, askAgain: true)
     model.reloadSettings(DefaultSettings.make())
     model.startReview()
     model.cancelRun()
     model.cancelReply()
     model.retryLastFailedJob()
+    model.retryFailedReply()
     model.setStatus(.approved, for: id)
     model.selectNextComment(pendingOnly: true)
     model.selectPreviousComment()
     model.revealSelectedCommentInPDF()
+    model.revealConversationInPDF(id)
     model.setKind(.question, for: id)
     model.editComment(id, kind: .minor, category: "other", title: "", body: "", suggestion: nil)
     model.deleteComment(id)
@@ -241,6 +254,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     model.lookUpCitation(mentionID: 0)
     model.lookUpEntry(entryID: 0)
     let _: URL = try await model.fetchReferencePDF(reference)
+    let _: URL = model.searchURL(for: BibEntry(id: 0, rawText: "Lee, J. (2021).", parsed: ParsedReference()))
     model.readerSelectionChanged(selection)
     model.readerClickedComment(id)
     model.readerClickedCitation(mentionID: 0)
@@ -259,11 +273,18 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: [ProviderID: [ModelInfo]] = settings.models
     let _: [ProviderID: String] = settings.modelErrors
     let _: Set<String> = settings.storedSecrets
+    let _: [String: String] = settings.secretErrors
+    let _: Int? = settings.pdfCacheBytes
+    let _: URL? = settings.dataDirectory
     let _: [ProviderDescriptor] = settings.providers
     settings.update { $0.privacy.localOnly = true }
     await settings.setSecret(nil, for: "anthropic-api")
     await settings.refreshAvailability(of: nil)
     await settings.refreshModels(of: "ollama")
+    await settings.refreshModels(of: "openai-api", includeHidden: true)
+    await settings.refreshPDFCacheSize()
+    await settings.clearPDFCache()
+    try await settings.deleteAllReviewData()
     let _: Result<String, LLMError> = await settings.sendTestPrompt(to: "ollama")
     settings.resetPromptsToDefaults()
     await settings.applyFirstRunDefaultsIfNeeded()
