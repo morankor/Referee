@@ -26,15 +26,16 @@ import TestSupport
         #expect(full.pngPath(for: "welcome") == "/tmp/out/welcome.png")
         #expect(plain.pngPath(for: "reader-find") == "build/snapshots/reader-find.png")
 
-        // The order of the options does not matter.
+        // The order of the options does not matter, and the program name may come first, as in CommandLine.arguments.
         #expect(try SnapshotOptions(arguments: ["--dark", "--scene", "a", "--ui-snapshot", "out"]).sceneNames == ["a"])
+        #expect(try SnapshotOptions(arguments: ["/Applications/Referee.app/Contents/MacOS/Referee", "--ui-snapshot", "out", "--dark"]) == (try SnapshotOptions(arguments: ["--ui-snapshot", "out", "--dark"])))
     }
 
     @Test(arguments: [
         [], ["--ui-snapshot"], ["--scene", "welcome"], ["--ui-snapshot", ""], ["--ui-snapshot", "out", "--scene"],
         ["--ui-snapshot", "out", "--size"], ["--ui-snapshot", "out", "--size", "1280"], ["--ui-snapshot", "out", "--size", "1280x"],
         ["--ui-snapshot", "out", "--size", "axb"], ["--ui-snapshot", "out", "--size", "1280x800x2"], ["--ui-snapshot", "out", "--size", "10x10"],
-        ["--ui-snapshot", "out", "--light"], ["--ui-snapshot", "out", "extra"],
+        ["--ui-snapshot", "out", "--light"], ["--ui-snapshot", "out", "extra"], ["Referee"], ["Referee", "paper.pdf", "--ui-snapshot", "out"],
     ])
     func wrongArgumentsAreRefused(arguments: [String]) {
         #expect(throws: SnapshotOptions.Problem.self) { try SnapshotOptions(arguments: arguments) }

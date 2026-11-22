@@ -53,5 +53,12 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
         guard paper?.ref.sha256 != shownDocument else { return }
         shownDocument = paper?.ref.sha256
         pdfView.document = paper.flatMap { PDFDocument(data: $0.data) }
+        // Left to itself PDFKit opens a document a little below the top of its first page, by an amount that
+        // depends on the size of the view. Going to the top left corner of that page gives the same start everywhere.
+        if let first = pdfView.document?.page(at: 0) {
+            pdfView.layoutDocumentView()
+            let box = first.bounds(for: pdfView.displayBox)
+            pdfView.go(to: PDFDestination(page: first, at: NSPoint(x: box.minX, y: box.maxY)))
+        }
     }
 }

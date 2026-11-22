@@ -2,7 +2,7 @@
 
 A macOS PDF reader for peer review: the manuscript on the left, AI-drafted referee comments in a sidebar to approve, reject, discuss or add to, questions about any highlighted passage, clickable citations that open the cited paper, and a generated referee report to edit and export.
 
-**Status: scaffold.** The package builds, every target exists with its public surface, and the implementations behind that surface are placeholders. `plan.md` is the implementation plan and the single source of truth; its §11 lists the work packages that fill the placeholders in. This README covers building and testing only. The user's guide (installation, providers, privacy, troubleshooting) is written at the end of the work (plan §11.5).
+**Status: scaffold with test support.** The package builds and every target exists with its public surface. The shared contracts, the test support (mock provider, fakes, fixtures) and the snapshot mode are real; the implementations behind the other surfaces are placeholders. `plan.md` is the implementation plan and the single source of truth; its §11 lists the work packages that fill the placeholders in. This README covers building and testing only. The user's guide (installation, providers, privacy, troubleshooting) is written at the end of the work (plan §11.5).
 
 ## Requirements
 
@@ -31,9 +31,11 @@ Run them from the repository root. These are the only commands used in this proj
 
 What works at this stage:
 
-- `build.sh`, `test.sh`, `run.sh`, `bundle.sh` and `make-icon.sh` work. `run.sh` opens an empty welcome window; quit it with ⌘Q.
-- `snapshots.sh` runs but captures nothing yet: the snapshot runner is written in the next step (WP0b), and until then the script exits with an error.
-- `make-fixtures.sh` arrives with WP0b; `e2e-ollama.sh` and `fetch-optional-fixtures.sh` arrive with Gate 1.
+- `build.sh`, `test.sh`, `bundle.sh` and `make-icon.sh` work.
+- `run.sh Fixtures/pdf/ay_round_nolinks.pdf` opens a review window: the PDF between two placeholder panes. Without a file it opens a placeholder welcome window. Quit with ⌘Q.
+- `snapshots.sh` works. There is one scene so far, `placeholder`; `scripts/snapshots.sh --scene placeholder` writes `build/snapshots/placeholder.png` and a line in `build/snapshots/manifest.jsonl`. The app shows its own window off screen and captures it itself, so no Screen Recording permission is needed; while a scene runs, a corner of that window is visible at the edge of the screen.
+- `make-fixtures.sh` rebuilds the seven fixture PDFs from `Fixtures/tex` and their raw dumps. It needs `pdflatex` on the `PATH` (MacTeX puts it in `/Library/TeX/texbin`). The PDFs and dumps are committed, so tests never need TeX.
+- `referee-cli` has one subcommand so far: `referee-cli dump-raw <pdf>` prints what PDFKit extracts from a file. The rest arrives with Gate 1, as do `e2e-ollama.sh` and `fetch-optional-fixtures.sh`.
 
 Rules that keep builds and tests reliable:
 
@@ -52,7 +54,7 @@ scripts/        the commands above, and make-icon.sh (app icon; called by bundle
 docs/           plan-review.md, prototypes/, contract-notes/ (one notes file per work package)
 Sources/        one folder per target (plan §2.1)
 Tests/          one folder per test target
-Fixtures/       synthetic manuscripts and recorded model output (added in WP0b)
+Fixtures/       synthetic manuscripts (LaTeX sources, PDFs, raw dumps), model outputs for the mock, a sample session
 build/          output of the scripts: the app, the icon, snapshots (not in git)
 ```
 

@@ -18,13 +18,17 @@ import TestSupport
 // - A welcome scene gets two sample summaries of recent reviews. A reference-viewer scene shows the scene's `fixturePDF`.
 // - In a review scene `prepare` is called once the reader has loaded the display document (after three seconds at
 //   the latest), so a scene can use the PDF view at once.
-// - Two things count as failed expectations besides what `verify` returns: a review scene whose `fixturePDF` does
-//   not load, and a window that did not keep the size it was given (a view whose minimum size is larger makes the
-//   window grow, in the app as much as here).
+// - Besides what `verify` returns, these count as failed expectations: a review scene whose `fixturePDF` does not
+//   load; a window that did not keep the size it was given (a view whose minimum size is larger makes the window
+//   grow, in the app as much as here); a data folder, a capture or a PNG that could not be made.
+// - The window is an NSWindow in every respect but one: AppKit may not shrink it to the screen. A scene therefore
+//   has the size it was given on any display, also one that is smaller than the window.
 
 @MainActor public enum SnapshotRunner {
     /// Runs ShellScenes.all + ReaderScenes.all + SidebarScenes.all + IntegrationScenes.all (or the named ones) and returns the exit code.
     ///
+    /// `arguments` are the arguments of the process ("--ui-snapshot <outDir> [--scene <name>]… [--dark] [--size WxH]"),
+    /// with or without the program name in front.
     /// 0: every scene was captured, is not blank and has no failed expectation. 1: otherwise, also when a named scene
     /// does not exist or there is nothing to run. 2: the arguments are wrong.
     public static func run(arguments: [String], makeDependencies: @escaping @Sendable ([String: String]) async -> AppDependencies) async -> Int32 {
@@ -166,7 +170,7 @@ import TestSupport
             let actual = window.contentRect(forFrameRect: window.frame).size
             if abs(actual.width - fixedSize.width) > 0.5 || abs(actual.height - fixedSize.height) > 0.5 {
                 result.failures.append("the window is \(Int(actual.width)) x \(Int(actual.height)) points, not the "
-                    + "\(Int(fixedSize.width)) x \(Int(fixedSize.height)) it was given: the view's minimum size is larger")
+                    + "\(Int(fixedSize.width)) x \(Int(fixedSize.height)) it was given: the size limits of its view do not allow that size")
             }
         }
 
@@ -187,11 +191,15 @@ import TestSupport
     }
 
     /// `NSWindow(contentViewController: NSHostingController(rootView:))`, as every window of the app is made (section 9.1).
-    /// `size` nil: the size the view asks for. The window is ordered front and then moved far off screen, where AppKit
-    /// and the window server still draw it; a snapshot run therefore does not flash windows over the user's work.
+    /// `size` nil: the size the view asks for.
+    ///
+    /// The window is shown almost entirely off screen, so that a snapshot run does not put windows over the user's
+    /// work: only its top right corner, 40 by 74 points, lies inside the bottom left of the main screen. That is
+    /// where AppKit itself puts a window that is sent to (-6000, -6000), and AppKit and the window server draw a
+    /// window in that position completely.
     private static func makeWindow(_ root: some View, title: String, size: NSSize?, isDocumentWindow: Bool, dark: Bool) -> NSWindow {
         let hosting = NSHostingController(rootView: root)
-        let window = NSWindow(contentViewController: hosting)
+        let window = SnapshotWindow(contentViewController: hosting)
         window.isReleasedWhenClosed = false
         window.styleMask = isDocumentWindow
             ? [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
@@ -201,7 +209,7 @@ import TestSupport
         let asked = hosting.view.fittingSize
         window.setContentSize(size ?? (asked.width >= 300 && asked.height >= 200 ? asked : NSSize(width: 640, height: 440)))
         window.orderFrontRegardless()
-        window.setFrameOrigin(NSPoint(x: -6000, y: -6000))
+        window.moveOffScreen()
         return window
     }
 
@@ -224,6 +232,22 @@ import TestSupport
     }
 }
 
+/// The window of a scene. It differs from a plain NSWindow in one thing: AppKit does not get to move or shrink it.
+/// A plain window is cut down to the visible part of the screen when it is shown, so that a scene of 1280 × 800
+/// points would come out lower on a display with a large Dock, or with fewer points.
+private final class SnapshotWindow: NSWindow {
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
+
+    /// Leaves only the top right corner on the main screen (see `makeWindow`). Without a screen the window goes far away.
+    func moveOffScreen() {
+        guard let screen = NSScreen.screens.first else {
+            setFrameOrigin(NSPoint(x: -6000, y: -6000))
+            return
+        }
+        setFrameOrigin(NSPoint(x: screen.frame.minX + 40 - frame.width, y: screen.frame.minY + 74 - frame.height))
+    }
+}
+
 // ---- arguments ----
 
 /// The arguments of the snapshot mode.
@@ -241,11 +265,11 @@ struct SnapshotOptions: Equatable {
         init(_ description: String) { self.description = description }
     }
 
-    /// `arguments` are the process arguments without the program name. Anything it does not know is an error:
-    /// a mistyped option must not silently change what is captured.
+    /// `arguments` are the process arguments, with or without the program name in front. Anything else it does not
+    /// know is an error: a mistyped option must not silently change what is captured.
     init(arguments: [String]) throws {
         var outPath: String?
-        var index = 0
+        var index = arguments.first?.hasPrefix("--") == false ? 1 : 0       // a first argument that is no option is the program name
         func value(after option: String) throws -> String {
             guard index + 1 < arguments.count else { throw Problem("\(option) needs a value") }
             index += 1
