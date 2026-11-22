@@ -164,7 +164,12 @@ import TestSupport
     }
 
     /// `stallAfterChunks: n` on a response of one's own: n deltas, then silence until the consumer is cancelled, which
-    /// ends the stream with `.cancelled`. A stall point past the end of the text is never reached.
+    /// ends the stream. A stall point past the end of the text is never reached.
+    ///
+    /// How a cancelled stream ends depends on the moment: a consumer cancelled inside the stall (or a delay) gets
+    /// `.cancelled`; one cancelled before the first element or between two elements sees the stream simply end, as
+    /// `AsyncThrowingStream(unfolding:)` does. A busy machine can delay the consumer that long, so the tests here accept
+    /// both, and code that consumes a provider must too (plan.md section 11.4: "ends with .cancelled or silently").
     @Test func afterStallAfterChunksNothingComesUntilTheConsumerIsCancelled() async throws {
         final class Seen: @unchecked Sendable {
             private let lock = NSLock()
@@ -194,7 +199,10 @@ import TestSupport
         #expect(!seen.snapshot.ended)
         consumer.cancel()
         await consumer.value
-        #expect(seen.snapshot.failure as? LLMError == .cancelled)
+        #expect(seen.snapshot.ended)
+        #expect(seen.snapshot.events.count == 2)                // nothing more, and no .finished
+        let failure = seen.snapshot.failure
+        #expect(failure == nil || failure as? LLMError == .cancelled)
 
         let beyond = MockResponse(text: "abcd", chunkSize: 2, stallAfterChunks: 3)
         let (events, error) = await collect(MockLLMProvider(script: MockScript(responses: [.review: [beyond]])).stream(request(.review)))
@@ -203,27 +211,30 @@ import TestSupport
         #expect(events.count == 3)                              // the two deltas and .finished
     }
 
-    /// A consumer cancelled while the mock waits out a delay ends at once, with `.cancelled`.
-    @Test func aDelayedStreamThatIsCancelledEndsWithCancelled() async {
-        let response = MockResponse(text: "abcdef", chunkSize: 2, delayPerChunk: .seconds(30))
-        let stream = MockLLMProvider(script: MockScript(responses: [.review: [response]])).stream(request(.review))
+    /// A consumer cancelled while the mock waits out a delay does not wait for it: the stream ends at once, with
+    /// `.cancelled` (or without an error, if the cancellation came before the first element; see above).
+    @Test func aDelayedStreamEndsAtOnceWhenItsConsumerIsCancelled() async {
+        let mock = MockLLMProvider(script: MockScript(responses: [.review: [MockResponse(text: "abcdef", chunkSize: 2, delayPerChunk: .seconds(30))]]))
+        let review = request(.review)
         let consumer = Task { () -> (count: Int, error: Error?) in
             var count = 0
             do {
-                for try await _ in stream { count += 1 }
+                for try await _ in mock.stream(review) { count += 1 }       // the request is recorded here, just before the first delay
                 return (count, nil)
             } catch {
                 return (count, error)
             }
         }
-        try? await Task.sleep(for: .milliseconds(100))
         let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(5)
+        while mock.recordedRequests.isEmpty, clock.now < deadline { try? await Task.sleep(for: .milliseconds(5)) }
+        try? await Task.sleep(for: .milliseconds(100))
         let cancelledAt = clock.now
         consumer.cancel()
         let result = await consumer.value
-        #expect(clock.now - cancelledAt < .seconds(2))
+        #expect(clock.now - cancelledAt < .seconds(2))          // not the thirty seconds of the delay
         #expect(result.count == 0)
-        #expect(result.error as? LLMError == .cancelled)
+        #expect(result.error == nil || result.error as? LLMError == .cancelled)
     }
 
     @Test func delaysSeparateTheDeltas() async {
@@ -322,13 +333,15 @@ import TestSupport
         #expect(seen.snapshot.deltas == expected)
         #expect(!seen.snapshot.ended)
 
-        // Cancelling the consumer ends it promptly, with the error providers throw for a cancellation.
+        // Cancelling the consumer ends it promptly: inside the stall with the error providers throw for a cancellation,
+        // or, if a busy machine kept the consumer between two elements until then, without one (see above).
         let cancelledAt = clock.now
         consumer.cancel()
         await consumer.value
         #expect(clock.now - cancelledAt < .seconds(2))
         #expect(seen.snapshot.ended)
-        #expect(seen.snapshot.failure as? LLMError == .cancelled)
+        let failure = seen.snapshot.failure
+        #expect(failure == nil || failure as? LLMError == .cancelled)
     }
 
     @Test func aStreamThatIsNeverIteratedDoesNothing() async {

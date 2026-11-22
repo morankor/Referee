@@ -42,20 +42,30 @@ import TestSupport
         }
         #expect(text.components(separatedBy: "\n@@END\n").count - 1 == 2)
 
+        // A stalled stream stays open and never sends .finished. How it ends once cancelled depends on the moment: inside
+        // the stall it throws .cancelled, between two deltas it just ends (a busy machine can delay the consumer that
+        // long). So the test asks only what holds either way.
         let stalling = try #require(registry.provider(id: "mock-stall") as? MockLLMProvider)
-        let consumer = Task { () -> Bool in
+        final class Ended: @unchecked Sendable {
+            private let lock = NSLock()
+            private var value = false
+            func set() { lock.withLock { value = true } }
+            var isSet: Bool { lock.withLock { value } }
+        }
+        let ended = Ended()
+        let consumer = Task { () -> Bool in             // true: the stream sent .finished
+            defer { ended.set() }
             do {
                 for try await event in stalling.stream(request) {
                     if case .finished = event { return true }
                 }
-                return true
-            } catch {
-                return false
-            }
+            } catch {}
+            return false
         }
         try await Task.sleep(for: .milliseconds(200))
+        #expect(!ended.isSet)                           // still open
         consumer.cancel()
-        #expect(await consumer.value == false)          // it ended because it was cancelled, not because it finished
+        #expect(await consumer.value == false)          // and it never finished on its own
     }
 
     @Test func theStaticRowsCarryTheRosterAndShowEveryStatus() async throws {

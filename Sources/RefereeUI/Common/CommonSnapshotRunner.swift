@@ -214,15 +214,17 @@ import TestSupport
     }
 
     /// What a welcome scene lists under "recent reviews": two fixtures, with dates and counts that never change.
+    /// The paths are relative to the repository root, where snapshots run: an absolute one would put the checkout's
+    /// location, and with it the user's home folder, into any picture that shows a path.
     private static func sampleRecentReviews() -> [SessionSummary] {
         [
             SessionSummary(id: String(repeating: "a1", count: 32), fileName: "ay_round_nolinks.pdf",
                            title: "Information Aggregation in Sequential Markets: A Fixture",
-                           lastKnownPath: Fixtures.url("pdf/ay_round_nolinks.pdf").path, updatedAt: Date(timeIntervalSince1970: 1_795_000_000),
+                           lastKnownPath: "Fixtures/pdf/ay_round_nolinks.pdf", updatedAt: Date(timeIntervalSince1970: 1_795_000_000),
                            commentCount: 12, pendingCount: 3, hasReport: false),
             SessionSummary(id: String(repeating: "b2", count: 32), fileName: "num_links.pdf",
                            title: "A Single-Column Numeric Fixture With Links",
-                           lastKnownPath: Fixtures.url("pdf/num_links.pdf").path, updatedAt: Date(timeIntervalSince1970: 1_794_400_000),
+                           lastKnownPath: "Fixtures/pdf/num_links.pdf", updatedAt: Date(timeIntervalSince1970: 1_794_400_000),
                            commentCount: 7, pendingCount: 0, hasReport: true),
         ]
     }

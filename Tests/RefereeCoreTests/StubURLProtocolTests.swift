@@ -47,8 +47,8 @@ import TestSupport
     }
 
     @Test func chunksWithADelayArriveOneByOne() async throws {
-        let parts = ["data: one\n", "data: two\n", "data: three\n"]
-        let delay = Duration.milliseconds(300)
+        let parts = ["data: one\n", "data: two\n", "data: three\n", "data: four\n"]
+        let delay = Duration.milliseconds(400)
         StubURLProtocol.setHandler { _ in
             StubURLProtocol.Response(headers: ["Content-Type": "text/event-stream"], chunks: parts.map { Data($0.utf8) }, delayPerChunk: delay)
         }
@@ -60,14 +60,14 @@ import TestSupport
         for try await byte in bytes {
             if let line = splitter.push(byte) { arrivals.append((line, clock.now - started)) }
         }
-        #expect(arrivals.map(\.line) == ["data: one", "data: two", "data: three"])
+        #expect(arrivals.map(\.line) == ["data: one", "data: two", "data: three", "data: four"])
         let first = arrivals.first?.after ?? .zero
         let last = arrivals.last?.after ?? .zero
         // Each chunk waits its turn: no line can come before its chunk's delays have passed…
         #expect(first >= delay - .milliseconds(10))
-        #expect(last >= delay * 3 - .milliseconds(10))
-        // …and the first line was read while the last chunk was still to come: two delays lie between them, and one
-        // is asked for here, so a busy machine does not fail the test.
+        #expect(last >= delay * 4 - .milliseconds(10))
+        // …and the first line was read while the last chunk was still to come: three delays lie between them, and one
+        // is asked for here, so a machine kept busy by several builds at once does not fail the test.
         #expect(first <= last - delay)
     }
 
