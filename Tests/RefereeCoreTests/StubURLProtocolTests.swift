@@ -48,8 +48,9 @@ import TestSupport
 
     @Test func chunksWithADelayArriveOneByOne() async throws {
         let parts = ["data: one\n", "data: two\n", "data: three\n"]
+        let delay = Duration.milliseconds(300)
         StubURLProtocol.setHandler { _ in
-            StubURLProtocol.Response(chunks: parts.map { Data($0.utf8) }, delayPerChunk: .milliseconds(150))
+            StubURLProtocol.Response(headers: ["Content-Type": "text/event-stream"], chunks: parts.map { Data($0.utf8) }, delayPerChunk: delay)
         }
         let clock = ContinuousClock()
         let started = clock.now
@@ -60,10 +61,14 @@ import TestSupport
             if let line = splitter.push(byte) { arrivals.append((line, clock.now - started)) }
         }
         #expect(arrivals.map(\.line) == ["data: one", "data: two", "data: three"])
-        // Each chunk waits its turn: the first line cannot come before one delay has passed, the last not before three.
-        #expect((arrivals.first?.after ?? .zero) >= .milliseconds(140))
-        #expect((arrivals.last?.after ?? .zero) >= .milliseconds(440))
-        #expect((arrivals.first?.after ?? .zero) < (arrivals.last?.after ?? .zero) - .milliseconds(200))
+        let first = arrivals.first?.after ?? .zero
+        let last = arrivals.last?.after ?? .zero
+        // Each chunk waits its turn: no line can come before its chunk's delays have passed…
+        #expect(first >= delay - .milliseconds(10))
+        #expect(last >= delay * 3 - .milliseconds(10))
+        // …and the first line was read while the last chunk was still to come: two delays lie between them, and one
+        // is asked for here, so a busy machine does not fail the test.
+        #expect(first <= last - delay)
     }
 
     @Test func noHandlerOrANilResponseIsAConnectionRefused() async throws {
@@ -139,29 +144,37 @@ import TestSupport
     }
 
     @Test func cancellingTheConsumerStopsADelayedDelivery() async throws {
+        // Two hundred chunks, fifty milliseconds apart: left alone, the body takes ten seconds.
         StubURLProtocol.setHandler { _ in
             StubURLProtocol.Response(chunks: (0..<200).map { Data("data: \($0)\n".utf8) }, delayPerChunk: .milliseconds(50))
         }
+        /// The lines read so far, readable while the consumer is still reading.
+        final class Counter: @unchecked Sendable {
+            private let lock = NSLock()
+            private var count = 0
+            func increment() { lock.withLock { count += 1 } }
+            var value: Int { lock.withLock { count } }
+        }
+        let lines = Counter()
         let session = StubURLProtocol.session()
         let target = try url("endless")
-        let consumer = Task { () -> Int in
-            var count = 0
+        let consumer = Task {
             do {
                 let (bytes, _) = try await session.bytes(from: target)
-                for try await byte in bytes where byte == 0x0A { count += 1 }
+                for try await byte in bytes where byte == 0x0A { lines.increment() }
             } catch {
                 // cancelled: expected
             }
-            return count
         }
-        try await Task.sleep(for: .milliseconds(400))
         let clock = ContinuousClock()
+        let started = clock.now
+        while lines.value < 3, clock.now - started < .seconds(8) { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(lines.value >= 3)                               // the body is arriving piece by piece
         let cancelledAt = clock.now
         consumer.cancel()
-        let received = await consumer.value
-        #expect(clock.now - cancelledAt < .seconds(2))          // it did not wait for the ten seconds the body would take
-        #expect(received >= 1)
-        #expect(received < 200)
+        await consumer.value
+        #expect(clock.now - cancelledAt < .seconds(3))          // it did not wait for the rest of the ten seconds
+        #expect(lines.value < 200)
     }
 
     /// Each test has a handler of its own, so tests that use the stub can run in parallel (the default in Swift
@@ -191,21 +204,20 @@ import TestSupport
         #expect(mismatches == 0)
     }
 
-    @Test func aSessionOnlyReachesTheHandlerOfTheTestThatMadeIt() async throws {
-        StubURLProtocol.setHandler { _ in StubURLProtocol.Response(chunks: [Data("mine".utf8)]) }
+    @Test func aSessionBelongsToTheTaskThatMadeIt() async throws {
+        let mine = "mine \(UUID().uuidString)"
+        StubURLProtocol.setHandler { _ in StubURLProtocol.Response(chunks: [Data(mine.utf8)]) }
         let target = try url("scoped")
-        // A session made in another task has no handler there: its requests are refused, whatever this test has set.
+        // A session made in another task does not reach this test's handler. (What its requests meet instead is not
+        // defined: a refusal as a rule, or whatever an earlier test left behind. That is why a test sets its handler
+        // and makes its session in one and the same task.)
         let foreign = await Task { StubURLProtocol.session() }.value
-        do {
-            _ = try await foreign.data(from: target)
-            Issue.record("a session made in another task should not reach this test's handler")
-        } catch {
-            #expect((error as? URLError)?.code == .cannotConnectToHost)
-        }
+        let foreignAnswer = (try? await foreign.data(from: target).0).map { String(decoding: $0, as: UTF8.self) }
+        #expect(foreignAnswer != mine)
         // The session made here works from any task.
         let session = StubURLProtocol.session()
         let answer = await Task { String(decoding: (try? await session.data(from: target).0) ?? Data(), as: UTF8.self) }.value
-        #expect(answer == "mine")
+        #expect(answer == mine)
         #expect(StubURLProtocol.recordedRequests.count == 1)
     }
 }

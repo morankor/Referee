@@ -130,7 +130,9 @@ public final class MockLLMProvider: LLMProvider, @unchecked Sendable {
 
     public init(id: ProviderID = "mock", script: MockScript = .sample, isLocal: Bool = true, supportsNativePDF: Bool = false) {
         self.script = script
-        descriptor = ProviderDescriptor(id: id, displayName: id == "mock" ? "Mock" : "Mock (\(id))", vendor: "Mock", authMode: .none,
+        // "Mock" for the plain one; "Mock (remote)", "Mock (fail)", … for the others, so that a menu can tell them apart.
+        let variant = id.hasPrefix("mock-") ? String(id.dropFirst("mock-".count)) : id
+        descriptor = ProviderDescriptor(id: id, displayName: id == "mock" ? "Mock" : "Mock (\(variant))", vendor: "Mock", authMode: .none,
                                         isLocal: isLocal, destination: isLocal ? "this Mac" : "mock.example.org",
                                         supportsNativePDF: supportsNativePDF, streaming: .token,
                                         retentionNote: "A stand-in for tests and snapshots; nothing leaves this Mac.", isExperimental: false)

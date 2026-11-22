@@ -10,10 +10,12 @@ import RefereeCore
 /// task makes with `session()`. In practice:
 ///
 /// - Call `setHandler`, `session()` and `recordedRequests` from the test function itself (or from functions it calls
-///   directly), not from a child task, and make a new session in every test. A session reaches only the handler of
-///   the test that made it; without one its requests fail as "connection refused".
-/// - Start every test that uses the stub with `setHandler`, also when requests should fail (`setHandler(nil)`):
-///   the call empties `recordedRequests`, and it replaces whatever an earlier test may have left behind.
+///   directly), not from a child task, and make a new session in every test. A session never reaches the handler of
+///   another running test.
+/// - Start every test that uses the stub with `setHandler`, also when requests should fail (`setHandler(nil)`).
+///   The call empties `recordedRequests` and replaces whatever an earlier test left behind. Tasks are told apart by
+///   their identity, which a new task can inherit from one that has ended; a test that makes a session and never
+///   sets a handler may therefore meet the handler of a test that is over, instead of "connection refused".
 /// - Code that runs outside any task shares one slot.
 ///
 /// **Chunks really arrive one by one.** URLSession holds back the first 512 bytes of a body that has no Content-Type
@@ -63,7 +65,8 @@ public final class StubURLProtocol: URLProtocol {
     private static let noSniffHeader = "X-Content-Type-Options"
     private static let registry = StubRegistry()
 
-    /// The identity of the running task, or 0 outside any task.
+    /// The identity of the running task, or 0 outside any task. It is unique among the tasks that are alive, which is
+    /// what keeps tests that run at the same time apart; it is not unique over time.
     private static func currentScope() -> Int {
         withUnsafeCurrentTask { $0?.hashValue ?? 0 }
     }

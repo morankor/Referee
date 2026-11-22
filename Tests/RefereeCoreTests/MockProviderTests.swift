@@ -58,7 +58,8 @@ import TestSupport
         #expect(remote.descriptor.destination == "mock.example.org")
         #expect(remote.descriptor.supportsNativePDF)
         #expect(try await remote.listModels().first?.supportsPDFInput == true)
-        #expect(remote.descriptor.displayName != mock.descriptor.displayName)
+        #expect(remote.descriptor.displayName == "Mock (remote)")
+        #expect(MockLLMProvider(id: "second").descriptor.displayName == "Mock (second)")
     }
 
     @Test func aResponseIsCutIntoDeltasOfChunkSizeAndEndsWithFinished() async {

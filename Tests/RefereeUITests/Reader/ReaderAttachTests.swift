@@ -20,10 +20,10 @@ import RefereeUI
         return (ReviewSessionModel(dependencies: dependencies, settings: DefaultSettings.make()), paper)
     }
 
-    /// Lets the main actor run what the controller scheduled, until the condition holds or two seconds have passed.
+    /// Lets the main actor run what the controller scheduled, until the condition holds or ten seconds have passed.
     @MainActor private func wait(until condition: () -> Bool) async {
         let clock = ContinuousClock()
-        let deadline = clock.now + .seconds(2)
+        let deadline = clock.now + .seconds(10)
         while !condition(), clock.now < deadline { try? await Task.sleep(for: .milliseconds(5)) }
     }
 

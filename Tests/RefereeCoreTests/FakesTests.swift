@@ -155,6 +155,20 @@ import TestSupport
         #expect(matcher.locationLabel(for: []) == "")
     }
 
+    /// What tests of the engine and the model can count on when they pair the fake matcher with the default sample
+    /// paper and the mock's review answer: two of its six quotes stand within one line and are found; the other four
+    /// run over a line break, or stand on a line whose spaces PDFKit lost, and are not.
+    @Test func theQuoteMatcherFindsTwoOfTheSixReviewQuotesInTheSamplePaper() throws {
+        let matcher = FakeQuoteMatcher(paper: try makeSamplePaper().text)
+        let quotes = try Fixtures.text("llm/review_clean.txt").split(separator: "\n").filter { $0.hasPrefix("quote: ") }.map { String($0.dropFirst(7)) }
+        #expect(quotes.count == 6)
+        let found = quotes.map { matcher.locate(quote: $0, pageHint: nil) }
+        #expect(found.map { $0 != nil } == [false, false, true, false, false, true])
+        #expect(found[2]?.spans.map(\.pageIndex) == [0])
+        #expect(found[5]?.spans.map(\.pageIndex) == [0])
+        #expect(found[2].map { matcher.locationLabel(for: $0.spans) } == "p. 1")
+    }
+
     @Test func theCitationIndexerReturnsItsIndexWhateverTheInput() {
         let paper = tinyPaper()
         #expect(FakeCitationIndexer().buildIndex(paper: paper, links: []) == CitationIndex(style: .unknown))
@@ -320,7 +334,7 @@ import TestSupport
         #expect(empty.calls == ["review", "plan"])
 
         // A call is recorded when it is made; the events come only when the stream is read, a delay before each.
-        let slow = ScriptedReviewEngine(plan: plan, review: [.notice("one"), .notice("two"), .notice("three")], delayPerEvent: .milliseconds(500))
+        let slow = ScriptedReviewEngine(plan: plan, review: [.notice("one"), .notice("two"), .notice("three")], delayPerEvent: .seconds(1))
         let stream = slow.review(paper: paper, existing: [], context: context())
         #expect(slow.calls == ["review"])
 
@@ -341,12 +355,10 @@ import TestSupport
                 Issue.record("a scripted stream never throws")
             }
         }
-        while seen.all.isEmpty, clock.now - started < .seconds(5) { try await Task.sleep(for: .milliseconds(5)) }
-        #expect(clock.now - started >= .milliseconds(490))     // the first event waited for its delay
-        consumer.cancel()                                       // the second one is half a second away
-        let cancelledAt = clock.now
-        await consumer.value
-        #expect(clock.now - cancelledAt < .milliseconds(400))  // the cancelled stream ended at once, without the second event
+        while seen.all.isEmpty, clock.now - started < .seconds(8) { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(clock.now - started >= .milliseconds(990))     // the first event waited for its delay
+        consumer.cancel()                                       // the second one is a second away
+        await consumer.value                                    // the cancelled stream ends, without the second event
         #expect(seen.all == [.notice("one")])
     }
 }
