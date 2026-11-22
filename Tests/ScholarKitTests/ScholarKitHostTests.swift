@@ -44,4 +44,53 @@ import TestSupport
             #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
         }
     }
+
+    /// Plan.md section 12.2: the log holds no reference text, no identifier of a cited work and no PDF host.
+    @Test func theLogHoldsNeitherReferenceTextNorIdentifiers() async throws {
+        let events = EventRecorder()
+        let sink = Log.addTestSink { name, fields in
+            if name.hasPrefix("scholar.") { events.add(name, fields) }   // a sink sees every running test's events
+        }
+        defer { Log.removeTestSink(sink) }
+        StubURLProtocol.setHandler { request in
+            switch request.url?.host {
+            case "api.crossref.org": return Stub.json(Bodies.crossrefHochreiter)
+            case "api.openalex.org": return Stub.json(Bodies.openAlexOpenAccess)
+            default: return Stub.pdf()
+            }
+        }
+        let harness = ResolverHarness()
+        defer { harness.cleanUp() }
+
+        let reference = await harness.resolver.resolve(try Entries.hochreiter(), documentSHA256: Documents.first)
+        _ = try await harness.resolver.fetchPDF(for: reference)
+        await harness.resolver.forget(documentSHA256: Documents.first)
+
+        let recorded = events.all
+        #expect(Set(recorded.map(\.name)).isSuperset(of: ["scholar.request", "scholar.resolve", "scholar.pdf", "scholar.forget"]))
+        for event in recorded {
+            for value in event.fields.values {
+                guard case .id(let id) = value else { continue }
+                #expect(!id.lowercased().contains("hochreiter"), "\(event.name)")
+                #expect(!id.contains("10.1162") && !id.contains("example.org") && !id.contains(Documents.first), "\(event.name)")
+            }
+        }
+    }
+}
+
+/// Log events seen by a test sink.
+final class EventRecorder: @unchecked Sendable {
+    struct Event {
+        let name: String
+        let fields: [String: LogValue]
+    }
+
+    private let lock = NSLock()
+    private var events: [Event] = []
+
+    func add(_ name: String, _ fields: [String: LogValue]) {
+        lock.withLock { events.append(Event(name: name, fields: fields)) }
+    }
+
+    var all: [Event] { lock.withLock { events } }
 }
