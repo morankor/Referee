@@ -62,15 +62,15 @@ enum TextMentionFinder {
                 if entries.isEmpty { continue }
             }
             let yearStart = match.range.location
-            var context = leftContext(of: string, before: yearStart)
+            var context = leftContext(of: flow.units, before: yearStart)
             stripTrailingYears(&context.units)
             var lengths = [context.units.count]
-            if endsInPossessive(string, before: yearStart), context.units.last == 0x73 { lengths.append(context.units.count - 1) }   // "s"
+            if endsInPossessive(flow.units, before: yearStart), context.units.last == 0x73 { lengths.append(context.units.count - 1) }   // "s"
 
             var hits: [(length: Int, start: Int, id: Int)] = []
             for entry in entries {
                 for key in entry.keys {
-                    for length in lengths where length >= key.count && context.units[(length - key.count)..<length].elementsEqual(key) {
+                    for length in lengths where hasSuffix(context.units, end: length, key) {
                         let start = context.positions[length - key.count]
                         if beginsName(in: string, at: start) { hits.append((key.count, start, entry.id)) }
                         break
@@ -90,23 +90,66 @@ enum TextMentionFinder {
 
     /// The folded characters before `position`, walking left and skipping everything that folds to nothing, at most
     /// `contextLimit` of them, with the position in `string` of the character each came from.
-    static func leftContext(of string: NSString, before position: Int) -> (units: [UInt32], positions: [Int]) {
-        var units: [UInt32] = []
-        var positions: [Int] = []
+    static func leftContext(of text: [UInt16], before position: Int) -> (units: [UInt32], positions: [Int]) {
+        // Filled from the end, so that no reversal is needed; written through buffer pointers because this runs once
+        // per year in the text and tests run unoptimised.
+        let capacity = contextLimit + 8                     // one scalar folds to a few units at most
+        var units = [UInt32](repeating: 0, count: capacity)
+        var positions = [Int](repeating: 0, count: capacity)
+        var first = capacity
         var buffer: [UInt32] = []
-        var cursor = position
-        while cursor > 0, units.count < contextLimit {
-            guard let previous = Folding.scalar(before: cursor, in: string) else { break }
-            cursor = previous.start
-            guard let scalar = previous.scalar else { continue }
-            buffer.removeAll(keepingCapacity: true)
-            Folding.fold(scalar, into: &buffer)
-            for unit in buffer.reversed() {
-                units.append(unit)
-                positions.append(previous.start)
+        text.withUnsafeBufferPointer { source in
+            units.withUnsafeMutableBufferPointer { out in
+                positions.withUnsafeMutableBufferPointer { origin in
+                    var cursor = min(position, source.count)
+                    while cursor > 0, capacity - first < contextLimit {
+                        cursor -= 1
+                        let unit = source[cursor]
+                        var value = UInt32(unit)
+                        if unit < 0x80 {                                   // ASCII: letters and digits, lower-cased
+                            if value >= 0x41 && value <= 0x5A {
+                                value += 0x20
+                            } else if !((value >= 0x61 && value <= 0x7A) || (value >= 0x30 && value <= 0x39)) {
+                                continue
+                            }
+                            first -= 1
+                            out[first] = value
+                            origin[first] = cursor
+                            continue
+                        }
+                        if UTF16.isTrailSurrogate(unit), cursor > 0, UTF16.isLeadSurrogate(source[cursor - 1]) {
+                            cursor -= 1
+                            value = 0x10000 + ((UInt32(source[cursor]) - 0xD800) << 10) + (value - 0xDC00)
+                        }
+                        guard let scalar = Unicode.Scalar(value) else { continue }
+                        buffer.removeAll(keepingCapacity: true)
+                        Folding.fold(scalar, into: &buffer)
+                        for folded in buffer.reversed() where first > 0 {
+                            first -= 1
+                            out[first] = folded
+                            origin[first] = cursor
+                        }
+                    }
+                }
             }
         }
-        return (units.reversed(), positions.reversed())
+        return (Array(units[first...]), Array(positions[first...]))
+    }
+
+    /// Whether `units[..<end]` ends with `key`.
+    static func hasSuffix(_ units: [UInt32], end: Int, _ key: [UInt32]) -> Bool {
+        let start = end - key.count
+        guard !key.isEmpty, start >= 0, end <= units.count else { return false }
+        return units.withUnsafeBufferPointer { u in
+            key.withUnsafeBufferPointer { k in
+                var i = 0
+                while i < k.count {
+                    if u[start + i] != k[i] { return false }
+                    i += 1
+                }
+                return true
+            }
+        }
     }
 
     /// Removes years at the end of a folded context, so that in "Smith (2019, 2021)" the second year has the same
@@ -130,15 +173,14 @@ enum TextMentionFinder {
     }
 
     /// The raw text just before the year ends in "'s" or "’s", brackets and spaces aside ("Banerjee's (1992)").
-    static func endsInPossessive(_ string: NSString, before position: Int) -> Bool {
-        var i = position - 1
+    static func endsInPossessive(_ text: [UInt16], before position: Int) -> Bool {
+        var i = min(position, text.count) - 1
         while i >= 0 {
-            let unit = string.character(at: i)
+            let unit = text[i]
             if unit == 0x28 || unit == 0x5B || BodyText.isSpace(unit) { i -= 1 } else { break }
         }
-        guard i >= 1, string.character(at: i) == 0x73 || string.character(at: i) == 0x53 else { return false }
-        let apostrophe = string.character(at: i - 1)
-        return apostrophe == 0x27 || apostrophe == 0x2019
+        guard i >= 1, text[i] == 0x73 || text[i] == 0x53 else { return false }     // s, S
+        return text[i - 1] == 0x27 || text[i - 1] == 0x2019                        // ' ’
     }
 
     /// A key may begin at an upper-case letter, or after a character that is not a letter. This keeps "employee (2021)"

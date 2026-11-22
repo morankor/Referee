@@ -76,20 +76,27 @@ struct BodyText {
 /// Body lines joined into one character sequence with a line break between lines, and the way back from a position in
 /// it to a page and an offset in that page's string (§8.4).
 struct FlowText {
-    let string: NSString
+    let string: NSString            // for the regular expressions
+    let units: [UInt16]             // the same UTF-16 units, for walking character by character
     let lines: [BodyLine]
     private let starts: [Int]       // position of each line's first unit in `string`
 
     init(lines: [BodyLine]) {
         let joined = NSMutableString()
+        var units: [UInt16] = []
         var starts: [Int] = []
         starts.reserveCapacity(lines.count)
         for (i, line) in lines.enumerated() {
-            if i > 0 { joined.append("\n") }
-            starts.append(joined.length)
+            if i > 0 {
+                joined.append("\n")
+                units.append(0x0A)
+            }
+            starts.append(units.count)
             joined.append(line.text)
+            units.append(contentsOf: line.text.utf16)
         }
         self.string = joined
+        self.units = units
         self.lines = lines
         self.starts = starts
     }
