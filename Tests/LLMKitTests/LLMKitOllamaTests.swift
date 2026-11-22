@@ -93,6 +93,11 @@ import TestSupport
     }
 }
 
+extension Tag {
+    /// Talks to a real local service (plan section 3.5); skipped when it does not answer.
+    @Tag static var live: Self
+}
+
 /// WP4 "live Ollama": only when the local server answers; a 16-token chat with the smallest installed model.
 @Suite struct LLMKitLiveOllamaTests {
     static let base = "http://127.0.0.1:11434"
@@ -108,7 +113,7 @@ import TestSupport
         return (response as? HTTPURLResponse)?.statusCode == 200
     }
 
-    @Test(.enabled("Ollama answers at 127.0.0.1:11434") { await LLMKitLiveOllamaTests.ollamaIsRunning() })
+    @Test(.tags(.live), .enabled("Ollama answers at 127.0.0.1:11434") { await LLMKitLiveOllamaTests.ollamaIsRunning() })
     func aSixteenTokenChatWithTheSmallestModelStreamsADelta() async throws {
         let session = URLSession(configuration: .ephemeral)
         defer { session.invalidateAndCancel() }
