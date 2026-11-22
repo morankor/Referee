@@ -1,0 +1,60 @@
+Here are my comments as a list.
+
+```json
+[
+  {
+    "kind": "major",
+    "category": "claims",
+    "page": 1,
+    "quote": "The coefficient in Table 2 is 0.91 with a confidence interval that crosses one",
+    "title": "The interval includes one, yet the effect is called robust",
+    "body": "The introduction reports a coefficient of 0.91 whose confidence interval crosses one and, in the same sentence, speaks of a robust effect. These cannot both stand. As reported, the data are consistent with no effect.",
+    "suggestion": "State the interval wherever the estimate is quoted and drop \"robust\" unless a specific robustness check supports it."
+  },
+  {
+    "kind": "major",
+    "category": "assumptions",
+    "page": 1,
+    "quote": "Our identification strategy exploits the staggered rollout of a disclosure rule.",
+    "title": "Nothing shows that rollout timing is unrelated to outcomes",
+    "body": "The design rests on the timing of the rollout being as good as random. I could not find any evidence on how the order was decided or any test for pre-trends.",
+    "suggestion": "Describe how the rollout order was set and show an event-study plot with pre-period coefficients."
+  },
+  {
+    "kind": "major",
+    "category": "claims",
+    "page": 1,
+    "quote": "The effect is statistically significant but economically small.",
+    "title": "Abstract and introduction disagree about the result",
+    "body": "The abstract calls the effect statistically significant. The introduction reports an interval that crosses one. One of the two statements is wrong, or they refer to different specifications that the paper does not distinguish.",
+    "suggestion": null
+  },
+  {
+    "kind": "minor",
+    "category": "math",
+    "page": 2,
+    "quote": "It is easy to see that the inequality is preserved when both sides are multiplied by the likelihood ratio.",
+    "title": "The sign of the multiplier is not established",
+    "body": "Multiplying an inequality by a likelihood ratio preserves its direction only if the ratio is positive, which holds, but the step also needs the ratio to be finite at the boundary. Please show the step.",
+    "suggestion": null
+  },
+  {
+    "kind": "question",
+    "category": "math",
+    "page": 2,
+    "quote": "Proposition 1 states that an information cascade begins with positive probability.",
+    "title": "Which signal structure does Proposition 1 need?",
+    "body": "Does the result require bounded signals? With unbounded likelihood ratios cascades need not form. The statement of the proposition should say.",
+    "suggestion": null
+  },
+  {
+    "kind": "minor",
+    "category": "positioning",
+    "page": 1,
+    "quote": "network structure determines whether learning is efficient",
+    "title": "Relation to the network-learning results is asserted, not shown",
+    "body": "The sentence cites the network literature as if it supported the present setting, where agents observe the full history. It is not clear that those results apply.",
+    "suggestion": null
+  }
+]
+```

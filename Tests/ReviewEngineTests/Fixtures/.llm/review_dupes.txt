@@ -1,0 +1,77 @@
+@@COMMENT
+kind: major
+category: claims
+page: 1
+quote: The coefficient in Table 2 is 0.91 with a confidence interval that crosses one
+title: The interval includes one, yet the effect is called robust
+body:
+The introduction reports a coefficient of 0.91 whose confidence interval crosses one and, in the same sentence, speaks of a robust effect. These cannot both stand. As reported, the data are consistent with no effect.
+suggestion:
+State the interval wherever the estimate is quoted and drop "robust" unless a specific robustness check supports it.
+@@END
+@@COMMENT
+kind: major
+category: claims
+page: 1
+quote: The coefficient in Table 2 is 0.91 with a confidence interval that crosses one
+title: The interval includes one, yet the effect is called robust
+body:
+The introduction reports a coefficient of 0.91 whose confidence interval crosses one and, in the same sentence, speaks of a robust effect. These cannot both stand. As reported, the data are consistent with no effect.
+suggestion:
+State the interval wherever the estimate is quoted and drop "robust" unless a specific robustness check supports it.
+@@END
+@@COMMENT
+kind: major
+category: data
+page: 1
+quote: The coefficient in Table 2 is 0.91 with a confidence interval that crosses one
+title: Missing definition of the interval
+body:
+The paper never says whether the interval is at the 90% or the 95% level, nor how the standard errors behind it are clustered.
+@@END
+@@COMMENT
+kind: question
+category: data
+page: 1
+quote: The coefficient in Table 2 is 0.91 with a confidence interval that crosses one
+title: Is the interval in the text the one of Table 2, column 3?
+body:
+The text and the table may report different specifications. Which column does the sentence refer to?
+@@END
+@@COMMENT
+kind: strength
+category: assumptions
+page: 1
+quote: Our identification strategy exploits the staggered rollout of a disclosure rule.
+title: The rollout gives a credible source of variation
+body:
+A staggered rollout of a disclosure rule is an unusual and promising source of variation for this question, if its timing can be shown to be unrelated to outcomes.
+@@END
+@@COMMENT
+kind: strength
+category: math
+page: 2
+quote: Proposition 1 states that an information cascade begins with positive probability.
+title: Proposition 1 is stated precisely
+body:
+The proposition states the event and its probability without hedging, which makes it easy to check.
+@@END
+@@COMMENT
+kind: strength
+category: claims
+page: 1
+quote: The effect is statistically significant but economically small.
+title: The abstract separates statistical from economic significance
+body:
+Few papers in this area say plainly that a significant effect is economically small.
+@@END
+@@COMMENT
+kind: strength
+category: positioning
+page: 1
+quote: network structure determines whether learning is efficient
+title: The network literature is cited where it matters
+body:
+The paper names the result it builds on at the point where the comparison is made.
+@@END
+@@DONE

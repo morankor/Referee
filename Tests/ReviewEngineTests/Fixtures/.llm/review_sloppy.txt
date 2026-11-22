@@ -1,0 +1,60 @@
+Here are my comments on the manuscript. I read the whole paper before writing them.
+
+### @@COMMENT 1
+**Kind:** Major concern
+**Category:** claims
+**Page:** 1
+**Quote:** “The effect is statistically significant but economically small.”
+**Title:** **The abstract and the introduction disagree**
+**Body:**
+The abstract calls the effect statistically significant, while the introduction reports an interval that crosses one.
+Title: this is part of the body
+Both statements cannot hold for the same specification.
+**Suggestion:**
+Say which specification each statement refers to.
+@@END
+
+That was the most serious problem. The next ones are smaller.
+
+**@@COMMENT**
+- kind: minor
+- category: math
+- page: 2
+* **Quote:** It is easy to see that the inequality is preserved when both sides are
+  multiplied by the likelihood ratio.
+- title: The step needs the sign of the likelihood ratio
+- body:
+Multiplying by the ratio keeps the direction of the inequality only if the ratio is positive.
+- Fix: Show the step and say where positivity is used.
+
+> @@COMMENT 3
+Type: minor
+category: Positioning
+page: 1
+quote: "network structure determines whether learning is efficient"
+title: Relation to the network results is asserted
+body:
+It is not clear that the network results apply when agents observe the full history.
+@@END
+@@COMMENT 4
+Severity: critical
+category: assumptions
+page: 1
+quote: `Our identification strategy exploits the staggered rollout of a disclosure rule.`
+title: Rollout timing is not shown to be unrelated to outcomes
+body:
+Nothing in the paper describes how the order of the rollout was decided.
+resolution: Show an event-study plot with pre-period coefficients.
+@@END
+## @@ COMMENT 5
+kind: question
+category: math
+page: 2
+quote: Proposition 1 states that an information cascade begins with positive probability.
+title: Does Proposition 1 need bounded signals?
+body:
+With unbounded likelihood ratios cascades need not form.
+suggestion: N/A
+@@END
+
+I hope these comments help the authors. I would be glad to read a revised version.
