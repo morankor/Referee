@@ -4,8 +4,8 @@ import RefereeCore
 import LLMKit
 import TestSupport
 
-/// Wave 0a smoke tests. They hold for the placeholders and must keep holding for the real implementation (WP4).
-/// No request can leave the machine: the session only talks to StubURLProtocol.
+/// Wave 0a smoke tests. They hold for the placeholders and keep holding for the real implementation (WP4). They use
+/// the public surface only. No request can leave the machine: the session only talks to StubURLProtocol.
 @Suite struct LLMKitSmokeTests {
     private func environment() -> ProviderEnvironment {
         ProviderEnvironment(settings: { _ in ProviderSettings(enabled: false, inputMode: .auto) }, secrets: InMemorySecretStore(),
@@ -13,11 +13,13 @@ import TestSupport
     }
 
     @Test func factoryMakesTheFiveHTTPProvidersInOrder() {
+        StubURLProtocol.setHandler(nil)
         let ids = LLMKitFactory.makeProviders(environment: environment()).map(\.descriptor.id)
         #expect(ids == ["anthropic-api", "openai-api", "gemini-api", "xai-api", "ollama"])
     }
 
     @Test func aProviderWithoutAKeyIsNotConfigured() async {
+        StubURLProtocol.setHandler(nil)
         let providers = LLMKitFactory.makeProviders(environment: environment())
         guard let anthropic = providers.first(where: { $0.descriptor.id == "anthropic-api" }) else {
             Issue.record("anthropic-api is missing")
@@ -31,5 +33,6 @@ import TestSupport
         } catch {
             Issue.record("expected LLMError.notConfigured, got \(error)")
         }
+        #expect(StubURLProtocol.recordedRequests.isEmpty)
     }
 }
