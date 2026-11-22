@@ -112,6 +112,12 @@ final class LineReader: @unchecked Sendable {
                 if let line = splitter.push(byte) { return line }
             }
             ended = true
+            // A cancelled consumer can see the body end without an error (the request was cancelled under it). That is
+            // a cancellation, not a body that ended early (found at Gate 1, under load).
+            if Task.isCancelled {
+                task?.cancel()
+                throw LLMError.cancelled
+            }
             return splitter.finish()
         } catch {
             ended = true
