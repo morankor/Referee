@@ -1,0 +1,65 @@
+import AppKit
+import SwiftUI
+import Testing
+import RefereeCore
+import AppCore
+import TestSupport
+@testable import RefereeUI
+
+/// No pane declares a minimum width (plan.md section 9.2): each tab of the sidebar, with content, must fit the
+/// inspector's narrowest width of 320 points, or the window would grow. SwiftUI reports the narrowest width a view
+/// accepts when it is offered none.
+@Suite struct SidebarHostingTests {
+    typealias Sample = SidebarTestData
+
+    @MainActor private func narrowestWidth(of model: ReviewSessionModel) -> CGFloat {
+        let controller = NSHostingController(rootView: ReviewSidebar(model: model))
+        return controller.sizeThatFits(in: CGSize(width: 0, height: 748)).width
+    }
+
+    @Test @MainActor func everyTabFitsTheInspectorsNarrowestWidth() async throws {
+        let long = String(repeating: "A long sentence that has to wrap inside the card. ", count: 12)
+        let other = Sample.comment(title: "The other comment", body: long, suggestion: long)
+        let comments = [
+            other,
+            Sample.comment(status: .approved, kind: .minor, category: "assumptions", title: long, body: long, suggestion: long),
+            Sample.comment(kind: .major, title: "Similar", similarTo: other.id),
+            Sample.comment(status: .rejected, kind: .strength, title: long),
+            Sample.comment(kind: .question, category: "literature", anchor: Sample.unanchored),
+            Sample.comment(kind: .minor, anchor: Sample.pageOnly, proposal: CommentRevision(kind: .minor, title: long, body: long, withdraw: false)),
+        ]
+        let answer = ThreadMessage(id: UUID(), role: .assistant, text: long, createdAt: Sample.created)
+        let question = ThreadMessage(id: UUID(), role: .user, text: "Is this claim supported by the evidence in the paper?", createdAt: Sample.created)
+        let conversation = Conversation(id: UUID(), anchor: Sample.exact, messages: [question, answer], createdAt: Sample.created)
+        let report = ReportDraft(markdown: "## Summary assessment\n\n" + long + "\n\n## Major concerns\n\n1. " + long, recommendation: .accept,
+                                 userEdited: true)
+        let findings = [LintFinding(id: 1, range: TextRange(location: 0, length: 7), rule: "missing-section",
+                                    message: "Section 'Recommendation' is missing.")]
+        let engine = ScriptedReviewEngine(plan: SidebarTestData.plan, lint: findings)
+        let harness = try await SidebarTestHarness.open(comments: comments, conversations: [conversation], report: report, engine: engine)
+        let model = harness.model
+        model.openThreadCommentID = other.id
+
+        for tab in SidebarTab.allCases {
+            model.sidebarTab = tab
+            let width = narrowestWidth(of: model)
+            #expect(width <= 320, "the \(tab.rawValue) tab needs \(width) points")
+        }
+        model.sidebarTab = .comments
+        model.editingCommentID = other.id
+        model.beginComposingComment()
+        let editing = narrowestWidth(of: model)
+        #expect(editing <= 320, "the editors need \(editing) points")
+    }
+
+    @Test @MainActor func theSidebarWithoutADocumentFitsToo() throws {
+        let paper = try makeSamplePaper()
+        let dependencies = AppDependencies(paperService: FakePaperService(paper: paper),
+                                           matcherFactory: { FakeQuoteMatcher(paper: $0) }, citationIndexer: FakeCitationIndexer(),
+                                           engine: ScriptedReviewEngine(plan: SidebarTestData.plan), resolver: FakeResolver(),
+                                           sessions: InMemorySessionStore(), settings: InMemorySettingsStore(),
+                                           providers: ProviderRegistry([]), secrets: InMemorySecretStore())
+        let model = ReviewSessionModel(dependencies: dependencies, settings: DefaultSettings.make())
+        #expect(narrowestWidth(of: model) <= 320)
+    }
+}
