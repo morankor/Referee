@@ -76,7 +76,7 @@ Open a PDF (**⌘O**, the welcome window, or drag it onto the app). Each paper g
 | 1 2 3 4 | kind: major, minor, question, strength |
 | Esc | close what is open (citation card, new comment, editor, discussion, find bar), then clear the selection |
 
-Comments marked **≈** were matched to the PDF approximately; "p. 4" with a dotted underline means the passage was found on that page but not on a line; "Passage not found" means the model quoted something that is not in the paper (attach it to a selection with the card's button, or delete it). A small **verify** tag marks comments about missing literature: the model cannot look papers up, so check any paper it names.
+Comments marked **≈** were matched to the PDF approximately; "p. 4" with a dotted underline means that the model named the page but its quote could not be located on it; "Passage not found" means the model quoted something that is not in the paper (attach it to a selection with the card's button, or delete it). A small **verify** tag marks comments about missing literature: the model cannot look papers up, so check any paper it names.
 
 **The report.** In the Report tab, add the target journal and any notes for the report, then **Generate**. The report is written from the comments you approved. Edit it in place (Preview shows it formatted), use **Revise Voice** to make it sound less machine-written, and **Export ▾** as Markdown, plain text, Word or PDF (or File ▸ Export Report…, **⇧⌘E**). The **Style check** list under the text flags phrases referees often regret (em dashes, "robust" used loosely, and the like); click one to select it.
 
@@ -101,7 +101,7 @@ Open **Settings ▸ Providers** (**⌘,**). The list has three groups; each row 
 3. Choose a model (the list comes from the vendor; **Show all models** for OpenAI and Gemini lists the ones filtered out).
 4. Press **Send Test Prompt** (see below).
 
-Anthropic, OpenAI and Gemini receive the PDF itself, so equations and tables reach the model intact. xAI and Ollama receive the extracted text; the toolbar then says "text only", and the app warns that equations and tables may reach the model garbled. You can force either mode per provider under **Advanced ▸ Input mode**.
+Anthropic, OpenAI and Gemini receive the PDF itself, so equations and tables reach the model intact. xAI and Ollama receive the extracted text; the toolbar then says "text only", and the app warns that equations and tables may reach the model garbled. You can force either mode per provider under **Advanced ▸ Input mode** (a protected PDF, or one too large for the provider, goes as text).
 
 ### Subscriptions through an installed command-line tool: Claude Code, Codex
 
@@ -114,7 +114,7 @@ These use the subscription you already pay for (Claude Pro or Max; a ChatGPT pla
 | Antigravity (Google AI plan), experimental | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | follow the tool's own sign-in |
 | Grok Build (xAI), experimental | `npm install -g @xai-official/grok` | `grok login` |
 
-Then switch the provider on in Settings and press **Send Test Prompt**. Referee finds the program in the usual places (or set **Path** to point at it) and checks that the installed version still has the safety options it needs; if one is missing, the provider shows red with the reason, and stays off.
+Then switch the provider on in Settings and press **Send Test Prompt**. Referee finds the program in the usual places (or set **Path** to point at it) and checks that the installed version still has the safety options it needs; if one is missing, the provider shows red with the reason, and stays off. Claude Code receives the PDF itself and Codex receives it as page images (both were tried with the invented fixture paper); Antigravity and Grok Build receive the extracted text.
 
 These tools are AI agents that can normally run commands and edit files. Referee runs them with every tool switched off that the tool allows, in an empty temporary folder, and stops the run at once if the model tries to use a tool ([Privacy](#privacy-what-leaves-your-mac-and-when) has the details per tool). Using a subscription through a third-party app is governed by each vendor's terms; Referee only launches your own installed tool for your own work. Keep this to personal use.
 
@@ -124,7 +124,7 @@ Antigravity and Grok Build are marked **experimental**. Their adapters were writ
 
 ### The Send Test Prompt button
 
-**Send Test Prompt** sends the single message "Reply with exactly: OK" to the provider and shows the answer. It costs a few tokens on an API account, or one message of your subscription. When it succeeds, Referee records the date, and for an experimental provider the warning disappears. Use it once after setting up each provider; nothing else in Settings sends anything.
+**Send Test Prompt** sends the single message "Reply with exactly: OK" to the provider and shows the answer. It costs a few tokens on an API account, or one message of your subscription. When it succeeds, Referee records the date, and for an experimental provider the warning disappears. Use it once after setting up each provider. Nothing else in Settings sends a prompt; fetching a model list sends your key to its vendor and nothing of any paper.
 
 ### Each paper, the first time
 
@@ -138,7 +138,7 @@ Check the journal's policy on AI tools before sending a manuscript under review.
 | --- | --- | --- |
 | The PDF, or its extracted text | the provider shown in the paper's toolbar | only when you start a review, send a discussion message, ask a question, or generate or revise the report; the first time per paper and provider only after you agree |
 | Your approved comments, discussions, notes for the report | the same provider | with those same actions |
-| The text or identifier of one reference | Crossref and OpenAlex (public bibliographic services) | when you click that citation, or that entry in References (unless you switch off "Look up references only when I click them", Settings ▸ References) |
+| The text or identifier of one reference | Crossref and OpenAlex (public bibliographic services) | when you click that citation, or that entry in References; if you switch off "Look up references only when I click them" (Settings ▸ References), every reference of a paper as soon as it opens |
 | A request for an open-access PDF | the site that hosts it | when you click Open PDF on a citation card |
 | An API key | its own vendor only | with each request to that vendor, including fetching its model list |
 | Anything else | nobody | no telemetry, no update checks, no crash reports |
@@ -260,7 +260,7 @@ Run them from the repository root. These are the only commands used in this proj
 - Never run bare `swift test`. Under the Command Line Tools it cannot find the Swift Testing framework; `scripts/test.sh` passes the flags it needs and fails when zero tests ran, so a mistyped `--filter` cannot look green.
 - Do not add flags, resources or dependencies to `Package.swift`. The test flags must stay on the command line: in the manifest they make the test run report success without running anything (plan §3.1).
 - Build only into the default `.build` folder of your checkout. Do not pass `--scratch-path` or `--build-path`, and do not run `swift package clean`, `reset` or `update`.
-- Tests never touch the Keychain, `~/Library/Application Support/Referee` or a vendor CLI's state; they set `REFEREE_HOME` to a temporary folder. The only real prompts a test can send are the opt-in smoke prompts (`REFEREE_CLI_SMOKE=1`, plan §11.6).
+- Tests never touch the Keychain, `~/Library/Application Support/Referee` or a vendor CLI's state; they set `REFEREE_HOME` to a temporary folder. The default run sends nothing to a subscription CLI or a paid API (it sends one short prompt to the smallest local Ollama model when Ollama is running). Opt-in only: `REFEREE_CLI_SMOKE=1` (one test prompt per signed-in CLI, plan §11.6), `REFEREE_LIVE_NET=1` (the public reference services), `REFEREE_TEST_KEYCHAIN=1` (a throwaway Keychain item); `REFEREE_CLI_EXPERIMENT` is for the coordinator only (plan §10.6).
 - No `#file`, `#filePath`, `fatalError`, `precondition`, `preconditionFailure` or `assertionFailure` in `Sources/`: they put the source path into a release binary, which `scripts/bundle.sh` refuses (plan §3.7; a test checks).
 
 ### Layout

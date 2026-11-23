@@ -105,7 +105,7 @@ In `--dark` the cards, chips, overlays and editors read well; the PDF page stays
 
 ## End to end, launch, smoke prompts
 
-- **`scripts/e2e-ollama.sh`** (gemma4:e4b, `ay_round_nolinks.pdf`), after the contract changes: exit 0; plan: text, 1 request; review: 12 comments (including two strengths), 12 anchored exact, 1 request, 78.9 s; the question about the abstract answered; `e2e-ollama.sh: OK (gemma4:e4b on ay_round_nolinks.pdf: 12 comments, 12 anchored, 1 requests, 83 s)`.
+- **`scripts/e2e-ollama.sh`** (gemma4:e4b, `ay_round_nolinks.pdf`), after the contract changes: exit 0; plan: text, 1 request; review: 12 comments (including two strengths), 12 anchored exact, 1 request, 78.9 s; the question about the abstract answered; `e2e-ollama.sh: OK (gemma4:e4b on ay_round_nolinks.pdf: 12 comments, 12 anchored, 1 requests, 83 s)`. The acceptance runs below differ (11 comments and 10 anchored with one continuation in the first): the model's own variation; the pipeline completed every time.
 - **`scripts/bundle.sh && codesign --verify build/Referee.app`**: exit 0, "valid on disk", "satisfies its Designated Requirement", `Built build/Referee.app`; `Contents/Resources` holds `AppIcon.icns` and `README.md`.
 - **The launch**, once: `open -n --env REFEREE_HOME=<a new temporary folder> --env REFEREE_NO_KEYCHAIN=1 build/Referee.app --args <absolute path of Fixtures/pdf/ay_round_nolinks.pdf>`. `/usr/bin/log show --info --last 2m --predicate 'subsystem == "local.referee.app"'` printed `pdf.load.done … pages=int(4) textLayer=bool(true)`, `model.open encrypted=bool(false) pages=int(4)` and `shell.review.ready document=bool(true) pages=int(4)`, within 0.1 s of each other and a second after the launch. The temporary folder then held `settings.json` (first-run defaults: Ollama enabled with `gemma4:e4b` as the review default, nothing remote enabled) and one session. The process was ended with `kill` (found with `pgrep -f` on the bundle's binary) and the folder removed. Nothing of the user's data folder or Keychain was read or written.
 - **The bundled binary's snapshot mode**: `build/Referee.app/Contents/MacOS/Referee --ui-snapshot build/snapshots-bundle --scene review-empty` → exit 0, `{"scene":"review-empty","file":"build/snapshots-bundle/review-empty.png","width":2560,"height":1600,"nonBlank":true,"failures":[]}`.
@@ -127,7 +127,7 @@ What a designer should look at first, in this order:
 
 ## Left for the coordinator
 
-1. The four checks that need the user's accounts are listed in the README ("Checks that need your accounts"): one real review per configured API provider and per installed CLI, the experimental CLIs if installed, and the self-signed identity.
+1. The checks that need the user's accounts are listed in the README ("Checks that need your accounts"): one real review per configured API provider and per installed CLI, the experimental CLIs if installed, and the self-signed identity.
 2. Grok Build and Antigravity remain experimental and have never been run against the real programs (neither is installed).
 3. WP1's weak spots on real journal-system PDFs (Gate 1, item 3) still wait for files in `Fixtures/private/journal/`; the README tells the user how to add them and what to run.
 
