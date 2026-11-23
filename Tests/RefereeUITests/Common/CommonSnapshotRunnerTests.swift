@@ -156,6 +156,19 @@ import TestSupport
 
     // ---- scenes ----
 
+    /// Step 5c: a scene's own environment reaches its dependency graph, under the three keys of the snapshot mode,
+    /// which it cannot change.
+    @Test @MainActor func aScenesEnvironmentReachesItsGraphButNotTheThreeKeysOfTheMode() {
+        let home = URL(fileURLWithPath: "/tmp/scene-home")
+        let scene = SnapshotScene(name: "example", kind: .review,
+                                  environment: ["REFEREE_SNAPSHOT_LOOKUPS": "notFound=Press", "REFEREE_HOME": "/elsewhere", "REFEREE_SNAPSHOT": "0"])
+        #expect(SnapshotRunner.overrides(for: scene, home: home)
+                == ["REFEREE_SNAPSHOT_LOOKUPS": "notFound=Press", "REFEREE_HOME": "/tmp/scene-home", "REFEREE_SNAPSHOT": "1", "REFEREE_NO_KEYCHAIN": "1"])
+        #expect(SnapshotRunner.overrides(for: SnapshotScene(name: "plain", kind: .welcome), home: home)
+                == ["REFEREE_HOME": "/tmp/scene-home", "REFEREE_SNAPSHOT": "1", "REFEREE_NO_KEYCHAIN": "1"])
+        #expect(SnapshotScene(name: "plain", kind: .welcome).environment.isEmpty)
+    }
+
     @Test @MainActor func thePlaceholderSceneExists() {
         let scene = ShellScenes.all.first { $0.name == "placeholder" }
         #expect(scene?.kind == .review)

@@ -2,17 +2,18 @@ import SwiftUI
 import AppKit
 import RefereeCore
 import AppCore
+import TestSupport
 
 // The Reader's scenes of the design review (docs/design-review.md, steps 4 and 5): states of the PDF pane that the
 // scenes of plan.md section 10.1 do not show. They are the verification scenes of the Reader's changes of step 5.
 //
-// - design-citation-states (D15): the citation card when a lookup failed, when nothing was found, and for a citation
-//   that matches no entry of the reference list. The snapshot graph's resolver resolves every entry, so the model
-//   cannot reach the first two states here, and the overlay shows one card at a time; the scene draws the Reader's own
-//   card view (`ReaderCitationCard`) for each state, over the PDF column. Each card's content is made as the overlay
-//   makes it, by `ReaderCardContent.make` from a `CitationLookup` and the paper's citation index: the lookups the
-//   model would hold for real entries of `ay_links.pdf`, and a numbered mention that matches no entry, added to a copy
-//   of the index. Remove this workaround once the snapshot graph can fail a lookup.
+// - design-citation-states (D15, step 5c): the citation card when a lookup failed, when nothing was found, and for a
+//   citation that matches no entry of the reference list. The scene's own environment makes the snapshot graph's
+//   resolver fail the working paper of `ay_links.pdf` and find nothing for its book (REFEREE_SNAPSHOT_LOOKUPS), and
+//   the model looks both up as a click in the References list does: the overlay shows the last card, "not found", at
+//   the top of the PDF; under it the scene draws, with the Reader's own card view, the card the overlay showed for the
+//   failed lookup (the model's own `CitationLookup`, kept when the second lookup replaced it: the overlay shows one card
+//   at a time) and the card of a numbered mention that matches no entry, added to a copy of the index.
 // - design-find-no-matches: the find bar with a query that is not in the paper.
 // - design-selection-asked (D14): a passage selected in the PDF, then a question about it: the conversation is in the
 //   Chat tab and the selection bar has stepped aside, while the PDF still marks the passage.
@@ -30,8 +31,6 @@ import AppCore
 
     /// The identifier of the view that holds the three cards, so that `verify` can find it.
     static let cardStackIdentifier = NSUserInterfaceItemIdentifier("design-citation-states")
-    /// The date of the scene's invented lookups: fixed, so that nothing in the picture changes between runs.
-    static let lookupDate = Date(timeIntervalSince1970: 1_795_000_000)
     /// `ay_nolinks.pdf`, page 1: the abstract's last sentence, on one line of the page.
     static let passage = "The effect is statistically significant but economically small."
     static let question = "Is an effect this small worth the paper's emphasis?"
@@ -40,21 +39,37 @@ import AppCore
     /// The pasteboard Copy writes to in `design-selection-copied`: not the general one, which is the referee's.
     static let scenePasteboardName = NSPasteboard.Name("local.referee.snapshot.design-selection-copied")
 
-    // ---- design-citation-states (D15) ----
+    // ---- design-citation-states (D15, step 5c) ----
+
+    /// The lookups the scene asks the snapshot graph's resolver for: the working paper fails, the book is not found.
+    static let citationLookups = "failed=working paper;notFound=Press"
 
     static var citationStates: SnapshotScene {
-        SnapshotScene(name: "design-citation-states", kind: .review, fixturePDF: "ay_links.pdf", prepare: { context in
+        let box = ReaderSceneFindings()
+        return SnapshotScene(name: "design-citation-states", kind: .review, fixturePDF: "ay_links.pdf",
+                             environment: [SnapshotSupport.lookupsVariable: citationLookups], prepare: { context in
             guard let model = context.model, let reader = context.reader else { return }
             await ReaderSceneSupport.wait { (model.citations?.entries.count ?? 0) >= 2 }
-            guard let (failing, missing) = chosenEntries(model.citations?.entries ?? []),
-                  let failed = card(for: failing, status: .failed, citations: model.citations),
-                  let notFound = card(for: missing, status: .notFound, citations: model.citations),
-                  let unmatched = unmatchedMention(in: model.citations) else { return }
-            // On a blank of the page's own white (in both appearances, as a PDF page is), so that no line of the page
-            // shows between the cards: they look as the overlay looks over an empty part of a page.
+            guard let (failing, missing) = chosenEntries(model.citations?.entries ?? []) else {
+                box.failures.append("ay_links.pdf has fewer than two reference entries")
+                return
+            }
+            // Both lookups through the model, as a click in the References list makes them; the overlay shows the last.
+            model.lookUpEntry(entryID: failing.id)
+            await ReaderSceneSupport.wait { isResolved(model.citationLookup, entry: failing.id) }
+            box.failedLookup = model.citationLookup
+            model.lookUpEntry(entryID: missing.id)
+            await ReaderSceneSupport.wait { isResolved(model.citationLookup, entry: missing.id) }
+            guard let failedLookup = box.failedLookup, let failed = ReaderCardContent.make(failedLookup, citations: model.citations),
+                  let notFound = ReaderCardContent.make(model.citationLookup, citations: model.citations),
+                  let unmatched = unmatchedMention(in: model.citations) else {
+                box.failures.append("the lookups did not give their cards")
+                return
+            }
+            // Under the overlay's card, on a blank of the page's own white (in both appearances, as a PDF page is), so that
+            // no line of the page shows between the cards.
             let cards = VStack(alignment: .leading, spacing: 14) {
                 ReaderCitationCard(controller: reader, content: failed)
-                ReaderCitationCard(controller: reader, content: notFound)
                 ReaderCitationCard(controller: reader, content: unmatched)
             }
             .padding(14)
@@ -63,38 +78,53 @@ import AppCore
             let host = NSHostingView(rootView: cards)
             host.identifier = cardStackIdentifier
             let size = host.fittingSize
-            // On the PDF view itself, an AppKit view whose subviews draw as usual (a view added to the window's
-            // SwiftUI root is never drawn): centred, 64 points below its top edge, under the toolbar. PDFView is not
-            // flipped, so y counts from the bottom.
+            // The overlay's card is centred at the top of the PDF column, 8 points down (ReaderOverlayPlacement); the
+            // stack starts 14 points below it, on the PDF view itself, an AppKit view whose subviews draw as usual (a view
+            // added to the window's SwiftUI root is never drawn). PDFView is not flipped, so y counts from the bottom.
+            let overlay = NSHostingView(rootView: ReaderCitationCard(controller: reader, content: notFound).environment(\.uiActions, UIActions()))
+            let below = ReaderOverlayPlacement.margin + overlay.fittingSize.height + 14
             let pdfView = reader.pdfView
             let x = max(0, (pdfView.bounds.width - size.width) / 2)
-            let y = max(0, pdfView.bounds.height - 64 - size.height)
+            let y = max(0, pdfView.bounds.height - below - size.height)
             host.frame = NSRect(x: x, y: y, width: size.width, height: size.height)
             pdfView.addSubview(host)
         }, verify: { context in
             guard let model = context.model, let reader = context.reader else { return ["a review scene without a model"] }
-            var failures: [String] = []
+            var failures = box.failures
             guard let (failing, missing) = chosenEntries(model.citations?.entries ?? []) else {
-                return ["ay_links.pdf has fewer than two reference entries"]
+                return failures + ["ay_links.pdf has fewer than two reference entries"]
             }
+            // The model holds what the snapshot graph's resolver answered: a failed lookup with its reason, and none found.
+            let failed = model.references[failing.id]
+            if failed?.status != .failed || failed?.failureReason != SnapshotSupport.failedLookupReason {
+                failures.append("the working paper's lookup is \(String(describing: failed?.status)), \(failed?.failureReason ?? "no reason")")
+            }
+            if model.references[missing.id]?.status != .notFound {
+                failures.append("the book's lookup is \(String(describing: model.references[missing.id]?.status))")
+            }
+            if model.references.values.contains(where: { $0.entryID != failing.id && $0.entryID != missing.id }) {
+                failures.append("another entry was looked up")
+            }
+            // The overlay shows the last lookup's card; the stack the failed one's and the unmatched mention's.
+            if !isResolved(model.citationLookup, entry: missing.id) { failures.append("the overlay does not show the book's lookup") }
             if let host = reader.pdfView.subviews.first(where: { $0.identifier == cardStackIdentifier }) {
-                if host.layer?.superlayer == nil { failures.append("the three cards are not drawn") }
+                if host.layer?.superlayer == nil { failures.append("the two cards are not drawn") }
             } else {
-                failures.append("the three cards are not in the PDF view")
+                failures.append("the two cards are not in the PDF view")
             }
             // D15: a failed or not-found card offers Search Google Scholar, prominent, and Show in References, and none
             // of the buttons that cannot act (Retry is part of the failed card's record); the card without an entry
             // offers the search alone.
             let searchOnly = ReaderCardActions(shown: [.searchScholar, .showInReferences], prominent: .searchScholar)
-            for (entry, status) in [(failing, ResolutionStatus.failed), (missing, .notFound)] {
-                guard let content = card(for: entry, status: status, citations: model.citations),
-                      let shownEntry = content.entries.first, let lookup = content.references[shownEntry.id] else {
-                    failures.append("the \(status) card has no content")
+            let shown: [(String, CitationLookup?)] = [("failed", box.failedLookup), ("not found", model.citationLookup)]
+            for (name, lookup) in shown {
+                guard let lookup, let content = ReaderCardContent.make(lookup, citations: model.citations),
+                      let entry = content.entries.first, let reference = content.references[entry.id] else {
+                    failures.append("the \(name) card has no content")
                     continue
                 }
-                if lookup.status != status { failures.append("the \(status) card shows a lookup that is \(lookup.status)") }
-                let actions = ReaderCardActions.make(reference: lookup, entry: shownEntry)
-                if actions != searchOnly { failures.append("the \(status) card offers \(actions.shown), \(actions.prominent) prominent") }
+                let actions = ReaderCardActions.make(reference: reference, entry: entry)
+                if actions != searchOnly { failures.append("the \(name) card offers \(actions.shown), \(actions.prominent) prominent") }
             }
             if let unmatched = unmatchedMention(in: model.citations) {
                 if !unmatched.entries.isEmpty { failures.append("the unmatched mention has \(unmatched.entries.count) entries") }
@@ -107,26 +137,18 @@ import AppCore
         })
     }
 
+    /// Whether `lookup` is the finished lookup of the entry chosen in the References list.
+    static func isResolved(_ lookup: CitationLookup, entry id: Int) -> Bool {
+        if case .resolved(.entry(id), _, _) = lookup { return true }
+        return false
+    }
+
     /// The entries the cards are about: a working paper (failed lookup) and a book (nothing found), else the first two.
     static func chosenEntries(_ entries: [BibEntry]) -> (failing: BibEntry, missing: BibEntry)? {
         guard entries.count >= 2 else { return nil }
         let failing = entries.first { $0.rawText.localizedCaseInsensitiveContains("working paper") } ?? entries[0]
         let missing = entries.first { $0.rawText.contains("Press") && $0.id != failing.id } ?? entries[1]
         return (failing, missing)
-    }
-
-    /// The lookup of `entry` with `status` (failed or not found), as the resolver would answer it.
-    static func reference(for entry: BibEntry, status: ResolutionStatus) -> ResolvedReference {
-        ResolvedReference(entryID: entry.id, status: status,
-                          failureReason: status == .failed ? "Crossref is busy; try again in a minute." : nil,
-                          confidence: 0, resolvedAt: lookupDate)
-    }
-
-    /// What the card shows for `entry` after a lookup with `status`: the content the overlay makes when the model holds
-    /// that lookup for the entry chosen in the References list.
-    static func card(for entry: BibEntry, status: ResolutionStatus, citations: CitationIndex?) -> ReaderCardContent? {
-        ReaderCardContent.make(.resolved(target: .entry(entry.id), entries: [entry], references: [reference(for: entry, status: status)]),
-                               citations: citations)
     }
 
     /// A numbered citation, "[14", that no entry of the reference list matches, in a copy of the paper's index: the card
@@ -281,4 +303,5 @@ import AppCore
 @MainActor final class ReaderSceneFindings {
     var failures: [String] = []
     var copied: SelectionInfo?
+    var failedLookup: CitationLookup?          // design-citation-states: the model's lookup before the second replaced it
 }

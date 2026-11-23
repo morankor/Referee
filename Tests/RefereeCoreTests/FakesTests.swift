@@ -259,6 +259,46 @@ import TestSupport
         #expect(short.authors.isEmpty)
     }
 
+    /// Step 5c: chosen entries come back as a lookup that found nothing or one that failed, shaped as the real resolver
+    /// shapes them; the others as before.
+    @Test func theResolverAnswersChosenEntriesNotFoundOrFailed() async throws {
+        let resolver = FakeResolver(answers: { entry in
+            entry.rawText.contains("Press") ? .notFound : entry.rawText.contains("Working") ? .failed(reason: "Busy.") : .resolved
+        })
+        let book = BibEntry(id: 1, rawText: "Osborne, M. J. and Rubinstein, A. (1994). A Course in Game Theory. MIT Press.", parsed: ParsedReference())
+        let paper = BibEntry(id: 2, rawText: "Kogan, D. (2020). Learning from reviews. Working paper.", parsed: ParsedReference(doi: "10.1000/x"))
+        let other = BibEntry(id: 3, rawText: "Lee (2021).", parsed: ParsedReference())
+        let notFound = await resolver.resolve(book, documentSHA256: "aaaa")
+        #expect(notFound == ResolvedReference(entryID: 1, status: .notFound, confidence: 0, resolvedAt: notFound.resolvedAt))
+        let failed = await resolver.resolve(paper, documentSHA256: "aaaa")
+        #expect(failed.status == .failed)
+        #expect(failed.failureReason == "Busy.")
+        #expect(failed.title == nil && failed.doi == nil && failed.openAccessPDFURL == nil)
+        #expect(await resolver.resolve(other, documentSHA256: "aaaa") == (await FakeResolver().resolve(other, documentSHA256: "aaaa")))
+    }
+
+    /// Step 5c: the snapshot graph's resolver reads REFEREE_SNAPSHOT_LOOKUPS: "failed=<text>;notFound=<text>", matched in
+    /// the printed text, ignoring case, the first item that matches winning; nothing readable resolves everything.
+    @Test func theSnapshotResolverFollowsTheLookupsItIsGiven() async throws {
+        let book = BibEntry(id: 1, rawText: "Osborne and Rubinstein (1994). A Course in Game Theory. MIT Press.", parsed: ParsedReference())
+        let paper = BibEntry(id: 2, rawText: "Kogan, D. (2020). Learning from reviews. Working paper.", parsed: ParsedReference())
+        let other = BibEntry(id: 3, rawText: "Lee (2021).", parsed: ParsedReference())
+        let resolver = SnapshotSupport.resolver(lookups: "failed=working paper; notFound=press")
+        #expect(await resolver.resolve(book, documentSHA256: "a").status == .notFound)
+        let failed = await resolver.resolve(paper, documentSHA256: "a")
+        #expect(failed.status == .failed)
+        #expect(failed.failureReason == SnapshotSupport.failedLookupReason)
+        #expect(failed.failureReason == "Crossref is busy; try again in a minute.")
+        #expect(await resolver.resolve(other, documentSHA256: "a").status == .resolved)
+        #expect(SnapshotSupport.lookupsVariable == "REFEREE_SNAPSHOT_LOOKUPS")
+        // The first item that matches wins; items it cannot read are ignored.
+        let both = SnapshotSupport.resolver(lookups: "notFound=Kogan;failed=Kogan;nonsense;failed=;=x")
+        #expect(await both.resolve(paper, documentSHA256: "a").status == .notFound)
+        for lookups in [nil, "", "nonsense", "maybe=Kogan"] as [String?] {
+            #expect(await SnapshotSupport.resolver(lookups: lookups).resolve(paper, documentSHA256: "a").status == .resolved)
+        }
+    }
+
     @Test func theResolverRemembersWhichDocumentsItWasToldToForget() async {
         let resolver = FakeResolver()
         #expect(resolver.forgottenDocuments.isEmpty)

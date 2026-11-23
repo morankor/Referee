@@ -40,6 +40,32 @@ public enum SnapshotSupport {
         return settings
     }
 
+    /// The name of the environment variable through which a snapshot scene chooses its lookups (plan.md section 10.6).
+    public static let lookupsVariable = "REFEREE_SNAPSHOT_LOOKUPS"
+    /// The reason a failed snapshot lookup gives, as the real resolver words a busy Crossref.
+    public static let failedLookupReason = "Crossref is busy; try again in a minute."
+
+    /// The snapshot graph's resolver (step 5c): a `FakeResolver` that resolves every entry, except those `lookups` names.
+    /// `lookups` is the value of REFEREE_SNAPSHOT_LOOKUPS: items "failed=<text>" and "notFound=<text>" separated by ";",
+    /// each matching the entries whose printed text contains <text>, ignoring case; the first item that matches wins. A
+    /// failed lookup gives `failedLookupReason`. Items it cannot read are ignored; nil or "" resolves everything. No
+    /// request is ever made, whatever the answer.
+    public static func resolver(lookups: String?) -> FakeResolver {
+        let rules: [(text: String, answer: FakeResolver.Answer)] = (lookups ?? "").split(separator: ";").compactMap { item in
+            let parts = item.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+            guard parts.count == 2, !parts[1].isEmpty else { return nil }
+            switch parts[0] {
+            case "failed": return (parts[1], .failed(reason: failedLookupReason))
+            case "notFound": return (parts[1], .notFound)
+            default: return nil
+            }
+        }
+        guard !rules.isEmpty else { return FakeResolver() }
+        return FakeResolver(answers: { entry in
+            rules.first { entry.rawText.range(of: $0.text, options: .caseInsensitive) != nil }?.answer ?? .resolved
+        })
+    }
+
     // ---- the nine real provider ids as static rows ----
 
     private static func staticProviders() -> [any LLMProvider] {

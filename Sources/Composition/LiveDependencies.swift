@@ -69,7 +69,7 @@ public enum LiveDependencies {
         let engine = ReviewEngine(providers: registry, paperService: paperService, matcherFactory: matcherFactory, renderer: PaperRenderer(),
                                   debugDumpDirectory: dump)
         let resolver: any ReferenceResolving = snapshot
-            ? FakeResolver()
+            ? SnapshotSupport.resolver(lookups: environment["REFEREE_SNAPSHOT_LOOKUPS"])   // a FakeResolver; step 5c, section 10.6
             : ReferenceResolver(settings: { current.get().references }, urlSession: session, dataDirectory: data, cacheDirectory: caches)
         return AppDependencies(paperService: paperService, matcherFactory: matcherFactory, citationIndexer: CitationIndexer(), engine: engine,
                                resolver: resolver, sessions: FileSessionStore(directory: data.appendingPathComponent("sessions")),

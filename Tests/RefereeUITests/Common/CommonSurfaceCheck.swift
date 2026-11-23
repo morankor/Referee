@@ -60,6 +60,9 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: any LLMProvider = StaticProvider(descriptor: descriptor, availability: .ready(detail: "Key set"), models: [])
     let _: [any LLMProvider] = SnapshotSupport.providers()
     let _: AppSettings = SnapshotSupport.settings()
+    let _: FakeResolver = SnapshotSupport.resolver(lookups: "failed=working paper;notFound=Press")   // step 5c
+    let _: String = SnapshotSupport.lookupsVariable
+    let _: String = SnapshotSupport.failedLookupReason
 
     var stub = StubURLProtocol.Response(status: 200, headers: [:], chunks: [Data()], delayPerChunk: .zero)
     stub = StubURLProtocol.Response(chunks: [])
@@ -91,6 +94,10 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let resolver = FakeResolver()
     let _: any ReferenceResolving = resolver
     let _: [String] = resolver.forgottenDocuments
+    let _: FakeResolver = FakeResolver(answers: { _ in .resolved })                  // step 5c
+    switch FakeResolver.Answer.notFound {
+    case .resolved, .notFound, .failed(reason: _): break
+    }
     let plan = SendPlan(sendsPDF: false, requestCount: 1, estimatedInputTokens: 0, destination: "this Mac", isLocal: true)
     let engine = ScriptedReviewEngine(plan: plan, review: [], reply: [], report: [], lint: [], delayPerEvent: .zero)
     let _: any ReviewEngineProtocol = ScriptedReviewEngine(plan: plan)
@@ -310,6 +317,8 @@ private struct SurfaceBuilder: PaperTextBuilding {
     var scene = SnapshotScene(name: "example", kind: .review, fixturePDF: "ay_nolinks.pdf", fixtureSession: "sample.json", settleSeconds: 2.0,
                               prepare: { _ in }, verify: { _ in [] })
     scene = SnapshotScene(name: "example", kind: .welcome)
+    scene = SnapshotScene(name: "example", kind: .review, fixturePDF: "ay_links.pdf", environment: ["REFEREE_SNAPSHOT_LOOKUPS": ""])   // step 5c
+    scene.environment = [:]
     scene.name = "other"
     scene.kind = .referenceViewer
     scene.fixturePDF = nil

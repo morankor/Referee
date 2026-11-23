@@ -24,12 +24,16 @@ import AppCore
     public var fixtureSession: String?            // under Fixtures/sessions; copied into the temporary REFEREE_HOME with document.sha256
                                                   // and byteCount rewritten to those of the fixture PDF as it is on disk
     public var settleSeconds: Double
+    /// Added to the environment the scene's dependency graph is made with (step 5c), under the three keys the runner
+    /// sets, which win: REFEREE_SNAPSHOT_LOOKUPS chooses lookups that fail or find nothing (sections 10.1, 10.6).
+    public var environment: [String: String]
     public var prepare: @MainActor (SnapshotContext) async -> Void        // drive the models through their public API
     public var verify: (@MainActor (SnapshotContext) async -> [String])?  // after capture: failed expectations; [] = pass
     public init(name: String, kind: Kind, fixturePDF: String? = nil, fixtureSession: String? = nil, settleSeconds: Double = 2.0,
+                environment: [String: String] = [:],
                 prepare: @escaping @MainActor (SnapshotContext) async -> Void = { _ in },
                 verify: (@MainActor (SnapshotContext) async -> [String])? = nil) {
         self.name = name; self.kind = kind; self.fixturePDF = fixturePDF; self.fixtureSession = fixtureSession
-        self.settleSeconds = settleSeconds; self.prepare = prepare; self.verify = verify
+        self.settleSeconds = settleSeconds; self.environment = environment; self.prepare = prepare; self.verify = verify
     }
 }

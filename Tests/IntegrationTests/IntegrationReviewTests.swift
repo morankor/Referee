@@ -77,6 +77,33 @@ import Persistence
 
     // ---- snapshot graph ----
 
+    /// Step 5c: a scene chooses lookups that fail or find nothing through REFEREE_SNAPSHOT_LOOKUPS; the resolver is still
+    /// the fake one, which makes no request, and without the variable every entry resolves.
+    @Test @MainActor func theSnapshotGraphFailsTheLookupsASceneChooses() async throws {
+        let graph = await LiveGraph.make(["REFEREE_SNAPSHOT": "1", "REFEREE_SNAPSHOT_LOOKUPS": "failed=working paper;notFound=Press"], mock: false)
+        defer { graph.remove() }
+        #expect(graph.dependencies.resolver is FakeResolver)
+        let model = ReviewSessionModel(dependencies: graph.dependencies, settings: SnapshotSupport.settings())
+        await model.open(url: Fixture.url("ay_links"))
+        try #require(model.phase == .ready)
+        let entries = try #require(model.citations?.entries)
+        let paper = try #require(entries.first { $0.rawText.localizedCaseInsensitiveContains("working paper") })
+        let book = try #require(entries.first { $0.rawText.contains("Press") })
+        for entry in [paper, book] {
+            model.lookUpEntry(entryID: entry.id)
+            try #require(await waitUntil { model.references[entry.id] != nil }, "no answer for entry \(entry.id)")
+        }
+        #expect(model.references[paper.id]?.status == .failed)
+        #expect(model.references[paper.id]?.failureReason == "Crossref is busy; try again in a minute.")
+        #expect(model.references[book.id]?.status == .notFound)
+        await model.close()
+
+        let plain = await LiveGraph.make(["REFEREE_SNAPSHOT": "1"], mock: false)
+        defer { plain.remove() }
+        let resolved = await plain.dependencies.resolver.resolve(paper, documentSHA256: "a")
+        #expect(resolved.status == .resolved)
+    }
+
     @Test @MainActor func theSnapshotGraphReviewsOnMocksOnly() async throws {
         let graph = await LiveGraph.make(["REFEREE_SNAPSHOT": "1"], mock: false)
         defer { graph.remove() }

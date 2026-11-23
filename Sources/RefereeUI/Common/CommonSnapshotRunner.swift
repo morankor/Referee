@@ -88,6 +88,12 @@ import TestSupport
         var isGood: Bool { captured && nonBlank && failures.isEmpty }
     }
 
+    /// The environment a scene's dependency graph is made with: the scene's own (`SnapshotScene.environment`, step 5c),
+    /// then REFEREE_HOME, REFEREE_SNAPSHOT and REFEREE_NO_KEYCHAIN, which no scene can change.
+    static func overrides(for scene: SnapshotScene, home: URL) -> [String: String] {
+        scene.environment.merging(["REFEREE_HOME": home.path, "REFEREE_SNAPSHOT": "1", "REFEREE_NO_KEYCHAIN": "1"]) { _, fixed in fixed }
+    }
+
     private static func capture(_ scene: SnapshotScene, options: SnapshotOptions, home: URL,
                                 makeDependencies: @Sendable ([String: String]) async -> AppDependencies) async -> SceneResult {
         var result = SceneResult()
@@ -107,8 +113,9 @@ import TestSupport
             return result
         }
 
-        // The whole graph, the engine included, on mock and static providers and the fake resolver (section 10.1, step 1).
-        let dependencies = await makeDependencies(["REFEREE_HOME": home.path, "REFEREE_SNAPSHOT": "1", "REFEREE_NO_KEYCHAIN": "1"])
+        // The whole graph, the engine included, on mock and static providers and the fake resolver (section 10.1, step 1);
+        // the scene's own environment under the three keys of the snapshot mode, which win (step 5c).
+        let dependencies = await makeDependencies(overrides(for: scene, home: home))
         try? await dependencies.settings.save(settings)     // also reaches a settings store that does not read the file
 
         // 2. The window, made as the app makes it, in a fixed size and appearance, shown off screen.
