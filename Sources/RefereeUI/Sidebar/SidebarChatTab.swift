@@ -3,8 +3,8 @@ import RefereeCore
 import AppCore
 
 /// The Chat tab (plan.md section 9.5): the conversations, newest first (`session.conversations` is in creation order),
-/// and at the bottom a field "Ask about the paper…" that starts a conversation with no selection. Empty state:
-/// "Select text in the PDF and choose Ask AI."
+/// and at the bottom a field "Ask about the paper…" that starts a conversation with no selection. Empty state (D35): "No
+/// questions yet", and how to ask one.
 struct SidebarChatTab: View {
     let model: ReviewSessionModel
 
@@ -14,17 +14,18 @@ struct SidebarChatTab: View {
         let conversations = Array((model.session?.conversations ?? []).reversed())
         VStack(spacing: 0) {
             if conversations.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "text.bubble")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                    Text("Select text in the PDF and choose Ask AI.")
-                        .font(Theme.bodyFont)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                // In a scroll view, so that the tab asks for no height of its own (plan.md section 9.2).
+                GeometryReader { geometry in
+                    ScrollView {
+                        ContentUnavailableView {
+                            Label("No questions yet", systemImage: "text.bubble")
+                        } description: {
+                            Text("Select a passage in the PDF and choose Ask AI, or ask about the whole paper in the field below.")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: geometry.size.height)
+                    }
                 }
-                .padding(Theme.sidebarPadding)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: Theme.listSpacing) {
@@ -46,7 +47,7 @@ struct SidebarChatTab: View {
 }
 
 /// One conversation: the quoted passage (click → `revealConversationInPDF`) and its location, the messages, the answer
-/// while it streams, a failed answer's red line with Retry, per answer "Make Comment ▾" (kind) and Copy, and a field
+/// while it streams, a failed answer's red line with Retry, per answer "Add as Comment ▾" (kind) and Copy, and a field
 /// for a follow-up question.
 struct SidebarConversationCard: View {
     let model: ReviewSessionModel
@@ -57,10 +58,11 @@ struct SidebarConversationCard: View {
     var body: some View {
         let isReceiving = model.streamingTargetID == conversation.id
         let failure = model.replyFailure?.targetID == conversation.id ? model.replyFailure?.message : nil
+        let names = SidebarSourceNames(model: model)
         VStack(alignment: .leading, spacing: 8) {
             passage
             ForEach(conversation.messages) { message in
-                SidebarMessageBubble(role: message.role, text: message.text)
+                SidebarMessageBubble(role: message.role, text: message.text, source: names.source(of: message))
                 if message.role == .assistant {
                     answerActions(message)
                 }
@@ -123,22 +125,43 @@ struct SidebarConversationCard: View {
         }
     }
 
-    /// "Make Comment ▾" (the kind of the pending comment it becomes) and Copy, under an answer.
+    /// "Add as Comment ▾" (the kind of the comment it becomes) and Copy, under an answer.
     private func answerActions(_ message: ThreadMessage) -> some View {
         HStack(spacing: 6) {
-            Menu("Make Comment") {
+            Menu("Add as Comment") {
                 ForEach(CommentKind.allCases, id: \.self) { kind in
                     Button(SidebarCardState.kindName(kind)) {
-                        model.convertReplyToComment(conversationID: conversation.id, messageID: message.id, kind: kind)
+                        SidebarChatActions.addAsComment(model: model, conversationID: conversation.id, messageID: message.id, kind: kind)
                     }
                 }
             }
             .fixedSize()
-            .help("Turn this answer into a pending comment of the chosen kind")
+            .help("Turn this answer into a comment of your own, then edit it")
             Button("Copy") { SidebarPasteboard.copy(message.text) }
                 .help("Copy the answer")
             Spacer(minLength: 0)
         }
         .controlSize(.small)
+    }
+}
+
+/// What the Chat tab does with an answer (D10).
+@MainActor enum SidebarChatActions {
+    /// The answer becomes a comment of the referee's own (`convertReplyToComment`), which then opens in the editor on the
+    /// Comments tab, selected, with the cursor in the comment: the answer is in the assistant's voice and needs rewriting
+    /// before it can stand as the referee's. Nothing opens when no comment was made (an empty answer).
+    static func addAsComment(model: ReviewSessionModel, conversationID: UUID, messageID: UUID, kind: CommentKind) {
+        let before = (model.session?.comments ?? []).map(\.id)
+        model.convertReplyToComment(conversationID: conversationID, messageID: messageID, kind: kind)
+        guard let id = newCommentID(before: before, after: (model.session?.comments ?? []).map(\.id)) else { return }
+        model.selectedCommentID = id
+        model.sidebarTab = .comments
+        model.editingCommentID = id
+    }
+
+    /// The one id in `after` that is not in `before`; nil when there is none. Pure.
+    nonisolated static func newCommentID(before: [UUID], after: [UUID]) -> UUID? {
+        let known = Set(before)
+        return after.last { !known.contains($0) }
     }
 }

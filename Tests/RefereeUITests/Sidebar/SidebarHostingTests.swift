@@ -51,16 +51,23 @@ import TestSupport
 
     @Test @MainActor func everyTabFitsTheInspectorsNarrowestWidth() async throws {
         let long = String(repeating: "A long sentence that has to wrap inside the card. ", count: 12)
-        let other = Sample.comment(title: "The other comment", body: long, suggestion: long)
+        // Every card names a provider and a long model (step 5b), in every form: full, compact with its facts, similar,
+        // rejected.
+        let run = Sample.run("antigravity-cli", model: "example-extended-context-preview-with-a-very-long-name")
+        let ai = CommentOrigin.ai(runID: run.id)
+        let message = ThreadMessage(id: UUID(), role: .assistant, text: long, createdAt: Sample.created,
+                                    provider: ProviderRef(providerID: "antigravity-cli", model: "example-extended-context-preview-with-a-very-long-name"))
+        let other = Sample.comment(origin: ai, title: "The other comment", body: long, suggestion: long, thread: [message])
         let comments = [
             other,
-            Sample.comment(status: .approved, kind: .minor, category: "assumptions", title: long, body: long, suggestion: long),
-            Sample.comment(kind: .major, title: "Similar", similarTo: other.id),
-            Sample.comment(status: .rejected, kind: .strength, title: long),
-            Sample.comment(kind: .question, category: "literature", anchor: Sample.unanchored),
-            Sample.comment(kind: .minor, anchor: Sample.pageOnly, proposal: CommentRevision(kind: .minor, title: long, body: long, withdraw: false)),
+            Sample.comment(origin: ai, status: .approved, kind: .minor, category: "assumptions", title: long, body: long, suggestion: long),
+            Sample.comment(origin: ai, kind: .major, title: "Similar", similarTo: other.id),
+            Sample.comment(origin: ai, status: .rejected, kind: .strength, title: long),
+            Sample.comment(origin: ai, kind: .question, category: "literature", anchor: Sample.unanchored),
+            Sample.comment(origin: ai, kind: .minor, anchor: Sample.pageOnly, thread: [message],
+                           proposal: CommentRevision(kind: .minor, title: long, body: long, withdraw: false)),
         ]
-        let answer = ThreadMessage(id: UUID(), role: .assistant, text: long, createdAt: Sample.created)
+        let answer = ThreadMessage(id: UUID(), role: .assistant, text: long, createdAt: Sample.created, provider: message.provider)
         let question = ThreadMessage(id: UUID(), role: .user, text: "Is this claim supported by the evidence in the paper?", createdAt: Sample.created)
         let conversation = Conversation(id: UUID(), anchor: Sample.exact, messages: [question, answer], createdAt: Sample.created)
         let report = ReportDraft(markdown: "## Summary assessment\n\n" + long + "\n\n## Major concerns\n\n1. " + long, recommendation: .accept,
@@ -68,8 +75,10 @@ import TestSupport
         let findings = [LintFinding(id: 1, range: TextRange(location: 0, length: 7), rule: "missing-section",
                                     message: "Section 'Recommendation' is missing.")]
         let engine = ScriptedReviewEngine(plan: SidebarTestData.plan, lint: findings)
-        let harness = try await SidebarTestHarness.open(comments: comments, conversations: [conversation], report: report, engine: engine)
+        let harness = try await SidebarTestHarness.open(comments: comments, conversations: [conversation], report: report, runs: [run],
+                                                        engine: engine)
         let model = harness.model
+        #expect(SidebarCardInputs(model: model).sources.count == comments.count)
         model.openThreadCommentID = other.id
 
         for tab in SidebarTab.allCases {
@@ -78,6 +87,9 @@ import TestSupport
             #expect(width <= 320, "the \(tab.rawValue) tab needs \(width) points")
         }
         model.sidebarTab = .comments
+        model.openThreadCommentID = nil                                      // every card but the selected one compact
+        let compact = narrowestWidth(of: model)
+        #expect(compact <= 320, "the compact cards need \(compact) points")
         model.editingCommentID = other.id
         model.beginComposingComment()
         let editing = narrowestWidth(of: model)

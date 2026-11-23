@@ -3,6 +3,7 @@ import Testing
 import UniformTypeIdentifiers
 import RefereeCore
 import AppCore
+import TestSupport
 @testable import RefereeUI
 
 /// What the Report tab says about the report (plan.md sections 6.10 and 9.8), the editor's title rule, and the export
@@ -27,6 +28,110 @@ import AppCore
         #expect(SidebarReportFacts.approvedSummary(of: two) == "2 approved comments (2 questions)")
         #expect(SidebarReportFacts.approvedSummary(of: [Sample.comment()]) == "No approved comments yet")
         #expect(SidebarReportFacts.approvedSummary(of: []) == "No approved comments yet")
+    }
+
+    /// The summary row breaks between the count and the kinds when it has to (D8).
+    @Test func theSummaryInItsTwoParts() {
+        let comments = [Sample.comment(status: .approved, kind: .major), Sample.comment(status: .approved, kind: .minor)]
+        let parts = SidebarReportFacts.approvedSummaryParts(of: comments)
+        #expect(parts.count == "2 approved comments")
+        #expect(parts.kinds == "(1 major, 1 minor)")
+        #expect(SidebarReportFacts.approvedSummaryParts(of: []).kinds == nil)
+    }
+
+    // ---- D8: the style check's titles ----
+
+    @Test func everyRuleOfAppendixB7HasATitle() {
+        let titles = ["banned-word": "Machine-sounding word", "check-word": "Word to check", "em-dash": "Em dash",
+                      "not-only": "“Not only … but also”", "copula": "“Serves as”", "gerund-tail": "Trailing -ing clause",
+                      "third-person": "Third person", "hedge-stack": "Stacked hedge", "flattering-opener": "Opening praise",
+                      "optimistic-closer": "Optimistic ending", "template-heading": "Template heading",
+                      "missing-section": "Missing section", "opens-with-summary": "Opens with a summary",
+                      "recommendation-mismatch": "Recommendation mismatch"]
+        for (rule, title) in titles {
+            #expect(SidebarReportFacts.ruleTitle(rule) == title, "\(rule)")
+        }
+        #expect(SidebarReportFacts.ruleTitles.count == titles.count)
+        #expect(SidebarReportFacts.ruleTitle("new-rule-id") == "New rule id")
+        #expect(SidebarReportFacts.ruleTitle("x") == "X")
+    }
+
+    // ---- D33: the journal's two boxes ----
+
+    static func sampleReport() throws -> String {
+        try String(contentsOf: Fixtures.url("llm/report_sample.txt"), encoding: .utf8)
+    }
+
+    @Test func theAuthorsGetEverySectionButTheRecommendationAndTheProbability() throws {
+        let authors = SidebarReportFacts.authorsMarkdown(try Self.sampleReport())
+        #expect(authors.hasPrefix("## Summary assessment"))
+        for heading in ["## Major concerns", "## Minor concerns", "## Questions for the authors"] {
+            #expect(authors.contains(heading), "\(heading)")
+        }
+        #expect(!authors.contains("## Recommendation"))
+        #expect(!authors.contains("## Publication probability"))
+        #expect(!authors.contains("Major revision."))
+        #expect(!authors.contains("10–20%"))
+        #expect(authors.contains("1. Does Proposition 1 require bounded signals?"))
+    }
+
+    @Test func theEditorGetsTheAssessmentTheRecommendationAndTheProbability() throws {
+        let editor = SidebarReportFacts.editorMarkdown(try Self.sampleReport())
+        #expect(editor.hasPrefix("## Summary assessment"))
+        #expect(editor.contains("## Recommendation\n\nMajor revision."))
+        #expect(editor.contains("## Publication probability\n\n10–20%"))
+        #expect(!editor.contains("## Major concerns"))
+        #expect(!editor.contains("Questions for the authors"))
+    }
+
+    @MainActor @Test func eachBoxIsCopiedAsPlainText() throws {
+        let report = try Self.sampleReport()
+        let authors = SidebarReportFacts.authorsText(report)
+        #expect(authors.hasPrefix("Summary assessment\n\n"))
+        #expect(!authors.contains("##"))
+        #expect(!authors.contains("Recommendation"))
+        let editor = SidebarReportFacts.editorText(report)
+        #expect(editor.hasPrefix("Summary assessment\n\n"))
+        #expect(editor.contains("Recommendation\n\nMajor revision."))
+        #expect(editor.contains("Publication probability"))
+        #expect(!editor.contains("Major concerns"))
+    }
+
+    /// Headings are found by their text whatever their case, with or without a colon, under a title of a higher level;
+    /// text before the first heading goes to the authors only; nothing to copy gives an empty text.
+    @Test func headingsAreMatchedByTheirText() {
+        let report = """
+        Thank you for the opportunity to review.
+
+        # Referee report
+
+        ## SUMMARY ASSESSMENT:
+
+        Sound.
+
+        ## Recommendation
+
+        Minor revision.
+
+        ### Why
+
+        Small fixes.
+
+        ## Comments
+
+        1. A sign.
+        """
+        let authors = SidebarReportFacts.authorsMarkdown(report)
+        #expect(authors.hasPrefix("Thank you for the opportunity to review."))
+        #expect(authors.contains("# Referee report"))
+        #expect(authors.contains("## SUMMARY ASSESSMENT:"))
+        #expect(!authors.contains("Minor revision."))
+        #expect(!authors.contains("Small fixes."))                        // a subsection goes with its section
+        #expect(authors.contains("1. A sign."))
+        let editor = SidebarReportFacts.editorMarkdown(report)
+        #expect(editor == "## SUMMARY ASSESSMENT:\n\nSound.\n\n## Recommendation\n\nMinor revision.\n\n### Why\n\nSmall fixes.")
+        #expect(SidebarReportFacts.editorMarkdown("No headings at all.") == "")
+        #expect(SidebarReportFacts.authorsMarkdown("") == "")
     }
 
     static let report = """

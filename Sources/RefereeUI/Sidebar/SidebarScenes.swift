@@ -14,6 +14,10 @@ import AppCore
 //   six cards do not fit under the toolbar of the finished window (748 points).
 // - sidebar-discussion, sidebar-editing, sidebar-report: Fixtures/sessions/sample.json on ay_nolinks.pdf.
 // - sidebar-chat: a question about the abstract's last sentence of ay_nolinks.pdf, answered by the mock.
+//
+// Step 5 (docs/design-review.md) extended the checks: only the card being worked on is in full (D1), the page-only
+// label (D17), what a proposal changes (D18), the cursor in the comment when the editor opens (D2), and the room the
+// report editor gets (D8).
 
 @MainActor public enum SidebarScenes {
     public static var all: [SnapshotScene] {
@@ -48,6 +52,10 @@ import AppCore
             if Set(comments.map(\.kind)).count < 3 { failures.append("expected at least three kinds of comment") }
             if model.selectedCommentID == nil { failures.append("expected a selected comment") }
             if model.sidebarTab != .comments { failures.append("expected the Comments tab") }
+            // D1: the second card in full, the others compact.
+            let layouts = SidebarSceneSupport.cardStates(model).map(\.layout)
+            let expected: [SidebarCardState.Layout] = layouts.indices.map { $0 == 1 ? .full : .compact }
+            if layouts != expected { failures.append("expected the second card in full and the others compact, found \(layouts)") }
             return failures
         })
     }
@@ -84,18 +92,26 @@ import AppCore
         }, verify: { context in
             guard let model = context.model else { return ["the scene has no model"] }
             let states = SidebarSceneSupport.cardStates(model)
+            // Nothing is selected, so the cards that are not collapsed are compact (D1); either form shows the state.
+            let open: Set<SidebarCardState.Layout> = [.full, .compact]
             var failures: [String] = []
             if states.count != 5 { failures.append("expected 5 cards, found \(states.count)") }
-            if !states.contains(where: { $0.layout == .full && $0.bar == .approved }) { failures.append("no approved card") }
+            if !states.contains(where: { open.contains($0.layout) && $0.bar == .approved }) { failures.append("no approved card") }
             if !states.contains(where: { $0.layout == .collapsedRejected }) { failures.append("no rejected card") }
             if !states.contains(where: { $0.layout == .collapsedSimilar }) { failures.append("no collapsed similar card") }
-            if !states.contains(where: { if case .fuzzy = $0.location { return $0.layout == .full }; return false }) {
+            if !states.contains(where: { if case .fuzzy = $0.location { return open.contains($0.layout) }; return false }) {
                 failures.append("no card with a fuzzy anchor")
             }
-            if !states.contains(where: { if case .pageOnly = $0.location { return $0.layout == .full }; return false }) {
+            if !states.contains(where: { if case .pageOnly = $0.location { return open.contains($0.layout) }; return false }) {
                 failures.append("no card with a page-only anchor")
             }
-            if !states.contains(where: { $0.location == .notFound && $0.layout == .full }) { failures.append("no unanchored card") }
+            if !states.contains(where: { $0.location == .notFound && open.contains($0.layout) }) { failures.append("no unanchored card") }
+            // D17: the page-only card says so in words.
+            let pageOnly = states.compactMap { state -> String? in
+                if case .pageOnly = state.location { return SidebarCardState.locationText(state.location) }
+                return nil
+            }
+            if pageOnly != ["p. 3 · page only"] { failures.append("expected the page-only label \"p. 3 · page only\", found \(pageOnly)") }
             return failures
         })
     }
@@ -114,11 +130,20 @@ import AppCore
             guard let comment = model.session?.comments.first(where: { $0.id == id }) else { return ["the discussed comment is missing"] }
             var failures: [String] = []
             if comment.thread.count != 2 { failures.append("expected 2 messages in the thread, found \(comment.thread.count)") }
-            if comment.proposedRevision == nil { failures.append("expected a proposed revision") }
+            if let proposal = comment.proposedRevision {
+                // D18: the box says what the revision changes.
+                let changes = SidebarProposalFacts.changes(from: comment, to: proposal)
+                if changes != discussedChanges { failures.append("the proposal reads \"\(changes ?? "nothing")\", expected \"\(discussedChanges)\"") }
+            } else {
+                failures.append("expected a proposed revision")
+            }
             if model.openThreadCommentID != id { failures.append("expected the thread to be open") }
             return failures
         })
     }
+
+    /// What sample.json's proposed revision of comment A changes (D18).
+    static let discussedChanges = "Changes: kind Major → Minor · title · comment · suggestion"
 
     // ---- sidebar-editing: a card in edit mode ----
 
@@ -132,8 +157,10 @@ import AppCore
             guard let model = context.model else { return ["the scene has no model"] }
             let id = SidebarSceneSupport.id(editedComment)
             var failures: [String] = []
-            if model.session?.comments.contains(where: { $0.id == id }) != true { failures.append("the edited comment is missing") }
+            guard let comment = model.session?.comments.first(where: { $0.id == id }) else { return ["the edited comment is missing"] }
             if model.editingCommentID != id { failures.append("expected the comment to be in edit mode") }
+            // D2: E puts the cursor in the comment.
+            if let problem = SidebarSceneSupport.keyboardProblem(in: context.window, expectedText: comment.body) { failures.append(problem) }
             return failures
         })
     }
@@ -180,6 +207,8 @@ import AppCore
             if (model.session?.report?.markdown ?? "").isEmpty { failures.append("expected a generated report") }
             if model.lintFindings.count != 3 { failures.append("expected 3 lint findings, found \(model.lintFindings.count)") }
             if model.sidebarTab != .report { failures.append("expected the Report tab") }
+            // D8: the editor gets the room, at least 470 points of 800 and 320 of 640.
+            if let problem = SidebarSceneSupport.reportEditorProblem(in: context.window) { failures.append(problem) }
             return failures
         })
     }

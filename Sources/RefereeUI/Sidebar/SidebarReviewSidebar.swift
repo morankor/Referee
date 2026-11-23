@@ -10,6 +10,9 @@ import AppCore
 
 public struct ReviewSidebar: View {
     @Bindable private var model: ReviewSessionModel
+    /// "Show Full Text of Every Comment" in the Comments tab's ⋯ menu (step 5, D1): one setting per window, kept here so
+    /// that it survives a change of tab, off when the window opens.
+    @State private var expandsAllCards = false
 
     public init(model: ReviewSessionModel) {
         _model = Bindable(model)
@@ -32,7 +35,7 @@ public struct ReviewSidebar: View {
                     SidebarNoDocumentView(phase: model.phase)
                 } else {
                     switch model.sidebarTab {
-                    case .comments: SidebarCommentsTab(model: model)
+                    case .comments: SidebarCommentsTab(model: model, expandsAllCards: $expandsAllCards)
                     case .chat: SidebarChatTab(model: model)
                     case .report: SidebarReportTab(model: model)
                     }

@@ -29,6 +29,7 @@ import TestSupport
     @Test @MainActor func approvingTurnsTheButtonsIntoUndoAndUndoBringsThemBack() async throws {
         let comment = Sample.comment()
         let harness = try await SidebarTestHarness.open(comments: [comment])
+        harness.model.selectedCommentID = comment.id                         // the selected card is the one in full (D1)
         harness.model.setStatus(.approved, for: comment.id)
         #expect(harness.state(of: comment.id)?.actions == [.undo, .discuss, .edit])
         #expect(harness.state(of: comment.id)?.bar == .approved)
@@ -48,7 +49,85 @@ import TestSupport
         #expect(harness.state(of: similar.id)?.layout == .full)
         harness.model.selectedCommentID = nil
         harness.model.deleteComment(other.id)
-        #expect(harness.state(of: similar.id)?.layout == .full)
+        #expect(harness.state(of: similar.id)?.layout == .compact)              // no longer folded; compact, as unselected (D1)
+    }
+
+    /// J and K move the full card with the selection; the card left behind is compact again (D1).
+    @Test @MainActor func theFullCardFollowsTheSelection() async throws {
+        let first = Sample.comment(title: "First")
+        let second = Sample.comment(title: "Second", createdAt: Sample.created.addingTimeInterval(1))
+        let harness = try await SidebarTestHarness.open(comments: [first, second])
+        let model = harness.model
+        model.selectNextComment(pendingOnly: false)
+        #expect(harness.state(of: first.id)?.layout == .full)
+        #expect(harness.state(of: second.id)?.layout == .compact)
+        model.selectNextComment(pendingOnly: false)
+        #expect(harness.state(of: first.id)?.layout == .compact)
+        #expect(harness.state(of: second.id)?.layout == .full)
+        #expect(harness.state(of: second.id)?.actions == [.approve, .reject, .discuss, .edit])
+    }
+
+    // ---- D10: an answer turned into a comment opens in the editor ----
+
+    @Test func theNewCommentIsTheOneIDThatWasNotThereBefore() {
+        let old = [UUID(), UUID()]
+        let new = UUID()
+        #expect(SidebarChatActions.newCommentID(before: old, after: old + [new]) == new)
+        #expect(SidebarChatActions.newCommentID(before: old, after: old) == nil)
+        #expect(SidebarChatActions.newCommentID(before: [], after: []) == nil)
+    }
+
+    @Test @MainActor func addingAnAnswerAsACommentOpensItInTheEditorOnTheCommentsTab() async throws {
+        let answer = ThreadMessage(id: UUID(), role: .assistant, text: "The interval in Table 2 crosses one, so the claim is too strong.",
+                                   createdAt: Sample.created, provider: ProviderRef(providerID: "mock", model: "mock"))
+        let conversation = Conversation(id: UUID(), anchor: Sample.exact, messages: [answer], createdAt: Sample.created)
+        let existing = Sample.comment(title: "Existing")
+        let harness = try await SidebarTestHarness.open(comments: [existing], conversations: [conversation])
+        let model = harness.model
+        model.sidebarTab = .chat
+
+        SidebarChatActions.addAsComment(model: model, conversationID: conversation.id, messageID: answer.id, kind: .question)
+
+        let made = try #require(model.session?.comments.first { $0.id != existing.id })
+        #expect(made.kind == .question)
+        #expect(made.origin == .user)
+        #expect(model.selectedCommentID == made.id)
+        #expect(model.editingCommentID == made.id)
+        #expect(model.sidebarTab == .comments)
+        #expect(harness.state(of: made.id)?.isEditing == true)
+    }
+
+    @Test @MainActor func anEmptyAnswerMakesNoCommentAndOpensNothing() async throws {
+        let empty = ThreadMessage(id: UUID(), role: .assistant, text: "  ", createdAt: Sample.created)
+        let conversation = Conversation(id: UUID(), messages: [empty], createdAt: Sample.created)
+        let harness = try await SidebarTestHarness.open(comments: [], conversations: [conversation])
+        let model = harness.model
+        model.sidebarTab = .chat
+        SidebarChatActions.addAsComment(model: model, conversationID: conversation.id, messageID: empty.id, kind: .major)
+        #expect(model.session?.comments.isEmpty == true)
+        #expect(model.editingCommentID == nil)
+        #expect(model.sidebarTab == .chat)
+    }
+
+    // ---- step 5b: who wrote each comment ----
+
+    /// The cards name their run's provider and model; a provider switched off since is still named; the referee's own
+    /// comments name none.
+    @Test @MainActor func theCardsNameTheProviderAndModelOfTheirRun() async throws {
+        let mockRun = Sample.run("mock", model: "mock")
+        let claudeRun = Sample.run("claude-cli", model: "sonnet")
+        let byMock = Sample.comment(origin: .ai(runID: mockRun.id), title: "By the mock")
+        let byClaude = Sample.comment(origin: .ai(runID: claudeRun.id), title: "By Claude Code", createdAt: Sample.created.addingTimeInterval(1))
+        let own = Sample.comment(origin: .user, title: "Mine", createdAt: Sample.created.addingTimeInterval(2))
+        let harness = try await SidebarTestHarness.open(comments: [byMock, byClaude, own], runs: [mockRun, claudeRun])
+        #expect(harness.state(of: byMock.id)?.source?.text == "Mock · mock")
+        #expect(harness.state(of: byClaude.id)?.source?.text == "Claude Code · sonnet")       // no cached list here: the id
+        #expect(harness.state(of: byClaude.id)?.source?.help == "Written by claude-cli, model sonnet")
+        #expect(harness.state(of: own.id)?.source == nil)
+        // The window's names: the enabled mock has its descriptor, nothing runs.
+        let names = SidebarSourceNames(model: harness.model)
+        #expect(names.descriptors.contains { $0.id == "mock" })
+        #expect(names.running == nil)
     }
 
     @Test @MainActor func aFailedReplyShowsUnderItsCommentOnlyAndRetryClearsIt() async throws {

@@ -14,15 +14,26 @@ import AppCore
 // - design-reply-failed: a discussion whose reply failed, shown inline with Retry.
 // - design-report-empty: the Report tab before any comment is approved.
 // - design-chat-empty: the Chat tab before any question.
+// - design-report-streaming (step 5): the report half written, from the snapshot registry's slow stand-in `mock-slow`
+//   (step 5a, O3), on sample.json.
+// - design-two-models (step 5b, the user's requirement): Fixtures/sessions/design-sidebar-two-models.json on
+//   ay_nolinks.pdf, the comments of two reviews, Claude Code with "sonnet" and Codex with its default model, interleaved
+//   in paper order, one of each run on the same passage folded as similar, and one comment of the referee's own.
+//
+// Step 5 extended the checks with what the review's items make checkable: one card in full (D1), the Kind menu's items
+// (D11), "All 25 decided" (D6), the cursor in the comment (D2), the proposal before the failed reply (D18), and the room
+// the report editor gets while it streams (D8).
 
 @MainActor enum SidebarDesignScenes {
     static var all: [SnapshotScene] {
-        [triage, triageDone, composeFromSelection, replyFailed, reportEmpty, chatEmpty]
+        [triage, triageDone, composeFromSelection, replyFailed, reportEmpty, chatEmpty, reportStreaming, twoModels]
     }
 
     /// What design-triage.json holds; the triage scenes check these counts.
     static let triageComments = 25
     static let triagePending = 12
+    /// The Kind menu's items for design-triage.json (D11).
+    static let triageKindItems = ["Major (7)", "Minor (11)", "Questions (5)", "Strengths (2)"]
 
     // ---- design-triage-25 ----
 
@@ -49,6 +60,15 @@ import AppCore
             if !states.contains(where: { $0.layout == .collapsedSimilar }) { failures.append("no collapsed similar card") }
             if !states.contains(where: { $0.location == .notFound }) { failures.append("no unanchored card") }
             if !states.contains(where: { if case .pageOnly = $0.location { return true }; return false }) { failures.append("no page-only card") }
+            // D1: the selected card alone in full; every card that is not collapsed is compact.
+            let full = states.filter { $0.layout == .full }
+            if full.count != 1 || full.first?.isSelected != true { failures.append("expected the selected card alone in full, found \(full.count) full cards") }
+            if states.filter({ $0.layout == .compact }).count < 3 { failures.append("expected compact cards around the selected one") }
+            // D11: four status chips, then the Kind menu with Strengths.
+            let chips = SidebarFilterChip.chips(for: comments).map(\.title)
+            if chips != ["All", "Pending", "Approved", "Rejected"] { failures.append("the chips are \(chips)") }
+            let kinds = SidebarFilterChip.kindItems(for: comments).map(\.menuTitle)
+            if kinds != triageKindItems { failures.append("the Kind menu lists \(kinds), expected \(triageKindItems)") }
             return failures
         })
     }
@@ -69,6 +89,10 @@ import AppCore
             var failures: [String] = []
             if triage.total != triageComments { failures.append("expected \(triageComments) comments, found \(triage.total)") }
             if triage.decided != triage.total { failures.append("\(triage.decided) of \(triage.total) decided, expected all") }
+            // D6: the progress row says so and leads to the report.
+            if !SidebarFilterChip.isAllDecided(decided: triage.decided, total: triage.total) { failures.append("the progress row does not show \"All decided\"") }
+            let text = SidebarFilterChip.allDecidedText(total: triage.total)
+            if text != "All 25 decided" { failures.append("the progress row reads \"\(text)\"") }
             return failures
         })
     }
@@ -87,6 +111,8 @@ import AppCore
             var failures: [String] = []
             if model.composing?.selection?.text != SidebarScenes.chatPassage { failures.append("the new comment is not on the selected passage") }
             if model.sidebarTab != .comments { failures.append("expected the Comments tab") }
+            // D2: N puts the cursor in the comment, which is still empty.
+            if let problem = SidebarSceneSupport.keyboardProblem(in: context.window, expectedText: "") { failures.append(problem) }
             return failures
         })
     }
@@ -114,6 +140,10 @@ import AppCore
             var failures: [String] = []
             if model.replyFailure?.targetID != id { failures.append("no failed reply on the discussed comment") }
             if model.openThreadCommentID != id { failures.append("expected the thread to be open") }
+            // D18: the proposal waits in the thread, above the failed reply and the reply field.
+            let state = SidebarSceneSupport.cardStates(model).first { $0.isThreadOpen }
+            if state?.proposal == nil { failures.append("expected the proposed revision in the open thread") }
+            if state?.layout != .full { failures.append("expected the discussed card in full") }
             return failures
         })
     }
@@ -128,6 +158,8 @@ import AppCore
             var failures: [String] = []
             if model.sidebarTab != .report { failures.append("expected the Report tab") }
             if model.session?.report != nil { failures.append("expected no report") }
+            // D8: with nothing approved the tab offers Show Pending Comments.
+            if !SidebarReportFacts.reportComments(model.session?.comments ?? []).isEmpty { failures.append("expected no approved comment") }
             return failures
         })
     }
@@ -140,6 +172,93 @@ import AppCore
             var failures: [String] = []
             if model.sidebarTab != .chat { failures.append("expected the Chat tab") }
             if model.session?.conversations.isEmpty != true { failures.append("expected no conversation") }
+            return failures
+        })
+    }
+
+    // ---- design-report-streaming (step 5) ----
+
+    /// sample.json's approved comments, the report written by `mock-slow` (40 ms a delta, about 6.5 s in all): the
+    /// picture comes about two seconds in, the editor read-only with the text so far, "Writing the report…" and Stop.
+    static var reportStreaming: SnapshotScene {
+        SnapshotScene(name: "design-report-streaming", kind: .review, fixturePDF: "ay_nolinks.pdf", fixtureSession: "sample.json", prepare: { context in
+            guard let model = context.model else { return }
+            await SidebarSceneSupport.choose("mock-slow", model: "mock", in: model)
+            model.sidebarTab = .report
+            model.generateReport()
+            await SidebarSceneSupport.wait { !model.streamingReportText.isEmpty }
+        }, verify: { context in
+            guard let model = context.model else { return ["the scene has no model"] }
+            var failures: [String] = []
+            if model.reportProvider?.id != "mock-slow" { failures.append("the report goes to \(model.reportProvider?.id ?? "no provider"), expected mock-slow") }
+            if case .running(.report, _, _) = model.runState {} else { failures.append("expected the report to be still being written") }
+            if model.streamingReportText.isEmpty { failures.append("no report text has arrived") }
+            if model.session?.report != nil { failures.append("expected no finished report yet") }
+            if model.sidebarTab != .report { failures.append("expected the Report tab") }
+            // The text arrives in the report editor, read-only.
+            if let height = SidebarSceneSupport.reportEditorHeight(in: context.window) {
+                if height < 100 { failures.append("the streaming editor is \(Int(height)) points high") }
+            } else {
+                failures.append("the streaming editor is not in the window")
+            }
+            model.cancelRun()          // the rest of the stream is not needed
+            return failures
+        })
+    }
+
+    // ---- design-two-models (step 5b) ----
+
+    /// The labels design-sidebar-two-models.json's runs must give their comments.
+    static let twoModelsLabels: [ProviderID: String] = ["claude-cli": "Claude Code · Sonnet", "codex-cli": "Codex · default model"]
+
+    /// Both CLIs stay switched off, as after a review with each: their names come from the sidebar's own list. Claude
+    /// Code's model list is what Settings ▸ Providers keeps once it has listed the CLI's models (its documented aliases),
+    /// so "sonnet" reads "Sonnet"; Codex's review asked for no model.
+    static var twoModels: SnapshotScene {
+        SnapshotScene(name: "design-two-models", kind: .review, fixturePDF: "ay_nolinks.pdf", fixtureSession: "design-sidebar-two-models.json",
+                      prepare: { context in
+            guard let model = context.model else { return }
+            await SidebarSceneSupport.wait { model.session != nil }
+            var settings = model.settings
+            var claude = settings.providers["claude-cli"] ?? ProviderSettings(enabled: false, inputMode: .auto)
+            claude.cachedModels = [("default", "Default"), ("opus", "Opus"), ("sonnet", "Sonnet"), ("haiku", "Haiku")]
+                .map { ModelInfo(id: $0.0, displayName: $0.1) }
+            settings.providers["claude-cli"] = claude
+            model.reloadSettings(settings)
+            model.selectedCommentID = nil
+        }, verify: { context in
+            guard let model = context.model else { return ["the scene has no model"] }
+            var failures: [String] = []
+            let comments = model.session?.comments ?? []
+            let runs = model.session?.runs ?? []
+            if comments.count != 7 { failures.append("expected 7 comments, found \(comments.count)") }
+            if Set(runs.map(\.provider.providerID)) != ["claude-cli", "codex-cli"] { failures.append("expected a review by each CLI") }
+            if model.selectableProviders.contains(where: { $0.id == "claude-cli" || $0.id == "codex-cli" }) {
+                failures.append("expected both CLIs to be switched off")
+            }
+            // Every AI card names the provider and model of its run; the referee's own card names none.
+            let inputs = SidebarCardInputs(model: model)
+            for comment in model.visibleComments {
+                let state = SidebarCardState.make(for: comment, inputs: inputs)
+                guard case .ai(let runID) = comment.origin else {
+                    if state.source != nil { failures.append("the own comment \"\(comment.title)\" names a model") }
+                    continue
+                }
+                let providerID = runs.first { $0.id == runID }?.provider.providerID
+                let expected = providerID.flatMap { twoModelsLabels[$0] }
+                if state.source?.providerID != providerID || state.source?.text != expected {
+                    failures.append("\"\(comment.title)\" reads \"\(state.source?.text ?? "no label")\", expected \"\(expected ?? "?")\"")
+                }
+            }
+            // The two runs' comments are interleaved in the paper's order, and the folded card names both models.
+            let order = model.visibleComments.compactMap { inputs.sources[$0.id]?.providerID }
+            if order != ["claude-cli", "codex-cli", "codex-cli", "claude-cli", "claude-cli", "codex-cli"] {
+                failures.append("the cards come from \(order) in paper order")
+            }
+            let similar = SidebarSceneSupport.cardStates(model).filter { $0.layout == .collapsedSimilar }
+            if similar.count != 1 || similar.first?.source?.providerID != "codex-cli" || similar.first?.similarToSource?.providerID != "claude-cli" {
+                failures.append("expected one folded card by Codex, similar to one by Claude Code")
+            }
             return failures
         })
     }

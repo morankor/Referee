@@ -13,11 +13,23 @@ enum SidebarTestData {
     static func comment(id: UUID = UUID(), origin: CommentOrigin = .ai(runID: UUID()), status: CommentStatus = .pending,
                         kind: CommentKind = .major, category: String = "claims", title: String = "The interval includes one",
                         body: String = "The reported interval crosses one.", suggestion: String? = nil, anchor: Anchor = exact,
-                        similarTo: UUID? = nil, proposal: CommentRevision? = nil, includeInReport: Bool = true,
-                        createdAt: Date = created) -> ReviewComment {
+                        thread: [ThreadMessage] = [], similarTo: UUID? = nil, proposal: CommentRevision? = nil,
+                        previousVersions: [CommentRevision] = [], includeInReport: Bool = true, createdAt: Date = created) -> ReviewComment {
         ReviewComment(id: id, origin: origin, status: status, kind: kind, category: category, title: title, body: body,
-                      suggestion: suggestion, anchor: anchor, proposedRevision: proposal, includeInReport: includeInReport,
-                      similarTo: similarTo, createdAt: createdAt, updatedAt: createdAt)
+                      suggestion: suggestion, anchor: anchor, thread: thread, proposedRevision: proposal, previousVersions: previousVersions,
+                      includeInReport: includeInReport, similarTo: similarTo, createdAt: createdAt, updatedAt: createdAt)
+    }
+
+    /// A finished review run of `provider` with `model`.
+    static func run(id: UUID = UUID(), _ provider: ProviderID, model: String?, kind: RunKind = .review, startedAt: Date = created) -> RunRecord {
+        RunRecord(id: id, kind: kind, provider: ProviderRef(providerID: provider, model: model), destination: "this Mac", sentPDF: false,
+                  requestCount: 1, startedAt: startedAt, finishedAt: startedAt.addingTimeInterval(60), status: .completed)
+    }
+
+    /// A descriptor as the providers of section 5.2 have them.
+    static func descriptor(_ id: ProviderID, _ displayName: String, _ authMode: AuthMode) -> ProviderDescriptor {
+        ProviderDescriptor(id: id, displayName: displayName, vendor: "Example", authMode: authMode, isLocal: authMode == .local,
+                           destination: "example", supportsNativePDF: false, streaming: .token, retentionNote: "", isExperimental: false)
     }
 
     static var exact: Anchor {
@@ -39,9 +51,11 @@ enum SidebarTestData {
     }
 
     static func inputs(selected: UUID? = nil, editing: UUID? = nil, thread: UUID? = nil, streaming: UUID? = nil,
-                       failure: ReplyFailure? = nil, hasSelection: Bool = false, titles: [UUID: String] = [:]) -> SidebarCardInputs {
+                       failure: ReplyFailure? = nil, hasSelection: Bool = false, titles: [UUID: String] = [:],
+                       expandsAllCards: Bool = false, sources: [UUID: SidebarSource] = [:]) -> SidebarCardInputs {
         SidebarCardInputs(selectedCommentID: selected, editingCommentID: editing, openThreadCommentID: thread, streamingTargetID: streaming,
-                          replyFailure: failure, hasSelection: hasSelection, rubric: rubric, titles: titles)
+                          replyFailure: failure, hasSelection: hasSelection, rubric: rubric, titles: titles, expandsAllCards: expandsAllCards,
+                          sources: sources)
     }
 }
 
@@ -50,12 +64,12 @@ enum SidebarTestData {
     let model: ReviewSessionModel
     let paper: LoadedPaper
 
-    static func open(comments: [ReviewComment], conversations: [Conversation] = [], report: ReportDraft? = nil,
+    static func open(comments: [ReviewComment], conversations: [Conversation] = [], report: ReportDraft? = nil, runs: [RunRecord] = [],
                      engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: SidebarTestData.plan)) async throws -> SidebarTestHarness {
         let paper = try makeSamplePaper()
         let store = InMemorySessionStore()
         try await store.save(ReviewSession(schemaVersion: 1, id: UUID(), document: paper.ref, meta: ManuscriptMeta(reviewerNotes: ""),
-                                           comments: comments, conversations: conversations, report: report,
+                                           comments: comments, conversations: conversations, report: report, runs: runs,
                                            createdAt: SidebarTestData.created, updatedAt: SidebarTestData.created))
         let dependencies = AppDependencies(paperService: FakePaperService(paper: paper), matcherFactory: { FakeQuoteMatcher(paper: $0) },
                                            citationIndexer: FakeCitationIndexer(), engine: engine, resolver: FakeResolver(),

@@ -11,6 +11,7 @@ struct SidebarEditorReveal: Equatable {
 /// The report's plain-text Markdown editor (plan.md section 9.8): a 13-point system font with comfortable line
 /// spacing; heading lines are drawn in bold so that the structure shows, but the text stays plain (nothing typed gets
 /// an attribute). Read-only while a report or a voice revision streams into it, and then it follows the end of the text.
+/// Spelling is checked as the referee types (step 5, D8): the report goes into a web form where a typo stays.
 ///
 /// An `NSTextView` rather than SwiftUI's `TextEditor`, because a lint finding must select its range and scroll to it.
 struct SidebarMarkdownEditor: NSViewRepresentable {
@@ -37,6 +38,7 @@ struct SidebarMarkdownEditor: NSViewRepresentable {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
         textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.isContinuousSpellCheckingEnabled = true          // misspelt words underlined, never corrected (D8)
         textView.drawsBackground = true
         textView.backgroundColor = .textBackgroundColor
         textView.textColor = .textColor

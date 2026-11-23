@@ -1,0 +1,344 @@
+{
+  "comments" : [
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "Our identification strategy exploits the staggered rollout of a disclosure rule.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The design needs the order of the rollout to be unrelated to outcomes, and the paper gives no evidence that it was.",
+      "category" : "claims",
+      "createdAt" : "2026-11-19T09:01:00Z",
+      "id" : "2B0D0E15-0000-4000-8000-000000000001",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "2B0D0E15-0000-4000-8000-0000000000A1"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "suggestion" : "Say how the rollout order was decided and compare the offices before adoption.",
+      "thread" : [
+
+      ],
+      "title" : "The rollout is treated as if it were random",
+      "updatedAt" : "2026-11-19T09:01:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "Our identification strategy exploits the staggered rollout of a disclosure rule.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "No part of the paper shows that offices adopted the rule in an order unrelated to their outcomes.",
+      "category" : "claims",
+      "createdAt" : "2026-11-20T15:31:00Z",
+      "id" : "2B0D0E15-0000-4000-8000-000000000002",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "2B0D0E15-0000-4000-8000-0000000000B1"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "similarTo" : "2B0D0E15-0000-4000-8000-000000000001",
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "Nothing supports the timing of the rollout",
+      "updatedAt" : "2026-11-20T15:31:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "The effect is statistically significant but economically small.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The abstract calls the effect small without saying how small; one number would settle it.",
+      "category" : "writing",
+      "createdAt" : "2026-11-20T15:32:00Z",
+      "id" : "2B0D0E15-0000-4000-8000-000000000003",
+      "includeInReport" : true,
+      "kind" : "minor",
+      "origin" : {
+        "ai" : {
+          "runID" : "2B0D0E15-0000-4000-8000-0000000000B1"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "approved",
+      "thread" : [
+
+      ],
+      "title" : "Give the size of the effect in the abstract",
+      "updatedAt" : "2026-11-20T15:32:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "The coefficient in Table 2 is 0.91 with a confidence interval that crosses one",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "Table 2 reports 0.91 with an interval that crosses one, yet the text calls the effect robust.",
+      "category" : "claims",
+      "createdAt" : "2026-11-19T09:02:00Z",
+      "id" : "2B0D0E15-0000-4000-8000-000000000004",
+      "includeInReport" : true,
+      "kind" : "major",
+      "origin" : {
+        "ai" : {
+          "runID" : "2B0D0E15-0000-4000-8000-0000000000A1"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "An interval that includes one does not show a robust effect",
+      "updatedAt" : "2026-11-19T09:02:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "We study how sequential traders aggregate private signals.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The opening sentence would fit any paper on herding; one more clause on what this paper adds would help.",
+      "category" : "other",
+      "createdAt" : "2026-11-21T10:00:00Z",
+      "id" : "2B0D0E15-0000-4000-8000-000000000005",
+      "includeInReport" : true,
+      "kind" : "minor",
+      "origin" : {
+        "user" : {
+
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "approved",
+      "thread" : [
+
+      ],
+      "title" : "Say what is new in the first sentence",
+      "updatedAt" : "2026-11-21T10:00:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 2",
+        "pageIndex" : 1,
+        "quote" : "Proposition 1 states that an information cascade begins with positive probability.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The model allows unbounded signals, under which a cascade need not begin. Does the proposition still hold?",
+      "category" : "math",
+      "createdAt" : "2026-11-19T09:03:00Z",
+      "id" : "2B0D0E15-0000-4000-8000-000000000006",
+      "includeInReport" : true,
+      "kind" : "question",
+      "origin" : {
+        "ai" : {
+          "runID" : "2B0D0E15-0000-4000-8000-0000000000A1"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "Does Proposition 1 need bounded signals?",
+      "updatedAt" : "2026-11-19T09:03:00Z"
+    },
+    {
+      "anchor" : {
+        "confidence" : {
+          "pageOnly" : {
+
+          }
+        },
+        "locationLabel" : "p. 2",
+        "pageIndex" : 1,
+        "quote" : "Table 2 reports the estimates; the posterior in (1) is evaluated at the sample mean of the signal.",
+        "rects" : [
+
+        ],
+        "spans" : [
+
+        ]
+      },
+      "body" : "The posterior is evaluated at the sample mean of the signal, but the text does not say which sample.",
+      "category" : "data",
+      "createdAt" : "2026-11-20T15:33:00Z",
+      "id" : "2B0D0E15-0000-4000-8000-000000000007",
+      "includeInReport" : true,
+      "kind" : "minor",
+      "origin" : {
+        "ai" : {
+          "runID" : "2B0D0E15-0000-4000-8000-0000000000B1"
+        }
+      },
+      "previousVersions" : [
+
+      ],
+      "status" : "pending",
+      "thread" : [
+
+      ],
+      "title" : "Say which sample the posterior is evaluated on",
+      "updatedAt" : "2026-11-20T15:33:00Z"
+    }
+  ],
+  "consents" : [
+    {
+      "grantedAt" : "2026-11-19T08:59:50Z",
+      "providerID" : "claude-cli"
+    },
+    {
+      "grantedAt" : "2026-11-20T15:29:50Z",
+      "providerID" : "codex-cli"
+    }
+  ],
+  "conversations" : [
+
+  ],
+  "createdAt" : "2026-11-19T08:59:00Z",
+  "document" : {
+    "byteCount" : 0,
+    "fileName" : "ay_nolinks.pdf",
+    "pageCount" : 4,
+    "sha256" : "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "id" : "2B0D0E15-0000-4000-8000-0000000000FF",
+  "meta" : {
+    "reviewerNotes" : "",
+    "title" : "Information Aggregation in Sequential Markets: A Fixture"
+  },
+  "runs" : [
+    {
+      "destination" : "claude",
+      "finishedAt" : "2026-11-19T09:04:10Z",
+      "id" : "2B0D0E15-0000-4000-8000-0000000000A1",
+      "kind" : "review",
+      "provider" : {
+        "model" : "sonnet",
+        "providerID" : "claude-cli"
+      },
+      "requestCount" : 1,
+      "sentPDF" : true,
+      "startedAt" : "2026-11-19T09:00:00Z",
+      "status" : {
+        "completed" : {
+
+        }
+      },
+      "usage" : {
+        "inputTokens" : 21000,
+        "outputTokens" : 2600
+      }
+    },
+    {
+      "destination" : "codex",
+      "finishedAt" : "2026-11-20T15:36:40Z",
+      "id" : "2B0D0E15-0000-4000-8000-0000000000B1",
+      "kind" : "review",
+      "provider" : {
+        "providerID" : "codex-cli"
+      },
+      "requestCount" : 1,
+      "sentPDF" : true,
+      "startedAt" : "2026-11-20T15:30:00Z",
+      "status" : {
+        "completed" : {
+
+        }
+      },
+      "usage" : {
+        "inputTokens" : 23500,
+        "outputTokens" : 3100
+      }
+    }
+  ],
+  "schemaVersion" : 1,
+  "updatedAt" : "2026-11-21T10:00:00Z"
+}
