@@ -30,7 +30,7 @@ Public declarations: only `ReviewSidebar` and `SidebarScenes`, as printed in §1
 ## Decisions
 
 1. **Rejected cards stay one grey line**, also when selected; selection or hover adds Undo. The thread can still open under the line; editing replaces it with the editor.
-2. **Similar cards** collapse only while pending, unselected, not clicked open, and while the comment they resemble exists. "Similar to: <title>" selects that comment; a click elsewhere expands the card (it stays expanded).
+2. **Similar cards** collapse only while pending, unselected, not clicked open, and while the comment they resemble exists. `Similar to: <title>` selects that comment; a click elsewhere expands the card (it stays expanded).
 3. **Own comments** keep the blue bar whatever their status, except rejected (grey line). An own comment without a passage (empty quote, `.none`) shows no location at all, not "Passage not found" (WP8b's note); an AI comment without one does show it.
 4. **"Attach to selection"** sits on the unanchored card (disabled with a tooltip until the PDF has a selection) and in every card's ⋯ menu.
 5. **Discuss** toggles the thread; while it is open the button shows a chevron (an earlier "Close" label could be read as closing the comment).
@@ -70,7 +70,7 @@ Dark (`--dark`): all seven pass and read well (cards on dark grey, kind colours,
 
 1. **A finished comment has its draft's id** (`Sources/ReviewEngine/ReviewJob.swift`, `ReviewComment(id: draft.id, …)`). Legitimate under A.6, but any view that lists drafts and comments together keyed by UUID shows stale views (decision 13). WP9's highlights are not affected (drafts have no anchor).
 2. **Window minimum height**: any column (navigator, reader overlays, banner) with `.fixedSize(horizontal: false, vertical: true)` text outside a scroll view can make a review window grow at its 1000 × 640 minimum (decision 14). Worth running every scene with `--size 1000x640` once in Wave 3.
-3. **The Markdown export type** is `UTType(filenameExtension: "md")`, whose preferred extension on this system is "markdown"; the panel is seeded with "<paper> report.md". Check by hand that the panel keeps ".md".
+3. **The Markdown export type** is `UTType(filenameExtension: "md")`, whose preferred extension on this system is "markdown"; the panel is seeded with `<paper> report.md`. Check by hand that the panel keeps ".md".
 4. **Not checkable by snapshot**, for a manual pass in Wave 3: Return and ⌘↩ in the reply and chat fields (Send), ⌘↩ and Esc in the editor (two ⌘↩ owners when an editor and a thread are open at once; SwiftUI picks one); D focusing the reply field (J/K then type into it, as §9.4 intends); Undo on hover over a rejected line; a lint finding selecting its range; Copy to the pasteboard; the save panels of Export.
 5. Snapshot windows are drawn inactive (§10.1), so prominent buttons (Save, Accept, Generate) look grey in the pictures; in the app they are tinted.
 
