@@ -2,8 +2,9 @@ import SwiftUI
 import RefereeCore
 import AppCore
 
-/// The Report tab (plan.md sections 6.10 and 9.8). Top: "Venue and notes" (target venue and notes for the report, folded
-/// once a report exists), the count of approved comments with the recommendation picker beside it, and the buttons:
+/// The Report tab (plan.md sections 6.10 and 9.8). Top: "Venue and notes" (the paper's venue with "Change…", and notes
+/// for the report; folded once a report exists), the count of approved comments with the recommendation picker beside it
+/// (on the venue's scale: a journal's four recommendations, a conference's labels; step 5, G.9), and the buttons:
 /// Generate before there is a report; then Copy Text, Export ▾, Revise Voice, Regenerate and Versions ▾. Body: the
 /// Markdown editor with a Preview toggle; while a report or a voice revision streams it shows
 /// `model.streamingReportText`, read-only. Under it the folded "Style check" list of lint findings (clicking one selects
@@ -17,6 +18,7 @@ import AppCore
 /// shows no banner of its own.
 struct SidebarReportTab: View {
     let model: ReviewSessionModel
+    @Environment(\.uiActions) private var uiActions
 
     /// Which control shows "Copied" for a moment after a copy.
     enum CopyFeedback: Equatable { case copyText, exportMenu }
@@ -70,7 +72,7 @@ struct SidebarReportTab: View {
         VStack(alignment: .leading, spacing: 8) {
             venueAndNotes(hasReport: report != nil)
             summaryRow(comments: comments, report: report, streaming: streaming)
-            if let report, streaming == nil, SidebarReportFacts.recommendationMismatch(report.recommendation, markdown: report.markdown) {
+            if let report, streaming == nil, recommendationDisagrees(report) {
                 Label(SidebarReportFacts.mismatchMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(Theme.metadataFont)
                     .foregroundStyle(.orange)
@@ -106,15 +108,14 @@ struct SidebarReportTab: View {
         .padding(Theme.sidebarPadding)
     }
 
-    /// Venue and notes, open while there is no report (they go into it) and folded once one exists.
+    /// Venue and notes, open while there is no report (they go into it) and folded once one exists. The venue is the
+    /// paper's (step 5, G.9): its name and kind, and "Change…", which opens the toolbar's venue menu.
     private func venueAndNotes(hasReport: Bool) -> some View {
         DisclosureGroup(isExpanded: Binding(get: { venueChoice ?? !hasReport }, set: { venueChoice = $0 })) {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 8, verticalSpacing: 6) {
                 GridRow {
                     fieldLabel("Venue")
-                    TextField("Target venue", text: venue, prompt: Text("Target journal or venue"))
-                        .textFieldStyle(.roundedBorder)
-                        .labelsHidden()
+                    venueRow
                 }
                 GridRow {
                     fieldLabel("Notes")
@@ -127,9 +128,42 @@ struct SidebarReportTab: View {
             .controlSize(.small)
             .padding(.top, 6)
         } label: {
-            Text("Venue and notes")
-                .font(Theme.metadataFont.weight(.semibold))
+            HStack(spacing: 6) {
+                Text("Venue and notes")
+                    .font(Theme.metadataFont.weight(.semibold))
+                // The venue stays in sight when the group is folded (step 5, G.9).
+                Text(SidebarReportFacts.venueShortName(model.currentVenue))
+                    .font(Theme.metadataFont)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
+    }
+
+    /// The paper's venue: the kind's symbol, the name over the kind, and "Change…".
+    private var venueRow: some View {
+        let venue = model.currentVenue
+        let lines = SidebarReportFacts.venueLines(venue, typedName: model.session?.meta.targetVenue)
+        return HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: Theme.venueSymbol(venue.kind))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(lines.name)
+                    .font(Theme.bodyFont)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(lines.kind)
+                    .font(Theme.metadataFont)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)                               // one line at any width: the tab asks for no height of its own (§9.2)
+            }
+            Spacer(minLength: 4)
+            Button("Change…") { uiActions.chooseVenue() }
+                .disabled(model.session == nil)
+                .help("Choose the venue in the toolbar's venue menu; Settings ▸ Venues edits the venues")
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("Venue: \(lines.name), \(lines.kind)"))
     }
 
     /// "2 approved comments (1 major, 1 minor)" and, once there is a report, its recommendation (D8).
@@ -157,19 +191,43 @@ struct SidebarReportTab: View {
                     .font(Theme.metadataFont)
                     .foregroundStyle(.secondary)
                     .fixedSize()
-                Picker("Recommendation", selection: recommendationChoice) {
-                    Text("Not set").tag(Recommendation?.none)
-                    ForEach(Recommendation.allCases, id: \.self) { value in
-                        Text(SidebarReportFacts.title(of: value)).tag(Recommendation?.some(value))
-                    }
-                }
-                .labelsHidden()
-                .fixedSize()
-                .controlSize(.small)
-                .disabled(streaming != nil)
-                .help("The recommendation in the report")
+                recommendationPicker
+                    .labelsHidden()
+                    .fixedSize()
+                    .controlSize(.small)
+                    .disabled(streaming != nil)
+                    .help(model.currentVenue.kind == .conference ? "The recommendation in the report, on the venue's scale"
+                                                                 : "The recommendation in the report")
             }
         }
+    }
+
+    /// A journal's four recommendations; a conference's scale (step 5, G.9), its labels most favourable first.
+    @ViewBuilder private var recommendationPicker: some View {
+        if model.currentVenue.kind == .conference {
+            Picker("Recommendation", selection: recommendationLabelChoice) {
+                Text("Not set").tag(String?.none)
+                ForEach(model.recommendationScale, id: \.self) { label in
+                    Text(label).tag(String?.some(label))
+                }
+            }
+        } else {
+            Picker("Recommendation", selection: recommendationChoice) {
+                Text("Not set").tag(Recommendation?.none)
+                ForEach(Recommendation.allCases, id: \.self) { value in
+                    Text(SidebarReportFacts.title(of: value)).tag(Recommendation?.some(value))
+                }
+            }
+        }
+    }
+
+    /// The recommendation the picker shows disagrees with the concerns the report lists, on the venue's scale.
+    private func recommendationDisagrees(_ report: ReportDraft) -> Bool {
+        let venue = model.currentVenue
+        if venue.kind == .conference {
+            return SidebarReportFacts.recommendationMismatch(label: model.recommendationLabel, venue: venue, markdown: report.markdown)
+        }
+        return SidebarReportFacts.recommendationMismatch(report.recommendation, markdown: report.markdown)
     }
 
     /// Generate (prominent) while there is no report; then Copy Text (prominent), Export ▾, Revise Voice, Regenerate
@@ -264,8 +322,10 @@ struct SidebarReportTab: View {
             Section {
                 Button("Copy Comments to the Authors") { copy(SidebarReportFacts.authorsText(markdown), feedback: .exportMenu) }
                     .disabled(SidebarReportFacts.authorsMarkdown(markdown).isEmpty)
-                Button("Copy Confidential Comments to the Editor") { copy(SidebarReportFacts.editorText(markdown), feedback: .exportMenu) }
-                    .disabled(SidebarReportFacts.editorMarkdown(markdown).isEmpty)
+                Button(SidebarReportFacts.confidentialCopyTitle(model.currentVenue.kind)) {
+                    copy(SidebarReportFacts.editorText(markdown), feedback: .exportMenu)
+                }
+                .disabled(SidebarReportFacts.editorMarkdown(markdown).isEmpty)
             }
             Divider()
             Button("Markdown File…") { export(.markdown) }
@@ -281,7 +341,9 @@ struct SidebarReportTab: View {
         }
         .fixedSize()
         .disabled(report == nil)
-        .help("Copy or save the report; the two copies for a journal system leave out what only the editor may read")
+        .help(model.currentVenue.kind == .conference
+              ? "Copy or save the report; the two copies for a review system leave out what only the program committee may read"
+              : "Copy or save the report; the two copies for a journal system leave out what only the editor may read")
     }
 
     // ---- editor ----
@@ -418,15 +480,6 @@ struct SidebarReportTab: View {
 
     // ---- bindings and actions ----
 
-    private var venue: Binding<String> {
-        Binding(get: { model.session?.meta.targetVenue ?? "" },
-                set: { value in
-                    guard var meta = model.session?.meta else { return }
-                    meta.targetVenue = value.isEmpty ? nil : value
-                    model.updateMeta(meta)
-                })
-    }
-
     private var notes: Binding<String> {
         Binding(get: { model.session?.meta.reviewerNotes ?? "" },
                 set: { value in
@@ -438,6 +491,11 @@ struct SidebarReportTab: View {
 
     private var recommendationChoice: Binding<Recommendation?> {
         Binding(get: { model.session?.report?.recommendation }, set: { model.setRecommendation($0) })
+    }
+
+    /// A conference's recommendation, a label of the venue's scale (step 5, G.9).
+    private var recommendationLabelChoice: Binding<String?> {
+        Binding(get: { model.recommendationLabel }, set: { model.setRecommendation(label: $0) })
     }
 
     /// Regenerating a report the referee edited asks first (section 6.10).

@@ -27,11 +27,14 @@ import TestSupport
 // - design-review-custom-menu: the menu of a paper in Custom, the three jobs' destinations, a provider's models.
 // And for a finding of the Reader agent at step 5b:
 // - design-review-sidebar-returns: the sidebar hidden, then a comment begun from the selection bar's path: it shows again.
+// And for venues (step 5, G.9):
+// - design-venue-menu: the paper on EC, the toolbar's venue menu open: journals and conferences, EC checked.
 
 @MainActor enum ShellDesignScenes {
     static var all: [SnapshotScene] {
         [welcomeFirstRun, welcomeMany, reviewNoProvider, reviewLongNames, reviewParts, consentSubscriptionPDF, bannerProviderDown,
-         settingsFirstRun, reviewSplitDestinations, reviewProviderOffline, reviewChooseModel, reviewCustomMenu, reviewSidebarReturns]
+         settingsFirstRun, reviewSplitDestinations, reviewProviderOffline, reviewChooseModel, reviewCustomMenu, reviewSidebarReturns,
+         venueMenu]
     }
 
     /// An invented journal-system file name, longer than the toolbar can show.
@@ -169,6 +172,10 @@ import TestSupport
             var failures = ShellSceneSupport.indicator(of: model, text: "Antigravity · \(longModel) · text only · experimental", tint: .orange)
             failures += ShellSceneSupport.indicatorLines(of: model, title: "Antigravity", detail: "\(longModel) · text only · experimental")
             if context.window.title != longFileName { failures.append("the window's title is \(context.window.title)") }
+            // Step 5, G.9: the venue control beside the indicator, and still nothing in the toolbar's overflow.
+            let venue = ShellVenueState(venue: model.currentVenue, hasPaper: model.session != nil)
+            if venue.title != "Journal" || !venue.isEnabled { failures.append("the venue control reads \(venue.title)") }
+            failures += ShellSceneSupport.toolbarFits(context)
             return failures
         })
     }
@@ -407,6 +414,37 @@ import TestSupport
         ModelInfo(id: "gemma4:e4b", displayName: "gemma4:e4b", contextWindow: 131_072, supportsPDFInput: false),
         ModelInfo(id: "phi4", displayName: "phi4", contextWindow: 16_384, supportsPDFInput: false),
     ] + (1...8).map { ModelInfo(id: "example-local-\($0)", displayName: "example-local-\($0)", contextWindow: 32_768, supportsPDFInput: false) }
+
+    // ---- venues (step 5, G.9) ----
+
+    /// The paper on EC, the venue menu open under the toolbar's control: "Review this paper for", the journals (Journal
+    /// (unspecified), Journal of Economic Theory · JET), the conferences (Conference (unspecified), ACM Conference on
+    /// Economics and Computation · EC, checked), "Edit Venues…". The control reads "EC"; nothing is in the overflow.
+    static var venueMenu: SnapshotScene {
+        SnapshotScene(name: "design-venue-menu", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
+            guard let model = context.model else { return }
+            await ShellSceneSupport.wait { model.session != nil && model.sendPlan != nil }
+            model.setVenue(id: "ec")
+            if let state = ShellSceneSupport.windowState(context), !state.venueMenuOpen { state.toggleVenueMenu() }
+        }, verify: { context in
+            guard let model = context.model, let state = ShellSceneSupport.windowState(context) else { return ["a review scene without a model"] }
+            var failures: [String] = []
+            if !state.venueMenuOpen || state.destinationMenuOpen { failures.append("the venue menu is not the menu open") }
+            if model.currentVenue.id != "ec" { failures.append("the paper's venue is \(model.currentVenue.id)") }
+            if model.session?.meta.venueID != "ec" || model.session?.meta.targetVenue != "ACM Conference on Economics and Computation (EC)" {
+                failures.append("the paper's metadata names \(model.session?.meta.venueID ?? "no venue")")
+            }
+            let control = ShellVenueState(venue: model.currentVenue, hasPaper: true)
+            if control.title != "EC" || control.symbol != "person.3" { failures.append("the control reads \(control.title) with \(control.symbol)") }
+            if !control.help.contains("ACM Conference on Economics and Computation (EC)") { failures.append("the tooltip reads \(control.help)") }
+            let groups = ShellVenueMenu.groups(model.venues).map { ($0.title, $0.venues.map(\.id)) }
+            if groups.map(\.0) != ["Journals", "Conferences"] || groups.map(\.1) != [["journal", "jet"], ["conference", "ec"]] {
+                failures.append("the menu's groups are \(groups)")
+            }
+            failures += ShellSceneSupport.toolbarFits(context)
+            return failures
+        })
+    }
 
     // ---- settings ----
 

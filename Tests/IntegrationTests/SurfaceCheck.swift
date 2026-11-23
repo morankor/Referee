@@ -26,6 +26,35 @@ func surfaceCheckOfTheLibraries(raw: RawDocument, paper: PaperText, loaded: Load
     let _: AppSettings = DefaultSettings.make()
     let _: [String] = [FormatSpec.review, FormatSpec.revision, FormatSpec.taskReviewText, FormatSpec.taskReviewPDF, FormatSpec.taskPart,
                        FormatSpec.taskWhole, FormatSpec.taskContinue]
+    // Step 5, venues (G.9): the built-ins and the texts of Appendix B, and the venue lines and wording of B.2.
+    let _: [VenueProfile] = DefaultSettings.venues
+    let _: [String] = DefaultSettings.conferenceScale
+    let _: [String] = [DefaultSettings.conferenceReportSystem, DefaultSettings.conferenceReportTemplate, FormatSpec.venue]
+    let _: [(journal: String, conference: String)] = FormatSpec.conferenceWording
+    // And Appendix A's venue types, as the libraries use them.
+    let kind: VenueKind = .conference
+    switch kind { case .journal, .conference: break }
+    let venue = VenueProfile(id: "wine", shortName: "WINE", fullName: "Web and Internet Economics", kind: kind, guidance: "",
+                             reportInstructions: nil, recommendationScale: ["Accept", "Reject"])
+    let _: [Bool] = [venue.isBuiltIn, venue.isUnspecified, venue.recommendationMismatch(label: "Accept", majorConcerns: 1)]
+    let _: [String] = [VenueProfile.journalID, VenueProfile.conferenceID, venue.displayName] + venue.scale
+    let _: String? = venue.scaleLabel(in: "Accept.")
+    let _: VenueProfile = .unspecifiedJournal
+    let _: String = Recommendation.reject.label
+    let _: Recommendation? = Recommendation(label: "Reject")
+    var settings = DefaultSettings.make()
+    settings.venues = [venue]
+    let _: [VenueProfile]? = settings.venueProfiles
+    let _: String? = settings.defaultVenueID
+    let _: VenueProfile = settings.defaultVenue
+    let _: VenueProfile = settings.venue(id: nil)
+    let _: [String] = [settings.prompts.reportSystem(for: kind), settings.prompts.reportTemplate(for: kind)]
+    let _: [String?] = [settings.prompts.conferenceReportSystem, settings.prompts.conferenceReportTemplate]
+    let _: ManuscriptMeta = ManuscriptMeta(reviewerNotes: "", venueID: "wine")
+    let _: ReportDraft = ReportDraft(markdown: "", recommendationLabel: "Accept", userEdited: false)
+    let context = EngineContext(provider: ProviderRef(providerID: "mock", model: nil), providerSettings: ProviderSettings(enabled: true, inputMode: .auto),
+                                prompts: settings.prompts, meta: ManuscriptMeta(reviewerNotes: ""), venue: venue)
+    let _: VenueProfile = context.venue
 
     // ---- PaperText (WP1) ----
     let builder: any PaperTextBuilding = PaperTextBuilder(stripMarginLineNumbers: { true })
@@ -58,6 +87,11 @@ func surfaceCheckOfTheLibraries(raw: RawDocument, paper: PaperText, loaded: Load
                                                    matcherFactory: matcherFactory, renderer: PaperRenderer(), physicalMemoryBytes: 24 << 30,
                                                    debugDumpDirectory: folder)      // Gate 1
     isClass(ReviewEngine.self)
+    let engine = ReviewEngine(providers: ProviderRegistry([]), paperService: FakePaperService(paper: loaded), matcherFactory: matcherFactory,
+                              renderer: FakePaperRenderer())
+    let _: [LintFinding] = engine.lint(reportMarkdown: "", venue: venue)                    // step 5, venues (G.9)
+    let protocolEngine: any ReviewEngineProtocol = engine
+    let _: [LintFinding] = protocolEngine.lint(reportMarkdown: "", venue: venue)
 
     // ---- ScholarKit (WP7) ----
     let _: any ReferenceResolving = ReferenceResolver(settings: { ReferenceSettings(crossrefMailto: "", pdfCacheLimitMB: 500) },

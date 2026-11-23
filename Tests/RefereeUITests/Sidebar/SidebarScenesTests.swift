@@ -47,6 +47,24 @@ import TestSupport
 
     /// design-two-models (step 5b): two review runs by two providers, their comments interleaved, one of the second run
     /// similar to one of the first, and one comment of the referee's own.
+    /// Step 5, G.9: design-report-conference's session puts the paper on EC, with a report on EC's scale.
+    @Test @MainActor func theConferenceSessionIsAnECPaperWithAConferenceReport() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let session = try decoder.decode(ReviewSession.self, from: Data(contentsOf: Fixtures.url("sessions/design-sidebar-conference.json")))
+        #expect(SidebarDesignScenes.all.contains { $0.name == "design-report-conference" && $0.fixtureSession == "design-sidebar-conference.json" })
+        #expect(session.document.fileName == "ay_nolinks.pdf")
+        #expect(session.meta.venueID == "ec")
+        #expect(session.meta.targetVenue == DefaultSettings.make().venue(id: "ec").displayName)
+        let report = try #require(session.report)
+        #expect(report.recommendation == nil && report.recommendationLabel == "Weak reject")
+        #expect(report.markdown.contains("## Chance of acceptance") && !report.markdown.contains("Publication probability"))
+        #expect(!report.markdown.contains("\u{2014}"))                                         // no em dash for the style check to flag
+        let approved = Set(session.comments.filter { $0.status == .approved && $0.includeInReport }.map(\.id))
+        #expect(Set(report.basedOnCommentIDs) == approved)
+        #expect(session.runs.last?.kind == .report)
+    }
+
     @Test func theTwoModelsSessionHasTwoReviewsByTwoProviders() throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

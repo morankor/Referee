@@ -41,6 +41,7 @@ public struct SettingsRootView: View {
                 switch navigation.tab {
                 case .providers: ShellProvidersPane(model: model, navigation: navigation)
                 case .prompts: ShellPromptsPane(model: model, navigation: navigation)
+                case .venues: ShellVenuesPane(model: model, navigation: navigation)
                 case .privacy: ShellPrivacyPane(model: model, services: services)
                 case .references: ShellReferencesPane(model: model)
                 case .advanced: ShellAdvancedPane(model: model)

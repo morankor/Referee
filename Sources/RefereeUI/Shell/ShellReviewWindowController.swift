@@ -107,7 +107,7 @@ import AppCore
 
     /// Whether the key was a triage key of this window and was acted on. Keys reach triage only while this window is
     /// key and no text is being edited. While the consent card is up the window is blocked: Esc answers it "no" and the
-    /// other triage keys do nothing. Esc then closes the destination menu, and after that what `dismiss` lists. While
+    /// other triage keys do nothing. Esc then closes the destination or venue menu, and after that what `dismiss` lists. While
     /// the destination menu is open, Return is the menu's: it chooses the highlighted provider (D24).
     func handleKeyDown(_ event: NSEvent) -> Bool {
         guard event.window === window, keysReachTriage else { return false }
@@ -122,6 +122,10 @@ import AppCore
                 return true
             }
             if intent == .reveal { return false }
+        }
+        if windowState.venueMenuOpen, intent == .dismiss {      // step 5, G.9: Esc closes the venue menu
+            windowState.venueMenuOpen = false
+            return true
         }
         guard let intent else { return false }
         perform(intent)

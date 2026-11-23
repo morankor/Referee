@@ -26,6 +26,7 @@ import TestSupport
             settings("settings-privacy", tab: .privacy),
             settings("settings-references", tab: .references),
             settings("settings-advanced", tab: .advanced),
+            settingsVenues,
             settingsAPIKey,
             reviewDestinationMenu,
             reviewRunning,
@@ -229,8 +230,36 @@ import TestSupport
                 if model.dataDirectory == nil { failures.append("the data folder is not known") }
             case .references:
                 if model.pdfCacheBytes == nil { failures.append("the size of the downloaded papers is not known") }
-            case .prompts, .advanced:
+            case .prompts, .venues, .advanced:
                 break
+            }
+            return failures
+        })
+    }
+
+    /// Settings ▸ Venues (step 5, G.9) on EC, a conference: the list with the four built-ins marked and Journal
+    /// (unspecified) the default; EC's names, kind, guidance and its recommendation scale, with the caption that the
+    /// default scale is a stand-in for the venue's real review form.
+    static var settingsVenues: SnapshotScene {
+        SnapshotScene(name: "settings-venues", kind: .settings, prepare: { context in
+            ShellSceneSupport.navigation(context)?.tab = .venues
+            ShellSceneSupport.navigation(context)?.venue = "ec"
+        }, verify: { context in
+            guard let model = context.settings, let navigation = ShellSceneSupport.navigation(context) else {
+                return ["a settings scene without a settings model"]
+            }
+            var failures: [String] = []
+            if navigation.tab != .venues { failures.append("the window does not show Venues") }
+            guard let venue = ShellVenueEditing.selected(navigation.venue, in: model.venues) else { return failures + ["no venue is shown"] }
+            if venue.id != "ec" || venue.kind != .conference { failures.append("the venue shown is \(venue.id), a \(venue.kind)") }
+            if venue.scale != DefaultSettings.conferenceScale { failures.append("its scale is \(venue.scale)") }
+            if !ShellVenueEditing.problems(of: venue).isEmpty { failures.append("the editor warns: \(ShellVenueEditing.problems(of: venue))") }
+            if model.venues.map(\.id) != ["journal", "conference", "jet", "ec"] || !model.venues.allSatisfy({ $0.isBuiltIn }) {
+                failures.append("the list is \(model.venues.map(\.id)), expected the four built-ins")
+            }
+            if model.defaultVenue.id != VenueProfile.journalID { failures.append("the default venue is \(model.defaultVenue.id)") }
+            if ShellVenueState.shortTitle(venue) != "EC" || ShellVenueEditing.listDetail(venue) != "ACM Conference on Economics and Computation" {
+                failures.append("its row reads \(ShellVenueState.shortTitle(venue)) over \(ShellVenueEditing.listDetail(venue))")
             }
             return failures
         })
@@ -320,6 +349,17 @@ import TestSupport
     static func facts(_ facts: [ShellConsentFact], labels: [String]) -> [String] {
         let shown = facts.map(\.label)
         return shown == labels ? [] : ["the facts are \(shown), expected \(labels)"]
+    }
+
+    /// D3's rule (and the venue control's, step 5): no item of the window's toolbar is in its overflow menu. AppKit keeps
+    /// an item that does not fit out of `visibleItems`.
+    static func toolbarFits(_ context: SnapshotContext) -> [String] {
+        guard let toolbar = context.window.toolbar else { return ["the window has no toolbar"] }
+        let visible = Set((toolbar.visibleItems ?? []).map { ObjectIdentifier($0) })
+        let hidden = toolbar.items.filter { !visible.contains(ObjectIdentifier($0)) }
+        guard !hidden.isEmpty else { return [] }
+        let width = Int(context.window.contentRect(forFrameRect: context.window.frame).width)
+        return ["at \(width) points the toolbar's overflow holds \(hidden.map { $0.label.isEmpty ? $0.itemIdentifier.rawValue : $0.label })"]
     }
 
     /// D19: below 1,100 points wide the navigator has stepped aside; wider, it shows, as it does when a window opens.

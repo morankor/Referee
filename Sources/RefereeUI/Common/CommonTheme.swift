@@ -33,6 +33,17 @@ public enum Theme {
     /// The reviewer's own comments: blue, whatever their status.
     public static let ownColor: Color = .blue
 
+    // ---- venues (step 5, G.9) ----
+
+    /// The SF Symbol of a venue's kind, the same in the toolbar, its menu, Settings ▸ Venues and the Report tab: a
+    /// closed book for a journal, three people (a program committee) for a conference.
+    public static func venueSymbol(_ kind: VenueKind) -> String {
+        switch kind {
+        case .journal: return "book.closed"
+        case .conference: return "person.3"
+        }
+    }
+
     // ---- highlights in the PDF (section 7.3) ----
 
     /// What a highlight stands for. A comment written by the reviewer is `.own` whatever its status; `.question` is

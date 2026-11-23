@@ -3,8 +3,9 @@ import AppKit
 import RefereeCore
 import AppCore
 
-/// Settings ▸ Prompts (plan.md section 9.6): the six prompts, the rubric, the quick questions, and the output format the
-/// app parses, shown read-only. "Restore Defaults…" puts back all of Appendix B.
+/// Settings ▸ Prompts (plan.md section 9.6): the six prompts, the conference report's prompt and template (step 5, G.9;
+/// each with its own Reset), the rubric, the quick questions, and the output format the app parses, shown read-only.
+/// "Restore Defaults…" puts back all of Appendix B.
 struct ShellPromptsPane: View {
     let model: SettingsModel
     let navigation: ShellSettingsNavigation
@@ -17,6 +18,11 @@ struct ShellPromptsPane: View {
                 List(selection: Binding(get: { navigation.promptSection }, set: { if let section = $0 { navigation.promptSection = section } })) {
                     Section("Prompts") {
                         ForEach([ShellPromptSection.review, .discussion, .question, .report, .template, .voice]) { section in
+                            Text(section.title).tag(section)
+                        }
+                    }
+                    Section("For a conference") {
+                        ForEach([ShellPromptSection.conferenceReport, .conferenceTemplate]) { section in
                             Text(section.title).tag(section)
                         }
                     }
@@ -68,6 +74,18 @@ struct ShellPromptSectionView: View {
                                     monospaced: section == .template) { text in
                     model.update { ShellPromptSectionView.setText(text, of: section, in: &$0.prompts) }
                 }
+            case .conferenceReport, .conferenceTemplate:
+                // Step 5, G.9: the report of a paper reviewed for a conference. Its own Reset, beside "Restore Defaults…".
+                ShellLongTextEditor(value: ShellPromptSectionView.text(of: section, in: model.settings.prompts),
+                                    monospaced: section == .conferenceTemplate) { text in
+                    model.update { ShellPromptSectionView.setText(text, of: section, in: &$0.prompts) }
+                }
+                HStack {
+                    Spacer()
+                    Button("Reset") { model.update { ShellPromptSectionView.reset(section, in: &$0.prompts) } }
+                        .disabled(ShellPromptSectionView.isDefault(section, in: model.settings.prompts))
+                        .help("Put back the text Referee came with")
+                }
             case .rubric:
                 ShellRubricEditor(model: model)
             case .quickQuestions:
@@ -96,6 +114,9 @@ struct ShellPromptSectionView: View {
         case .question: return "How the model answers questions about a passage or the whole paper."
         case .report: return "The voice and rules of the referee report."
         case .template: return "The report's Markdown skeleton with its section headings."
+        case .conferenceReport:
+            return "The report of a paper reviewed for a conference: a label of the venue's scale as the recommendation, the chance of acceptance, and no revision plan."
+        case .conferenceTemplate: return "The skeleton of a conference's report: \"Chance of acceptance\" where a journal's has \"Publication probability\"."
         case .voice: return "How a draft report is revised so that it reads as a human referee wrote it."
         case .rubric: return "The categories comments are filed under. The model is given the enabled ones."
         case .quickQuestions: return "Preset questions offered in the selection bar; they are sent as soon as they are chosen."
@@ -110,6 +131,8 @@ struct ShellPromptSectionView: View {
         case .question: return prompts.questionSystem
         case .report: return prompts.reportSystem
         case .template: return prompts.reportTemplate
+        case .conferenceReport: return prompts.reportSystem(for: .conference)
+        case .conferenceTemplate: return prompts.reportTemplate(for: .conference)
         case .voice: return prompts.voiceRevisionSystem
         case .rubric, .quickQuestions, .format: return ""
         }
@@ -122,9 +145,31 @@ struct ShellPromptSectionView: View {
         case .question: prompts.questionSystem = text
         case .report: prompts.reportSystem = text
         case .template: prompts.reportTemplate = text
+        case .conferenceReport: prompts.conferenceReportSystem = text
+        case .conferenceTemplate: prompts.conferenceReportTemplate = text
         case .voice: prompts.voiceRevisionSystem = text
         case .rubric, .quickQuestions, .format: break
         }
+    }
+
+    /// The default of one of the two conference texts (Appendix B.4).
+    static func defaultText(of section: ShellPromptSection) -> String? {
+        switch section {
+        case .conferenceReport: return DefaultSettings.conferenceReportSystem
+        case .conferenceTemplate: return DefaultSettings.conferenceReportTemplate
+        default: return nil
+        }
+    }
+
+    /// A conference text back to its default.
+    static func reset(_ section: ShellPromptSection, in prompts: inout PromptSet) {
+        guard let text = defaultText(of: section) else { return }
+        setText(text, of: section, in: &prompts)
+    }
+
+    /// Whether a conference text is its default (Reset has nothing to do).
+    static func isDefault(_ section: ShellPromptSection, in prompts: PromptSet) -> Bool {
+        defaultText(of: section).map { $0 == text(of: section, in: prompts) } ?? true
     }
 }
 

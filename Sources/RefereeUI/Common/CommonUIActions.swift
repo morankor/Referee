@@ -8,6 +8,9 @@ public struct UIActions {
     public var openReferenceViewer: @MainActor (_ fileURL: URL, _ title: String) -> Void = { _, _ in }
     public var openSettings: @MainActor () -> Void = {}
     public var openInBrowser: @MainActor (URL) -> Void = { _ in }
+    /// Lets the referee choose the paper's venue: the review window opens its toolbar's venue menu (step 5, G.9; the
+    /// Report tab's "Change…").
+    public var chooseVenue: @MainActor () -> Void = {}
     public init() {}
 }
 private struct UIActionsKey: EnvironmentKey { static let defaultValue = UIActions() }

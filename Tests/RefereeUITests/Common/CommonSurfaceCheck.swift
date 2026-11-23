@@ -278,6 +278,13 @@ private struct SurfaceBuilder: PaperTextBuilding {
     model.dismissTransientUI()
     model.updateMeta(ManuscriptMeta(reviewerNotes: ""))
     await model.flushPendingSave()
+    let _: [VenueProfile] = model.venues                               // step 5, venues (G.9)
+    let _: VenueProfile = model.currentVenue
+    model.setVenue(id: "ec")
+    let _: [String] = model.recommendationScale
+    let _: String? = model.recommendationLabel
+    model.setRecommendation(label: "Weak accept")
+    model.setRecommendation(label: nil)
 
     // ==== AppCore, Appendix A.9: SettingsModel ====
     let _: Notification.Name = .refereeSettingsDidChange
@@ -298,6 +305,17 @@ private struct SurfaceBuilder: PaperTextBuilding {
     await settings.refreshAvailability(of: nil)
     await settings.refreshModels(of: "ollama")
     await settings.refreshModels(of: "openai-api", includeHidden: true)
+    let _: [VenueProfile] = settings.venues                            // step 5, venues (G.9)
+    let _: VenueProfile = settings.defaultVenue
+    let added: String = settings.addVenue(kind: .conference)
+    settings.addVenue(kind: .journal)
+    settings.updateVenue(VenueProfile(id: added, shortName: "WINE", fullName: "Web and Internet Economics", kind: .conference, guidance: ""))
+    let _: String? = settings.duplicateVenue(id: added)
+    settings.duplicateVenue(id: "jet")
+    settings.moveVenues(fromOffsets: IndexSet(integer: 4), toOffset: 0)
+    settings.resetVenue(id: "ec")
+    settings.setDefaultVenue(id: "jet")
+    settings.deleteVenue(id: added)
     await settings.refreshPDFCacheSize()
     await settings.clearPDFCache()
     try await settings.deleteAllReviewData()
@@ -350,6 +368,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: [CGFloat] = [Theme.cardCornerRadius, Theme.cardPadding, Theme.listSpacing, Theme.sidebarPadding]
     let _: [Font] = [Theme.cardTitleFont, Theme.bodyFont, Theme.quoteFont, Theme.metadataFont]
     let _: Font = Theme.tagFont                                         // step 5 (D16)
+    let _: String = Theme.venueSymbol(.conference)                     // step 5, venues (G.9)
     let _: Duration = Theme.feedbackDuration
     let _: any View = CommonTag("Open access", color: .green)
 
@@ -357,6 +376,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     actions.openReferenceViewer = { (_: URL, _: String) in }
     actions.openSettings = {}
     actions.openInBrowser = { (_: URL) in }
+    actions.chooseVenue = {}                                            // step 5, venues (G.9)
     var environment = EnvironmentValues()
     environment.uiActions = actions
     let _: UIActions = environment.uiActions

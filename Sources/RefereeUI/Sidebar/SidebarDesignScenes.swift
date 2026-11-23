@@ -20,6 +20,8 @@ import AppCore
 //   ay_nolinks.pdf, the comments of two reviews, Claude Code asked for "sonnet" (which reported "claude-sonnet-4-6",
 //   step 5c) and Codex with its default model (Codex reports none), interleaved in paper order, one of each run on the
 //   same passage folded as similar, and one comment of the referee's own.
+// - design-report-conference (step 5, G.9): Fixtures/sessions/design-sidebar-conference.json on ay_nolinks.pdf, a paper
+//   reviewed for EC with its report: the recommendation on the venue's scale ("Weak reject"), "Chance of acceptance".
 //
 // Step 5 extended the checks with what the review's items make checkable: one card in full (D1), the Kind menu's items
 // (D11), "All 25 decided" (D6), the cursor in the comment (D2), the proposal before the failed reply (D18), and the room
@@ -27,7 +29,7 @@ import AppCore
 
 @MainActor enum SidebarDesignScenes {
     static var all: [SnapshotScene] {
-        [triage, triageDone, composeFromSelection, replyFailed, reportEmpty, chatEmpty, reportStreaming, twoModels]
+        [triage, triageDone, composeFromSelection, replyFailed, reportEmpty, chatEmpty, reportStreaming, twoModels, reportConference]
     }
 
     /// What design-triage.json holds; the triage scenes check these counts.
@@ -173,6 +175,39 @@ import AppCore
             var failures: [String] = []
             if model.sidebarTab != .chat { failures.append("expected the Chat tab") }
             if model.session?.conversations.isEmpty != true { failures.append("expected no conversation") }
+            return failures
+        })
+    }
+
+    // ---- design-report-conference (step 5, G.9) ----
+
+    /// A paper reviewed for EC, a conference, with its report: "Venue and notes · EC" folded, the picker on the venue's
+    /// scale reading "Weak reject", no journal recommendation, "Chance of acceptance" in the text, nothing for the style
+    /// check to flag (the report has the conference template's six headings and a label that agrees with its concern).
+    static var reportConference: SnapshotScene {
+        SnapshotScene(name: "design-report-conference", kind: .review, fixturePDF: "ay_nolinks.pdf",
+                      fixtureSession: "design-sidebar-conference.json", prepare: { context in
+            guard let model = context.model else { return }
+            model.sidebarTab = .report
+            await SidebarSceneSupport.wait { model.session?.report != nil && model.currentVenue.id == "ec" }
+        }, verify: { context in
+            guard let model = context.model else { return ["the scene has no model"] }
+            var failures: [String] = []
+            if model.sidebarTab != .report { failures.append("expected the Report tab") }
+            if model.currentVenue.id != "ec" { failures.append("the paper is on \(model.currentVenue.id), expected EC") }
+            if model.recommendationScale != DefaultSettings.conferenceScale { failures.append("the scale is \(model.recommendationScale)") }
+            if model.recommendationLabel != "Weak reject" { failures.append("the picker reads \(model.recommendationLabel ?? "Not set")") }
+            guard let report = model.session?.report else { return failures + ["expected the fixture's report"] }
+            if report.recommendation != nil { failures.append("a conference's report has a journal recommendation") }
+            if !model.lintFindings.isEmpty { failures.append("the style check flags \(model.lintFindings.map(\.rule))") }
+            if SidebarReportFacts.recommendationMismatch(label: model.recommendationLabel, venue: model.currentVenue, markdown: report.markdown) {
+                failures.append("the picker's label disagrees with the concerns")
+            }
+            // The confidential copy holds "Chance of acceptance", the authors' copy does not.
+            if !SidebarReportFacts.editorMarkdown(report.markdown).contains("## Chance of acceptance") { failures.append("the committee's copy lacks the chance") }
+            if SidebarReportFacts.authorsMarkdown(report.markdown).contains("Chance of acceptance") { failures.append("the authors' copy holds the chance") }
+            if SidebarReportFacts.venueShortName(model.currentVenue) != "EC" { failures.append("the folded group names \(SidebarReportFacts.venueShortName(model.currentVenue))") }
+            if let problem = SidebarSceneSupport.reportEditorProblem(in: context.window) { failures.append(problem) }
             return failures
         })
     }

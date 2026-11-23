@@ -13,6 +13,8 @@ import AppCore
     var openSettings: (ShellSettingsTab?) -> Void = { _ in }
     /// Opens Settings ▸ Providers on one provider (the destination menu's "Choose in Settings…" and "More in Settings…").
     var openProviderSettings: (ProviderID) -> Void = { _ in }
+    /// Opens Settings ▸ Venues on one venue (the venue menu's "Edit Venues…", on the paper's venue; step 5, G.9).
+    var openVenueSettings: (String) -> Void = { _ in }
     /// File ▸ Open…: the open panel.
     var showOpenPanel: () -> Void = {}
     /// PDFs dropped on a window, or chosen in the welcome window.
@@ -28,6 +30,8 @@ import AppCore
     var navigatorVisibility: NavigationSplitViewVisibility = .all
     var showSidebar = true
     var destinationMenuOpen = false
+    /// The venue menu under the toolbar's venue control (step 5, G.9). At most one of the two menus is open.
+    var venueMenuOpen = false
     /// The provider whose models the destination menu lists under its row: the one chosen for the paper when the menu
     /// opens, none in Custom; a chevron changes it.
     var expandedProvider: ProviderID?
@@ -48,13 +52,34 @@ import AppCore
     var showsNavigator: Bool { navigatorVisibility != .detailOnly }
 
     /// Opens the destination menu with the models of the paper's own provider listed (none in Custom), or closes it.
+    /// Opening it closes the venue menu.
     func toggleDestinationMenu(chosen: ProviderRef?) {
         if destinationMenuOpen {
             destinationMenuOpen = false
         } else {
             expandedProvider = chosen?.providerID
+            venueMenuOpen = false
             destinationMenuOpen = true
         }
+    }
+
+    /// Opens the venue menu, closing the destination menu, or closes it (step 5, G.9).
+    func toggleVenueMenu() {
+        if venueMenuOpen {
+            venueMenuOpen = false
+        } else {
+            destinationMenuOpen = false
+            venueMenuOpen = true
+        }
+    }
+
+    /// Whichever of the two menus is open.
+    var menuOpen: Bool { destinationMenuOpen || venueMenuOpen }
+
+    /// A click outside the menus, Esc, or a consent card: both close.
+    func closeMenus() {
+        destinationMenuOpen = false
+        venueMenuOpen = false
     }
 
     /// The toolbar button and View ▸ Hide/Show Navigator (⌃⌘S): a choice by hand, which ends the width rule (D19).
@@ -86,14 +111,15 @@ struct ShellNotice: Equatable, Identifiable {
     var message: String
 }
 
-/// The settings window's tabs (section 9.6).
+/// The settings window's tabs (section 9.6). Venues (step 5, G.9) comes after Prompts: both shape what is sent.
 enum ShellSettingsTab: String, CaseIterable, Identifiable {
-    case providers, prompts, privacy, references, advanced
+    case providers, prompts, venues, privacy, references, advanced
     var id: String { rawValue }
     var title: String {
         switch self {
         case .providers: return "Providers"
         case .prompts: return "Prompts"
+        case .venues: return "Venues"
         case .privacy: return "Privacy"
         case .references: return "References"
         case .advanced: return "Advanced"
@@ -103,6 +129,7 @@ enum ShellSettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .providers: return "cpu"
         case .prompts: return "text.quote"
+        case .venues: return "building.columns"
         case .privacy: return "hand.raised"
         case .references: return "books.vertical"
         case .advanced: return "gearshape.2"
@@ -110,9 +137,9 @@ enum ShellSettingsTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// The sections of Settings ▸ Prompts (section 9.6).
+/// The sections of Settings ▸ Prompts (section 9.6). The two conference texts (step 5, G.9) follow the report's.
 enum ShellPromptSection: String, CaseIterable, Identifiable {
-    case review, discussion, question, report, template, voice, rubric, quickQuestions, format
+    case review, discussion, question, report, template, conferenceReport, conferenceTemplate, voice, rubric, quickQuestions, format
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -121,6 +148,8 @@ enum ShellPromptSection: String, CaseIterable, Identifiable {
         case .question: return "Questions"
         case .report: return "Report"
         case .template: return "Report template"
+        case .conferenceReport: return "Conference report"
+        case .conferenceTemplate: return "Conference template"
         case .voice: return "Voice revision"
         case .rubric: return "Rubric"
         case .quickQuestions: return "Quick questions"
@@ -129,12 +158,15 @@ enum ShellPromptSection: String, CaseIterable, Identifiable {
     }
 }
 
-/// Where the settings window is: the tab, the provider shown on Providers, the section shown on Prompts. Kept outside
-/// the view so that the window manager ("Privacy settings…", the window's title) and the settings scenes can choose it.
+/// Where the settings window is: the tab, the provider shown on Providers, the section shown on Prompts, the venue
+/// shown on Venues. Kept outside the view so that the window manager ("Privacy settings…", "Edit Venues…", the
+/// window's title) and the settings scenes can choose it.
 @MainActor @Observable final class ShellSettingsNavigation {
     var tab: ShellSettingsTab = .providers
     var provider: ProviderID?
     var promptSection: ShellPromptSection = .review
+    /// The venue the Venues pane edits; nil: the first of the list.
+    var venue: String?
 }
 
 /// What the settings window needs from the app. The default deletes the data without closing any window, which is

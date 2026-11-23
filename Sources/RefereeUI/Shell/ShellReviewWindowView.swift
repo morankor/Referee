@@ -45,6 +45,11 @@ public struct ReviewWindowView: View {
                         .padding(.top, 6)
                         .padding(.bottom, 12)                  // a menu taller than the window scrolls, and its end stays in view
                         .transition(.opacity)
+                } else if windowState.venueMenuOpen {
+                    ShellVenueMenu(model: model, windowState: windowState, services: services)
+                        .padding(.top, 6)
+                        .padding(.bottom, 12)
+                        .transition(.opacity)
                 }
             }
         }
@@ -54,12 +59,12 @@ public struct ReviewWindowView: View {
         }
         .toolbar { ShellReviewToolbar(model: model, windowState: windowState, services: services) }
         .overlay {
-            if windowState.destinationMenuOpen {
-                // A click anywhere outside the menu closes it; the menu itself is drawn above, in the detail column.
+            if windowState.menuOpen {
+                // A click anywhere outside a menu closes it; the menu itself is drawn above, in the detail column.
                 Color.clear
                     .contentShape(Rectangle())
                     .ignoresSafeArea()
-                    .onTapGesture { windowState.destinationMenuOpen = false }
+                    .onTapGesture { windowState.closeMenus() }
                     .accessibilityHidden(true)
             }
         }
@@ -70,15 +75,25 @@ public struct ReviewWindowView: View {
             services.openFiles(pdfs)
             return true
         }
-        .environment(\.uiActions, services.uiActions)
+        .environment(\.uiActions, ReviewWindowView.windowActions(services.uiActions, windowState: windowState))
         .onChange(of: model.consentRequest != nil) { _, asking in
-            if asking { windowState.destinationMenuOpen = false }
+            if asking { windowState.closeMenus() }
         }
         // D19: a narrow window gives the PDF the navigator's room, and a wide one gives it back.
         .onGeometryChange(for: CGFloat.self) { proxy in proxy.size.width } action: { width in
             windowState.adaptNavigator(toWidth: width)
         }
         .background { ShellSidebarFollower(model: model, windowState: windowState) }
+    }
+
+    /// The app's closures with this window's own: the Report tab's "Change…" opens this window's venue menu (step 5, G.9).
+    static func windowActions(_ actions: UIActions, windowState: ShellReviewWindowState) -> UIActions {
+        var actions = actions
+        actions.chooseVenue = { [weak windowState] in
+            guard let windowState, !windowState.venueMenuOpen else { return }
+            windowState.toggleVenueMenu()
+        }
+        return actions
     }
 
     /// A file URL of a PDF: by its type when the file says, else by its extension.
@@ -145,9 +160,9 @@ struct ShellSidebarFollower: View {
     }
 }
 
-/// The toolbar of section 9.2, left to right: navigator toggle; the destination indicator (principal); Review (or the
-/// progress and Stop while the review lane runs); Report; sidebar toggle. Buttons that must show their word use
-/// `.titleAndIcon`: on macOS 26 a toolbar button otherwise shows its icon alone.
+/// The toolbar of section 9.2, left to right: navigator toggle; the destination indicator and the venue control
+/// (principal; step 5, G.9); Review (or the progress and Stop while the review lane runs); Report; sidebar toggle.
+/// Buttons that must show their word use `.titleAndIcon`: on macOS 26 a toolbar button otherwise shows its icon alone.
 struct ShellReviewToolbar: ToolbarContent {
     let model: ReviewSessionModel
     let windowState: ShellReviewWindowState
@@ -163,7 +178,10 @@ struct ShellReviewToolbar: ToolbarContent {
             .help(windowState.showsNavigator ? "Hide the navigator" : "Show the navigator")
         }
         ToolbarItem(placement: .principal) {
-            ShellDestinationIndicator(model: model, windowState: windowState, services: services)
+            HStack(spacing: 2) {
+                ShellDestinationIndicator(model: model, windowState: windowState, services: services)
+                ShellVenueControl(model: model, windowState: windowState)
+            }
         }
         ToolbarItemGroup(placement: .primaryAction) {
             ShellReviewButton(model: model, windowState: windowState)

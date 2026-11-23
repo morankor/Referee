@@ -4,7 +4,7 @@ A Mac app for refereeing a paper. The manuscript sits in the middle of the windo
 
 You choose which AI does the reading: a model that runs on your Mac (Ollama, nothing leaves the computer), an API account (Anthropic, OpenAI, Google Gemini, xAI), or a subscription you already pay for through its command-line tool (Claude Code, Codex). You choose it per paper, with the model, in the toolbar, which always shows where the text would go; the first time a document would leave your Mac the app asks you. Every comment and answer the AI writes says which provider and which model wrote it.
 
-`plan.md` is the full design. This README is the user's guide: how to build and install the app, the first run, working on a paper, setting up providers, what leaves your Mac, what to do when something does not work, and what still needs checking with your own accounts. The developer's notes are at the end.
+`plan.md` is the full design. This README is the user's guide: how to build and install the app, the first run, working on a paper, choosing and editing the venue a paper is reviewed for, setting up providers, what leaves your Mac, what to do when something does not work, and what still needs checking with your own accounts. The developer's notes are at the end.
 
 ## Contents
 
@@ -12,12 +12,13 @@ You choose which AI does the reading: a model that runs on your Mac (Ollama, not
 2. [Build and install](#build-and-install)
 3. [First run](#first-run)
 4. [Working on a paper](#working-on-a-paper)
-5. [Setting up AI providers](#setting-up-ai-providers)
-6. [Privacy: what leaves your Mac, and when](#privacy-what-leaves-your-mac-and-when)
-7. [Troubleshooting](#troubleshooting)
-8. [Checks that need your accounts](#checks-that-need-your-accounts)
-9. [Testing the text cleaning on journal-system PDFs](#testing-the-text-cleaning-on-journal-system-pdfs)
-10. [For developers](#for-developers)
+5. [Venues: what a paper is reviewed for](#venues-what-a-paper-is-reviewed-for)
+6. [Setting up AI providers](#setting-up-ai-providers)
+7. [Privacy: what leaves your Mac, and when](#privacy-what-leaves-your-mac-and-when)
+8. [Troubleshooting](#troubleshooting)
+9. [Checks that need your accounts](#checks-that-need-your-accounts)
+10. [Testing the text cleaning on journal-system PDFs](#testing-the-text-cleaning-on-journal-system-pdfs)
+11. [For developers](#for-developers)
 
 ## What you need
 
@@ -61,7 +62,7 @@ Open a PDF (**⌘O**, the welcome window, or drag it onto the app). Each paper g
 - **Middle: the PDF.** Highlights mark the passages comments refer to (yellow pending, green approved, blue your own, purple a passage you asked about). Click a highlight to select its comment. Select text to get a small bar: **Ask AI**, **Comment** (your own comment on that passage), **Copy** (it says "Copied"), and quick questions. Once you have asked about the passage or started a comment on it, the bar steps aside and the passage stays selected. **⌘F** finds text (while the find bar is open the comment highlights fade, so the matches stand out); **⌘+**, **⌘−**, **⌘0** zoom.
 - **Citations.** Click a citation such as "Acemoglu et al. (2011)" to open its card: first what the lookup found (title, "authors · year · venue", an "Open access" tag when there is a free copy), then the reference as printed. Buttons appear only when they can act: **Open PDF** (the open-access copy, in a viewer window whose toolbar has zoom, Fit Width, Find and Open in Preview), **Open in Browser**, **Copy DOI**; then **Search Google Scholar** and **Show in References**, always. When nothing was found the card says "No match in Crossref or OpenAlex." and "Common for working papers and books."; when the lookup failed it says why and offers **Retry**.
 - **Right: the sidebar.** **Comments** (⌘1), **Chat** (⌘2) and **Report** (⌘3). If you hide it (⌥⌘0), it comes back by itself when something opens in it, for example a comment begun from the selection bar.
-- **Toolbar:** where the text would go (the destination indicator; click it to choose the provider and model for this paper, [below](#choosing-the-provider-and-model-for-a-paper)), **Review** (⌘R), **Report**, and the sidebar toggle. While a review runs, the Review button shows the progress, for example "Reading part 2 of 5 · 3:12" with a small gauge, and **Stop** (⌘.).
+- **Toolbar:** where the text would go (the destination indicator; click it to choose the provider and model for this paper, [below](#choosing-the-provider-and-model-for-a-paper)), the paper's venue (for example "JET" or "EC"; click it to choose the journal or conference the paper is reviewed for, [below](#choosing-the-venue-of-a-paper)), **Review** (⌘R), **Report**, and the sidebar toggle. While a review runs, the Review button shows the progress, for example "Reading part 2 of 5 · 3:12" with a small gauge, and **Stop** (⌘.).
 
 **Reviewing.** Press **⌘R** (or **Run Review** in the empty Comments tab, which also says how many pages and references the app found). Comments appear in the sidebar as the model writes them ("Writing… · 3 received"), sorted by their place in the paper. Only the selected comment is shown in full; the others show their kind, title and place, so that many fit on the screen (⋯ ▸ **Show Full Text of Every Comment** shows them all in full). Each AI comment names the provider and the model that wrote it, for example "Claude Code · Sonnet" or "Ollama · gemma4:e4b". When the provider itself reports which model answered, that name is shown: a review that asked Claude Code for its default reads "Claude Code · claude-sonnet-4-6". Hover over the label to see what was asked for and what answered.
 
@@ -92,10 +93,10 @@ Locations read "p. 4, lines 14–16". **≈** before a location means the quote 
 
 **Questions.** Select a passage and choose **Ask AI** (or a quick question), or type in **Ask about the paper…** at the bottom of the Chat tab. Answers carry the same provider and model label as comments. **Add as Comment ▾** turns an answer into a comment of your own and opens it in the editor, so you can rewrite it in your voice.
 
-**The report.** In the Report tab, **Venue and notes** holds the target journal and any notes for the report; it folds away once a report exists. Then **Generate**: the report is written from the comments you approved. Edit it in place (Preview shows it formatted; spelling is checked as you type). The recommendation sits beside the count of approved comments, and a warning appears when it disagrees with your concerns. Then:
+**The report.** In the Report tab, **Venue and notes** names the paper's venue and its kind, with **Change…** (it opens the toolbar's venue menu), and holds any notes for the report; it folds away once a report exists, showing the venue's short name beside its title. Then **Generate**: the report is written from the comments you approved, for the paper's venue ([what a venue changes](#what-a-venue-changes)). Edit it in place (Preview shows it formatted; spelling is checked as you type). The recommendation sits beside the count of approved comments, on the venue's scale (a journal's four recommendations, or a conference's own labels), and a warning appears when it disagrees with your concerns. Then:
 
 - **Copy Text** puts the report on the clipboard as plain text (it says "Copied").
-- **Export ▾** has **Copy Markdown**; **Copy Comments to the Authors** and **Copy Confidential Comments to the Editor**, for the two boxes of a journal system (the recommendation and the publication probability go only to the editor); and **Markdown File…**, **Text File…**, **Word Document…**, **PDF…** (or File ▸ Export Report…, **⇧⌘E**).
+- **Export ▾** has **Copy Markdown**; **Copy Comments to the Authors** and **Copy Confidential Comments to the Editor** (for a conference, **to the Program Committee**), for the two boxes of a journal's or a conference's system (the recommendation and the publication probability, or a conference's chance of acceptance, go only to the editor or the committee); and **Markdown File…**, **Text File…**, **Word Document…**, **PDF…** (or File ▸ Export Report…, **⇧⌘E**).
 - **Revise Voice** asks the model to reword the report so that it reads as yours; **Regenerate** writes it again; **Versions ▾** brings back an earlier text.
 - **Style check** (folded under the text) lists phrases referees often regret, named in words ("Em dash", "Word to check", "Stacked hedge"); click one to select it.
 
@@ -104,6 +105,40 @@ With nothing approved yet, the tab offers **Show Pending Comments**.
 **Reviewing again, or with another provider.** Once a paper has AI comments the button reads **Review Again**. For a provider outside your Mac it first says what it will cost ("about 18,000 tokens to Anthropic through Claude Code") and that new comments are added next to the existing ones; nothing is removed. Switching a paper to another provider never removes comments either: every comment keeps the label of the provider and model that wrote it, and a new comment on a passage that an earlier one already covers is folded under it.
 
 Everything is saved as you work (a second after each change). Reopening a paper (the same file, even renamed or moved) brings back its comments, discussions and report. If the app quits in the middle of a review, the comments that had arrived by then are kept, each still naming its provider and model.
+
+## Venues: what a paper is reviewed for
+
+A review for a conference is not a review for a journal, and one journal looks for other things than another. Each paper is therefore reviewed for a **venue**: a journal or a conference, with a short name, a full name and a short text on what a review for it weighs. Referee comes with four: **Journal (unspecified)**, the default, which sends exactly what Referee sent before it had venues; **Conference (unspecified)**; the **Journal of Economic Theory (JET)**; and the **ACM Conference on Economics and Computation (EC)**. You can edit them and add your own.
+
+### Choosing the venue of a paper
+
+The toolbar shows the paper's venue next to the destination indicator: its short name ("Journal", "JET", "EC") after a book for a journal or three people for a conference. Hover over it for the full name. Click it to choose another venue. The menu lists **Journals**, then **Conferences**, each in the order of Settings ▸ Venues, with a check mark at the paper's venue, and ends with **Edit Venues…**, which opens Settings ▸ Venues on that venue. Esc or a click outside closes it. **Change…** in the Report tab opens the same menu.
+
+A new paper starts on the default venue of Settings ▸ Venues. The venue is saved with the paper. Changing it keeps the comments, discussions and report as they are: what you ask the model from then on is asked for the new venue, and a report already written stays as it is until you generate it again.
+
+A paper reviewed before Referee had venues is on Journal (unspecified), and the target journal you typed for it is still named in its prompts. The Report tab says so ("Journal, named “JET” in the prompts") until you choose a venue.
+
+### What a venue changes
+
+- **The review, discussions, questions and the report** are sent with the venue's lines: "Target journal: Journal of Economic Theory (JET)" (or "Target conference: …") and "What a review for this journal should weigh: …" followed by the venue's guidance. For a conference the review is asked "for the program committee of a selective academic conference" and "to help the program committee decide", where a journal's is asked for the editor.
+- **A journal's report** is as before: a recommendation among Accept, Minor revision, Major revision and Reject, a publication probability, and what a revision should change.
+- **A conference's report** has its own prompt and template. Its recommendation is one label of the venue's scale (the request lists the labels); **Chance of acceptance** takes the place of the publication probability; there is no revision plan, since a conference has no revision round; and the minor concerns are fixes for the final version. In the Report tab the recommendation menu lists the venue's scale, and the warning that the recommendation disagrees with your concerns works on that scale: a label in its more favourable half with a major concern, or in its less favourable half without one, warns; the middle label, such as "Borderline", never does. The Export menu's confidential copy is **Copy Confidential Comments to the Program Committee**, with the recommendation and the chance of acceptance; the authors' copy has neither.
+- A venue's **report instructions**, if it has any, go with the report's request only.
+
+### Editing venues
+
+Open **Settings ▸ Venues** (or **Edit Venues…** in the venue menu). The list on the left shows each venue's short name over its full name; **Built in** marks the four that come with Referee, and **Default** the one new papers start on.
+
+- **+** adds a journal or a conference, the next button duplicates the selected venue, and **−** deletes it, after asking; papers on a deleted venue are reviewed for Journal (unspecified) from then on. The arrows, or dragging, reorder the list, which is the menu's order. A built-in venue can be edited but not deleted, and **Reset…** puts back what Referee came with.
+- **Default for New Papers** makes the selected venue the one new papers start on.
+- **Short name** (what the toolbar shows), **Full name** and **Kind** (journal or conference).
+- **What a review for it weighs**: sent with every prompt about a paper on this venue. You can paste the venue's own guidelines for reviewers here.
+- **Recommendation scale**, for a conference: the labels of the venue's review form, most favourable first. Edit a label in place; the arrows move it, ⊖ removes it, **Add Label** adds one. **The scale Referee comes with ("Accept", "Weak accept", "Borderline", "Weak reject", "Reject") is a stand-in, EC's included: replace it with the scale of the venue's real review form.** **Use Default Scale** puts the stand-in back. A blank or repeated label is left out, with a warning under the scale.
+- **Report instructions** (optional): added to the report's request only, for example what the venue's review form asks for.
+
+A name or a label is saved when you press Return or leave the field, a longer text half a second after you stop typing. Every change applies at once to every paper on that venue, including the style check of an open report.
+
+The two texts of a conference's report, its prompt and its template, are in **Settings ▸ Prompts** under **For a conference** ("Conference report", "Conference template"); **Reset** beside each puts back the text Referee came with, and **Restore Defaults…** resets them with the other prompts.
 
 ## Setting up AI providers
 
@@ -173,7 +208,7 @@ The indicator itself has two lines: green "Local" over the model for a provider 
 
 The first time anything of a paper would go to a provider that is not on your Mac, a card asks you, with the facts in a short table: **What** (the PDF file, its size and pages, or the extracted text), **To** (the address, or "Anthropic, through Claude Code"), **Requests** (how many, about how many tokens), and **Kept** (what the provider keeps); and a warning when only the extracted text goes. **Send to Anthropic** (the button names the vendor) remembers your answer for that paper and provider; tick **Ask again next time** to be asked every time; **Don't Send** (or Esc) sends nothing. This holds for each action separately: a paper whose reviews stay on your Mac but whose questions go to a remote provider asks before the first question. **Local only** (Settings ▸ Privacy, or the destination menu) blocks every remote provider altogether.
 
-Check the journal's policy on AI tools before sending a manuscript under review. Some journals forbid it; a local model keeps the manuscript on your Mac.
+Check the journal's or conference's policy on AI tools before sending a manuscript under review. Some forbid it; a local model keeps the manuscript on your Mac.
 
 ## Privacy: what leaves your Mac, and when
 

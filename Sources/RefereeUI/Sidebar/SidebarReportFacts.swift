@@ -65,6 +65,38 @@ enum SidebarReportFacts {
         }
     }
 
+    /// The same check on any venue's scale (step 5, G.9): a label of the more favourable half with a major concern, or
+    /// of the less favourable half without one; the middle label of an odd scale, and no label, never disagree
+    /// (`VenueProfile.recommendationMismatch(label:majorConcerns:)`, which the style check uses too).
+    static func recommendationMismatch(label: String?, venue: VenueProfile, markdown: String) -> Bool {
+        guard let label else { return false }
+        return venue.recommendationMismatch(label: label, majorConcerns: majorConcernCount(in: markdown))
+    }
+
+    /// The venue as the Report tab names it: "Journal of Economic Theory (JET)" over "Journal"; an unspecified venue
+    /// over "Journal, no venue named" (step 5, G.9). `typedName` is the paper's `meta.targetVenue`: on an unspecified
+    /// venue, a target journal typed before venues (or a deleted venue's name), which the prompts still name, so the
+    /// tab says so: "Journal, named “JET” in the prompts".
+    static func venueLines(_ venue: VenueProfile, typedName: String? = nil) -> (name: String, kind: String) {
+        let name = venue.displayName.isEmpty ? "Untitled venue" : venue.displayName
+        let kind = venue.kind == .journal ? "Journal" : "Conference"
+        guard venue.isUnspecified else { return (name, kind) }
+        let typed = typedName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return (name, typed.isEmpty ? kind + ", no venue named" : kind + ", named “\(typed)” in the prompts")
+    }
+
+    /// The venue's short name ("JET", "EC", "Journal"), else its full name, for the folded "Venue and notes".
+    static func venueShortName(_ venue: VenueProfile) -> String {
+        let short = venue.shortName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return short.isEmpty ? venueLines(venue).name : short
+    }
+
+    /// The Export menu's copy for the confidential box: the editor's for a journal, the program committee's for a
+    /// conference (step 5, G.9).
+    static func confidentialCopyTitle(_ kind: VenueKind) -> String {
+        kind == .journal ? "Copy Confidential Comments to the Editor" : "Copy Confidential Comments to the Program Committee"
+    }
+
     /// "Accept", "Minor revision", "Major revision", "Reject".
     static func title(of recommendation: Recommendation) -> String {
         switch recommendation {
@@ -123,15 +155,16 @@ enum SidebarReportFacts {
 
     // ---- the journal's two boxes (D33) ----
 
-    /// The sections that go to the editor alone: the confidential box of a journal system.
-    static let editorSections = ["summary assessment", "recommendation", "publication probability"]
+    /// The sections that go to the editor alone: the confidential box of a journal system. A conference's report has
+    /// "Chance of acceptance" where a journal's has "Publication probability" (step 5, G.9), and it goes the same way.
+    static let editorSections = ["summary assessment", "recommendation", "publication probability", "chance of acceptance"]
     /// The sections that never go to the authors.
-    static let confidentialSections = ["recommendation", "publication probability"]
+    static let confidentialSections = ["recommendation", "publication probability", "chance of acceptance"]
 
-    /// "Copy Comments to the Authors": the report without the sections "Recommendation" and "Publication probability",
-    /// in Markdown. A section is a heading and everything under it up to the next heading of the same or a higher level
-    /// (deeper headings included); headings are found with `SidebarMarkdown.heading` and matched by their text, ignoring
-    /// case and a closing colon. Text before the first heading stays.
+    /// "Copy Comments to the Authors": the report without the sections "Recommendation" and "Publication probability"
+    /// (a conference's "Chance of acceptance"), in Markdown. A section is a heading and everything under it up to the next
+    /// heading of the same or a higher level (deeper headings included); headings are found with `SidebarMarkdown.heading`
+    /// and matched by their text, ignoring case and a closing colon. Text before the first heading stays.
     static func authorsMarkdown(_ markdown: String) -> String {
         let lines = markdown.components(separatedBy: "\n")
         var dropped = IndexSet()
@@ -143,7 +176,7 @@ enum SidebarReportFacts {
     }
 
     /// "Copy Confidential Comments to the Editor": the sections "Summary assessment", "Recommendation" and "Publication
-    /// probability", in Markdown, in the order the report has them.
+    /// probability" (or "Chance of acceptance"), in Markdown, in the order the report has them.
     static func editorMarkdown(_ markdown: String) -> String {
         let lines = markdown.components(separatedBy: "\n")
         var taken = IndexSet()

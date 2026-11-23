@@ -29,6 +29,13 @@ import TestSupport
         #expect(ShellScenes.all.filter { $0.name == "review-destination-menu" }.first?.fixtureSession == "sample.json")   // D34
     }
 
+    /// Step 5, G.9: the venue menu and Settings ▸ Venues.
+    @Test func theVenueScenesExist() {
+        let scenes = Dictionary(ShellScenes.all.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+        #expect(scenes["design-venue-menu"]?.kind == .review)
+        #expect(scenes["settings-venues"]?.kind == .settings)
+    }
+
     /// Every review scene names a fixture that exists; no scene names a session without a PDF.
     @Test func everySceneCanBePrepared() {
         for scene in ShellScenes.all {

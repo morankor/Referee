@@ -356,8 +356,11 @@ public final class ReviewSessionModel {
 
     public func reloadSettings(_ settings: AppSettings) {   // called by WindowManager on .refereeSettingsDidChange
         guard settings != self.settings else { return }
+        let venueBefore = currentVenue
         self.settings = settings
         refreshPlan()
+        // An edit of the paper's venue in Settings ▸ Venues (its kind, its scale) changes the style check: at once (G.9).
+        if currentVenue != venueBefore, let markdown = session?.report?.markdown { lint(markdown) }
     }
 
     /// Fills `activeAvailability` (step 5, O2). A local active provider is asked for its `availability()`, which costs

@@ -63,6 +63,10 @@ import AppCore
                                 self?.settingsNavigation.provider = id
                                 self?.showSettings(tab: .providers)
                             },
+                            openVenueSettings: { [weak self] id in
+                                self?.settingsNavigation.venue = id
+                                self?.showSettings(tab: .venues)
+                            },
                             showOpenPanel: { [weak self] in self?.showOpenPanel() },
                             openFiles: { [weak self] urls in for url in urls { self?.open(url) } },
                             uiActions: uiActions)

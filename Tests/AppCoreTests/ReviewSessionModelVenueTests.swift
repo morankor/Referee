@@ -190,6 +190,28 @@ final class VenueRecordingEngine: ReviewEngineProtocol, @unchecked Sendable {
         #expect(model.session?.meta.targetVenue == "Web and Internet Economics (WINE)")
     }
 
+    /// Settings ▸ Venues edits the paper's venue while its report is open: the style check runs again at once, on the
+    /// edited venue; a change of the settings that leaves the paper's venue as it was runs nothing.
+    @Test @MainActor func anEditOfThePapersVenueInSettingsChecksTheReportAgain() async throws {
+        let report = ReportDraft(markdown: Self.conferenceText, recommendationLabel: "Weak accept", userEdited: true)
+        let (harness, recorder) = try await Self.harness(meta: ManuscriptMeta(reviewerNotes: "", venueID: "ec"), report: report)
+        let model = harness.model
+        #expect(recorder.lintVenues.last == Self.ec)                          // on opening
+        let checks = recorder.lintVenues.count
+        let scale = ["Strong accept", "Accept", "Borderline", "Weak accept", "Reject"]
+        var edited = model.settings
+        edited.venues[3].recommendationScale = scale
+        model.reloadSettings(edited)
+        #expect(recorder.lintVenues.count == checks + 1)
+        #expect(recorder.lintVenues.last?.scale == scale)
+        #expect(model.recommendationLabel == "Weak accept")
+
+        var other = edited
+        other.defaultVenueID = "jet"                                          // not the paper's venue
+        model.reloadSettings(other)
+        #expect(recorder.lintVenues.count == checks + 1)
+    }
+
     @Test @MainActor func withoutAPaperTheVenueIsTheDefaultAndCannotBeSet() async throws {
         let paper = try makeSamplePaper()
         let harness = try await makeModelHarness(paper: paper, settings: ModelSample.settings { $0.defaultVenueID = "ec" })
