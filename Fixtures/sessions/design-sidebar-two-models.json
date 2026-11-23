@@ -161,9 +161,9 @@
 
           }
         },
-        "locationLabel" : "p. 2",
-        "pageIndex" : 1,
-        "quote" : "Following Smith and Sørensen [2000], we allow unbounded signals.",
+        "locationLabel" : "p. 1",
+        "pageIndex" : 0,
+        "quote" : "We study how sequential traders aggregate private signals.",
         "rects" : [
 
         ],
@@ -171,7 +171,7 @@
 
         ]
       },
-      "body" : "With unbounded signals cascades are fragile; one sentence on what that means for the results would help.",
+      "body" : "The opening sentence would fit any paper on herding; one more clause on what this paper adds would help.",
       "category" : "other",
       "createdAt" : "2026-11-21T10:00:00Z",
       "id" : "2B0D0E15-0000-4000-8000-000000000005",
@@ -189,7 +189,7 @@
       "thread" : [
 
       ],
-      "title" : "Say what unbounded signals change",
+      "title" : "Say what is new in the first sentence",
       "updatedAt" : "2026-11-21T10:00:00Z"
     },
     {
