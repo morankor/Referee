@@ -21,15 +21,16 @@ import TestSupport
 // Added in step 5, as the review asks:
 // - design-review-split-destinations (D4): chat goes to Claude Code while the review stays on this Mac.
 // - design-review-provider-offline (D13): the chosen local provider reports that it is not running.
-// And for the user's request of step 5b ("let me also choose a model"):
-// - design-review-choose-model: the destination menu with a provider's models, the paper's one checked.
+// And for the user's requests of step 5b (a model wherever a provider is chosen; "Custom" for a job-by-job choice):
+// - design-review-choose-model: a provider and model chosen for the paper, in the title; its models listed, one checked.
+// - design-review-custom-menu: the menu of a paper in Custom, the three jobs' destinations, a provider's models.
 // And for a finding of the Reader agent at step 5b:
 // - design-review-sidebar-returns: the sidebar hidden, then a comment begun from the selection bar's path: it shows again.
 
 @MainActor enum ShellDesignScenes {
     static var all: [SnapshotScene] {
         [welcomeFirstRun, welcomeMany, reviewNoProvider, reviewLongNames, reviewParts, consentSubscriptionPDF, bannerProviderDown,
-         settingsFirstRun, reviewSplitDestinations, reviewProviderOffline, reviewChooseModel, reviewSidebarReturns]
+         settingsFirstRun, reviewSplitDestinations, reviewProviderOffline, reviewChooseModel, reviewCustomMenu, reviewSidebarReturns]
     }
 
     /// An invented journal-system file name, longer than the toolbar can show.
@@ -254,9 +255,9 @@ import TestSupport
         })
     }
 
-    /// D4: the review stays with "mock" on this Mac while chat goes to Claude Code (`defaults.chat`, the paper having no
-    /// provider of its own). The indicator: "Local" over "mock · chat: Claude Code", orange; the destination menu open,
-    /// with "Chat questions go to Claude Code (subscription) (claude)." Claude Code is never asked for its status.
+    /// D4, in Custom (the paper has no provider of its own, as every new paper): the review stays with "mock" on this
+    /// Mac while chat goes to Claude Code (`defaults.chat`). The indicator, menu closed: "Local" over "mock · chat:
+    /// Claude Code", orange. Claude Code is never asked for its status.
     static var reviewSplitDestinations: SnapshotScene {
         SnapshotScene(name: "design-review-split-destinations", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -265,20 +266,58 @@ import TestSupport
             settings.defaults.chat = ProviderRef(providerID: "claude-cli", model: nil)
             model.reloadSettings(settings)
             await ShellSceneSupport.wait { model.chatProvider?.id == "claude-cli" && model.sendPlan != nil }
-            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures = ShellSceneSupport.indicator(of: model, text: "Local · mock · chat: Claude Code", tint: .orange)
             failures += ShellSceneSupport.indicatorLines(of: model, title: "Local", detail: "mock · chat: Claude Code")
+            if !model.usesCustomProviders { failures.append("the paper has a provider of its own") }
             if model.activeProvider?.id != "mock" { failures.append("the review goes to \(model.activeProvider?.id ?? "nothing")") }
             if model.reportProvider?.id != "mock" { failures.append("the report goes to \(model.reportProvider?.id ?? "nothing")") }
             if ShellDestinationMenu.otherJobLines(model) != ["Chat questions go to Claude Code (subscription) (claude)."] {
                 failures.append("the menu says \(ShellDestinationMenu.otherJobLines(model))")
             }
-            if ShellSceneSupport.windowState(context)?.destinationMenuOpen != true { failures.append("the destination menu is not open") }
             return failures
         })
     }
+
+    /// Step 5b, the user's request: the destination menu of a paper in Custom whose three jobs go to three places (the
+    /// review to "mock" on this Mac, chat to Claude Code with sonnet, the report to Anthropic API with Example Large).
+    /// Custom checked, the three listed under it, "Edit in Settings…"; Anthropic API's models listed (Example Large,
+    /// Example Small), none checked, since the paper has chosen no provider. Nothing is asked of the remote providers.
+    static var reviewCustomMenu: SnapshotScene {
+        SnapshotScene(name: "design-review-custom-menu", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
+            guard let model = context.model else { return }
+            var settings = model.settings
+            settings.providers["claude-cli"] = ProviderSettings(enabled: true, inputMode: .auto)
+            settings.providers["anthropic-api"] = ProviderSettings(enabled: true, model: "example-large", inputMode: .auto,
+                                                                   cachedModels: anthropicModels, cachedModelsAt: Date())
+            settings.defaults.chat = ProviderRef(providerID: "claude-cli", model: "sonnet")
+            settings.defaults.report = ProviderRef(providerID: "anthropic-api", model: "example-large")
+            model.reloadSettings(settings)
+            await ShellSceneSupport.wait { model.reportProvider?.id == "anthropic-api" && model.sendPlan != nil }
+            ShellSceneSupport.openDestinationMenu(context, expanding: "anthropic-api")
+        }, verify: { context in
+            guard let model = context.model else { return ["a review scene without a model"] }
+            var failures = ShellSceneSupport.indicatorLines(of: model, title: "Local", detail: "mock · chat: Claude Code · report: Anthropic API")
+            if !model.usesCustomProviders || ShellDestinationMenu.chosenRef(model) != nil { failures.append("the paper is not in Custom") }
+            let custom = ShellCustomDestinations.lines(settings: model.settings,
+                                                       providers: ShellDestinationMenu.knownProviders(model, services: ShellWindowServices()))
+            if custom != ["Review: Mock · mock", "Chat: Claude Code · sonnet", "Report: Anthropic API · Example Large"] {
+                failures.append("Custom says \(custom)")
+            }
+            let models = ShellModelChoices.menu(for: "anthropic-api", settings: model.settings, current: ShellDestinationMenu.chosenRef(model))
+            if models.choices.map(\.title) != ["Default model (Example Large)", "Example Large", "Example Small"] {
+                failures.append("Anthropic API offers \(models.choices.map(\.title))")
+            }
+            let state = ShellSceneSupport.windowState(context)
+            if state?.destinationMenuOpen != true || state?.expandedProvider != "anthropic-api" { failures.append("the menu does not list Anthropic API's models") }
+            return failures
+        })
+    }
+
+    /// Anthropic API's list in `design-review-custom-menu`, as the snapshot graph's static row gives it.
+    static let anthropicModels = [ModelInfo(id: "example-large", displayName: "Example Large", contextWindow: 1_000_000, supportsPDFInput: true),
+                                  ModelInfo(id: "example-small", displayName: "Example Small", contextWindow: 200_000, supportsPDFInput: true)]
 
     /// D13 (with O3's stand-in): `mock-offline`, a local provider whose status is "Ollama is not running", switched on and
     /// chosen. The indicator: an orange triangle, "Local" over "Ollama is not running"; the destination menu open, its
@@ -291,7 +330,7 @@ import TestSupport
             model.reloadSettings(settings)
             await ShellSceneSupport.choose("mock-offline", in: model)
             await ShellSceneSupport.wait { model.activeAvailability == offlineStatus }
-            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
+            ShellSceneSupport.openDestinationMenu(context)
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures = ShellSceneSupport.indicator(of: model, text: "Local · Ollama is not running", tint: .orange)
@@ -321,20 +360,22 @@ import TestSupport
             model.reloadSettings(settings)
             model.setActiveProvider(ProviderRef(providerID: "ollama", model: "phi4"))
             await ShellSceneSupport.wait { model.activeProvider?.id == "ollama" && model.activeModel == "phi4" && model.sendPlan != nil }
-            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
+            ShellSceneSupport.openDestinationMenu(context)
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures = ShellSceneSupport.indicator(of: model, text: "Local · phi4", tint: .green)
-            if model.session?.preferredProvider != ProviderRef(providerID: "ollama", model: "phi4") {
+            if model.session?.preferredProvider != ProviderRef(providerID: "ollama", model: "phi4") || model.usesCustomProviders {
                 failures.append("the paper's choice is \(String(describing: model.session?.preferredProvider))")
             }
-            let menu = ShellModelChoices.menu(for: "ollama", settings: model.settings, current: ShellDestinationMenu.appliedRef(model))
+            if model.chatProvider?.id != "ollama" || model.reportProvider?.id != "ollama" { failures.append("chat or the report goes elsewhere") }
+            let menu = ShellModelChoices.menu(for: "ollama", settings: model.settings, current: ShellDestinationMenu.chosenRef(model))
             let titles = menu.choices.map(\.title)
             if titles.first != "Default model (gemma4:e4b)" || titles.count != 9 { failures.append("the models offered are \(titles)") }
             if menu.settingsRow != ShellModelChoices.moreInSettings { failures.append("the last row is \(menu.settingsRow ?? "missing")") }
-            let checked = menu.choices.filter { $0.ref == ShellDestinationMenu.appliedRef(model) }.map(\.title)
+            let checked = menu.choices.filter { $0.ref == ShellDestinationMenu.chosenRef(model) }.map(\.title)
             if checked != ["phi4"] { failures.append("checked: \(checked), expected phi4") }
-            if ShellSceneSupport.windowState(context)?.destinationMenuOpen != true { failures.append("the destination menu is not open") }
+            let state = ShellSceneSupport.windowState(context)
+            if state?.destinationMenuOpen != true || state?.expandedProvider != "ollama" { failures.append("the menu does not list Ollama's models") }
             return failures
         })
     }

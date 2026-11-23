@@ -129,15 +129,16 @@ import TestSupport
     }
 
     /// The destination menu open, with a remote provider chosen, on the sample session (whose two runs went to "mock"):
-    /// the providers under "For the review, chat and report of this paper.", what a review sends as a grid with the
-    /// text-only warning, the retention note, "Sent so far" with one line, Local only, "Provider Settings…" and
-    /// "Privacy Settings…" (design review D4, D24, D34).
+    /// "For the review, chat and report of this paper.", Custom with where each job would go, the providers with the
+    /// chosen one's models (none listed yet: "Choose in Settings…"), what a review sends as a grid with the text-only
+    /// warning, the retention note, "Sent so far" with one line, Local only, "Provider Settings…" and "Privacy
+    /// Settings…" (design review D4, D24, D34; step 5b).
     static var reviewDestinationMenu: SnapshotScene {
         SnapshotScene(name: "review-destination-menu", kind: .review, fixturePDF: "ay_nolinks.pdf", fixtureSession: "sample.json",
                       prepare: { context in
             guard let model = context.model else { return }
             await ShellSceneSupport.choose("mock-remote", in: model)
-            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
+            ShellSceneSupport.openDestinationMenu(context)
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures: [String] = []
@@ -153,13 +154,18 @@ import TestSupport
             if summary.facts.last?.value != ShellPlanText.textOnlyWarning { failures.append("the grid lacks the text-only warning") }
             if !ShellDestinationMenu.otherJobLines(model).isEmpty { failures.append("the menu names another job's provider") }
             // Step 5b: the chosen provider's models, from the list Settings keeps; it has none yet, so "Choose in Settings…".
-            let models = ShellModelChoices.menu(for: provider.id, settings: model.settings, current: ShellDestinationMenu.appliedRef(model))
+            let models = ShellModelChoices.menu(for: provider.id, settings: model.settings, current: ShellDestinationMenu.chosenRef(model))
             if models.choices.map(\.title) != ["Default model (mock)"] || models.settingsRow != ShellModelChoices.chooseInSettings {
                 failures.append("the models offered are \(models.choices.map(\.title)), then \(models.settingsRow ?? "nothing")")
             }
-            if ShellDestinationMenu.appliedRef(model) != ProviderRef(providerID: "mock-remote", model: nil) {
-                failures.append("the paper's choice is \(String(describing: ShellDestinationMenu.appliedRef(model)))")
+            if ShellDestinationMenu.chosenRef(model) != ProviderRef(providerID: "mock-remote", model: nil) || model.usesCustomProviders {
+                failures.append("the paper's choice is \(String(describing: ShellDestinationMenu.chosenRef(model)))")
             }
+            if ShellSceneSupport.windowState(context)?.expandedProvider != "mock-remote" { failures.append("the chosen provider's models are not listed") }
+            // Custom, not chosen here, says where each job would go: the snapshot defaults send all three to "mock".
+            let custom = ShellCustomDestinations.lines(settings: model.settings,
+                                                       providers: ShellDestinationMenu.knownProviders(model, services: ShellWindowServices()))
+            if custom != ["Review: Mock · mock", "Chat: Mock · mock", "Report: Mock · mock"] { failures.append("Custom says \(custom)") }
             let sent = ShellDestinationMenu.sentSoFar(model, services: ShellWindowServices())
             if sent.count != 1 || sent.first?.hasPrefix("Mock: 2 times, last ") != true || sent.first?.hasSuffix("(extracted text)") != true {
                 failures.append("\"Sent so far\" reads \(sent), expected one line for Mock's two runs")
@@ -277,6 +283,14 @@ import TestSupport
     /// The review window's own state, through the hosting controller the runner made.
     static func windowState(_ context: SnapshotContext) -> ShellReviewWindowState? {
         (context.window.contentViewController as? NSHostingController<ReviewWindowView>)?.rootView.windowState
+    }
+
+    /// Opens the destination menu as a click on the indicator does (the models of the paper's own provider listed),
+    /// or with the models of `expanding` listed instead.
+    static func openDestinationMenu(_ context: SnapshotContext, expanding: ProviderID? = nil) {
+        guard let state = windowState(context), let model = context.model, !state.destinationMenuOpen else { return }
+        state.toggleDestinationMenu(chosen: model.session?.preferredProvider)
+        if let expanding { state.expandedProvider = expanding }
     }
 
     /// The settings window's navigation, through the hosting controller the runner made.

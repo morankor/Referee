@@ -23,7 +23,7 @@ struct ShellDestinationIndicator: View {
                 windowState.destinationMenuOpen = false
                 services.openSettings(.providers)
             } else {
-                windowState.destinationMenuOpen.toggle()
+                windowState.toggleDestinationMenu(chosen: model.session?.preferredProvider)
             }
         } label: {
             HStack(spacing: 7) {
@@ -75,27 +75,35 @@ struct ShellDestinationIndicator: View {
     }
 }
 
-/// A row of the destination menu that the keyboard can reach (D24): a provider, or one of the models under it.
+/// A row of the destination menu that the keyboard can reach (D24): Custom, a provider, or one of the models under it.
 enum ShellMenuRowID: Hashable {
+    case custom
     case provider(ProviderID)
     case model(ProviderRef)
 }
 
 /// The destination menu (section 9.7), drawn in the window rather than as a menu or popover so that the snapshot mode
-/// can capture it: the enabled providers to choose from (stored as `session.preferredProvider`, for the review, chat
-/// and report of the paper), each with its models (the chosen provider's listed at first, any other's behind its
-/// chevron), what a review sends as a grid of facts with the retention note (D24), where chat and the report go when
-/// that is elsewhere (D4), what was sent so far (D34), the "Local only" switch, "Provider Settings…" and "Privacy
-/// Settings…". ↑ and ↓ move a highlight over the providers and the models listed, → and ← show and hide a provider's
-/// models, and Return chooses (D24). Opening it asks a local provider for its status again (D13); remote ones are
-/// never asked from here, and the models come from the list Settings keeps, so nothing else is asked either.
+/// can capture it. It is where a paper's provider and model are chosen (step 5b, the user's request): "Custom" first
+/// (no provider of the paper's own: each job to its default of Settings ▸ Providers, the three listed under it, with
+/// "Edit in Settings…"), then the enabled providers, each with its models (the chosen provider's listed at first, any
+/// other's behind its chevron); a choice is stored as `session.preferredProvider` and is every job's. Then what a
+/// review sends as a grid of facts with the retention note (D24), where chat and the report go when that is elsewhere
+/// (D4), what was sent so far (D34), the "Local only" switch, "Provider Settings…" and "Privacy Settings…". ↑ and ↓
+/// move a highlight over Custom, the providers and the models listed, → and ← show and hide a provider's models, and
+/// Return chooses (D24). Opening it asks a local provider for its status again (D13); remote ones are never asked from
+/// here, and the models come from the list Settings keeps, so nothing else is asked either.
 struct ShellDestinationMenu: View {
     let model: ReviewSessionModel
     let windowState: ShellReviewWindowState
     let services: ShellWindowServices
     @State private var highlighted: ShellMenuRowID?
-    @State private var expanded: ProviderID?
     @FocusState private var focused: Bool
+
+    /// The provider whose models are listed under its row (kept in the window's state, so that a scene can set it).
+    private var expanded: ProviderID? {
+        get { windowState.expandedProvider }
+        nonmutating set { windowState.expandedProvider = newValue }
+    }
 
     static let caption = "For the review, chat and report of this paper."
     static let providerSettings = "Provider Settings…"
@@ -126,7 +134,6 @@ struct ShellDestinationMenu: View {
         .onKeyPress(.leftArrow) { showModels(false) }
         .onKeyPress(.return) { chooseHighlighted() }
         .onAppear {
-            expanded = model.activeProvider?.id
             focused = true
             model.refreshActiveAvailability()
         }
@@ -142,6 +149,8 @@ struct ShellDestinationMenu: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 14)
                 .padding(.bottom, 4)
+            customRow
+            Divider().padding(.horizontal, 14).padding(.vertical, 4)
             let providers = model.selectableProviders
             if providers.isEmpty {
                 Text(model.settings.privacy.localOnly ? "No local provider is enabled." : "No provider is enabled.")
@@ -197,21 +206,95 @@ struct ShellDestinationMenu: View {
         .buttonStyle(ShellMenuRowButtonStyle())
     }
 
+    // ---- Custom ----
+
+    /// "Custom" (step 5b): checked while the paper has no provider of its own; under it where each job goes then, and
+    /// "Edit in Settings…", which opens the default bar of Settings ▸ Providers.
+    private var customRow: some View {
+        let isCustom = model.usesCustomProviders
+        let lines = ShellCustomDestinations.lines(settings: model.settings, providers: Self.knownProviders(model, services: services))
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                Self.chooseCustom(in: model, windowState: windowState)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .opacity(isCustom ? 1 : 0)
+                        .frame(width: 12)
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 18)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(ShellCustomDestinations.title)
+                        Text(ShellCustomDestinations.caption)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(ShellMenuRowButtonStyle(highlighted: highlighted == .custom))
+            .accessibilityAddTraits(isCustom ? .isSelected : [])
+            .id(ShellMenuRowID.custom)
+            VStack(alignment: .leading, spacing: 1) {
+                ForEach(lines, id: \.self) { line in
+                    Text(line)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .padding(.leading, Self.nameIndent)
+            .padding(.trailing, 14)
+            .padding(.bottom, 2)
+            Button {
+                windowState.destinationMenuOpen = false
+                services.openSettings(.providers)
+            } label: {
+                Text(ShellCustomDestinations.editInSettings)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, Self.nameIndent - 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(ShellMenuRowButtonStyle(compact: true))
+        }
+    }
+
+    /// "Custom" chosen: the paper's own provider goes (`useCustomProviders()`), and the menu closes.
+    @MainActor static func chooseCustom(in model: ReviewSessionModel, windowState: ShellReviewWindowState) {
+        model.useCustomProviders()
+        windowState.destinationMenuOpen = false
+    }
+
+    /// The providers the window knows by name: the app's whole registry when it has one (not in the snapshot mode),
+    /// those that can be chosen, and the providers of the three jobs.
+    @MainActor static func knownProviders(_ model: ReviewSessionModel, services: ShellWindowServices) -> [ProviderDescriptor] {
+        (services.settings?.providers ?? []) + model.selectableProviders
+            + [model.activeProvider, model.chatProvider, model.reportProvider].compactMap { $0 }
+    }
+
     // ---- providers and their models ----
 
     /// Where the name of a provider starts in its row: past the row's margin, the check mark and the symbol.
     private static let nameIndent: CGFloat = 14 + 12 + 8 + 18 + 8
 
     private func providerRow(_ provider: ProviderDescriptor) -> some View {
-        let chosen = model.activeProvider?.id == provider.id
+        let chosenRef = Self.chosenRef(model)
+        let chosen = chosenRef?.providerID == provider.id
         let entry = model.settings.providers[provider.id]
-        let shown = ShellDestination.state(provider: provider, model: chosen ? model.activeModel : entry?.model, plan: nil,
-                                           verifiedAt: entry?.verifiedAt, localOnly: false, debugDump: false)
-        let modelID = chosen ? model.activeModel : entry?.model
+        let modelID = chosen ? (chosenRef?.model ?? entry?.model) : entry?.model
+        let shown = ShellDestination.state(provider: provider, model: modelID, plan: nil, verifiedAt: entry?.verifiedAt, localOnly: false,
+                                           debugDump: false)
         let modelName = modelID.map { ShellModelChoices.name(of: $0, in: entry?.cachedModels ?? []) } ?? "default"
         let open = expanded == provider.id
-        // D13: the chosen local provider's status, when it says the provider cannot run now.
-        let problem = chosen && provider.isLocal ? model.activeAvailability.flatMap(ShellDestination.problem(of:)) : nil
+        // D13: the review's local provider's status, when it says the provider cannot run now.
+        let problem = model.activeProvider?.id == provider.id && provider.isLocal
+            ? model.activeAvailability.flatMap(ShellDestination.problem(of:)) : nil
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
                 Button {
@@ -271,11 +354,11 @@ struct ShellDestinationMenu: View {
         .id(ShellMenuRowID.provider(provider.id))
     }
 
-    /// The models of a provider, under its row: "Default model (…)", then its listed models, at most eight, the one in
-    /// force for this paper checked; "Choose in Settings…" when Settings has no list yet, "More in Settings…" when the
+    /// The models of a provider, under its row: "Default model (…)", then its listed models, at most eight, the one
+    /// chosen for this paper checked; "Choose in Settings…" when Settings has no list yet, "More in Settings…" when the
     /// list is longer.
     @ViewBuilder private func modelRows(_ provider: ProviderDescriptor) -> some View {
-        let current = Self.appliedRef(model)
+        let current = Self.chosenRef(model)
         let menu = ShellModelChoices.menu(for: provider.id, settings: model.settings, current: current)
         ForEach(menu.choices, id: \.self) { choice in
             Button {
@@ -315,12 +398,9 @@ struct ShellDestinationMenu: View {
         }
     }
 
-    /// The reference in force for this paper's review: its own choice, else the review default, when it names the
-    /// active provider. nil when no provider is active.
-    @MainActor static func appliedRef(_ model: ReviewSessionModel) -> ProviderRef? {
-        guard let active = model.activeProvider, let ref = model.session?.preferredProvider ?? model.settings.defaults.review,
-              ref.providerID == active.id else { return nil }
-        return ref
+    /// The provider and model chosen for this paper, every job's; nil in Custom (each job to its default).
+    @MainActor static func chosenRef(_ model: ReviewSessionModel) -> ProviderRef? {
+        model.session?.preferredProvider
     }
 
     /// A provider and model chosen in the menu: the paper's choice from now on (`setActiveProvider`), and the menu closes.
@@ -333,25 +413,24 @@ struct ShellDestinationMenu: View {
         Self.choose(ref, in: model, windowState: windowState)
     }
 
-    /// The rows the keyboard walks, in order: every provider, and the models of the one whose models are shown.
+    /// The rows the keyboard walks, in order: Custom, every provider, and the models of the one whose models are shown.
     static func keyboardRows(providers: [ProviderDescriptor], expanded: ProviderID?, settings: AppSettings,
                              current: ProviderRef?) -> [ShellMenuRowID] {
-        providers.flatMap { provider -> [ShellMenuRowID] in
+        [.custom] + providers.flatMap { provider -> [ShellMenuRowID] in
             guard provider.id == expanded else { return [.provider(provider.id)] }
             return [.provider(provider.id)]
                 + ShellModelChoices.menu(for: provider.id, settings: settings, current: current).choices.map { .model($0.ref) }
         }
     }
 
-    /// ↑ and ↓ (D24): the first press puts the highlight on the chosen provider (as a menu opened by a click shows
-    /// none until a key is pressed); then it moves over the rows and stops at either end.
+    /// ↑ and ↓ (D24): the first press puts the highlight on what is chosen, Custom or the paper's provider (as a menu
+    /// opened by a click shows none until a key is pressed); then it moves over the rows and stops at either end.
     private func moveHighlight(by step: Int) -> KeyPress.Result {
-        let rows = Self.keyboardRows(providers: model.selectableProviders, expanded: expanded, settings: model.settings,
-                                     current: Self.appliedRef(model))
-        guard !rows.isEmpty else { return .ignored }
+        let chosenRef = Self.chosenRef(model)
+        let rows = Self.keyboardRows(providers: model.selectableProviders, expanded: expanded, settings: model.settings, current: chosenRef)
         guard let current = highlighted, let position = rows.firstIndex(of: current) else {
-            let chosen = model.activeProvider.map { ShellMenuRowID.provider($0.id) }
-            highlighted = chosen.flatMap { rows.contains($0) ? $0 : nil } ?? (step > 0 ? rows.first : rows.last)
+            let chosen = chosenRef.map { ShellMenuRowID.provider($0.providerID) } ?? .custom
+            highlighted = rows.contains(chosen) ? chosen : (step > 0 ? rows.first : rows.last)
             return .handled
         }
         highlighted = rows[min(max(position + step, 0), rows.count - 1)]
@@ -367,15 +446,18 @@ struct ShellDestinationMenu: View {
             guard !show else { return .ignored }
             expanded = nil
             highlighted = .provider(ref.providerID)
-        case nil:
+        case .custom?, nil:
             return .ignored
         }
         return .handled
     }
 
-    /// Return (D24): the highlighted provider (with its default model), or the highlighted model, becomes this paper's.
+    /// Return (D24): Custom, the highlighted provider (with its default model), or the highlighted model, becomes this
+    /// paper's.
     private func chooseHighlighted() -> KeyPress.Result {
         switch highlighted {
+        case .custom?:
+            Self.chooseCustom(in: model, windowState: windowState)
         case .provider(let id)?:
             guard model.selectableProviders.contains(where: { $0.id == id }) else { return .ignored }
             choose(ProviderRef(providerID: id, model: nil))
@@ -465,8 +547,7 @@ struct ShellDestinationMenu: View {
     /// The lines of "Sent so far" for this document: every run the session recorded, by provider, named as the app's
     /// registry names them (a provider no longer registered by its id).
     @MainActor static func sentSoFar(_ model: ReviewSessionModel, services: ShellWindowServices) -> [String] {
-        let known = (services.settings?.providers ?? []) + model.selectableProviders
-            + [model.activeProvider, model.chatProvider, model.reportProvider].compactMap { $0 }
+        let known = knownProviders(model, services: services)
         return ShellPlanText.sentSoFar(model.session?.runs ?? [], name: { id in known.first { $0.id == id }?.displayName ?? id },
                                        date: { $0.formatted(date: .abbreviated, time: .shortened) })
     }

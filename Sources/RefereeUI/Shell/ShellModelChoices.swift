@@ -61,3 +61,31 @@ enum ShellModelChoices {
         return name(of: chosen, in: listed.isEmpty ? (entry?.cachedModels ?? []) : listed)
     }
 }
+
+/// "Custom" in the destination menu (step 5b, the user's request): no provider of the paper's own, each job to its
+/// default of Settings ▸ Providers. Under it the menu says where each job would go.
+enum ShellCustomDestinations {
+    static let title = "Custom"
+    static let caption = "Per action, as set in Settings"
+    static let editInSettings = "Edit in Settings…"
+
+    /// "Review: Claude Code · Sonnet", "Chat: Ollama · gemma4:e4b", "Report: OpenAI API · gpt-5.1": each job's default
+    /// (chat and report "Same as Review" when they have none), by the provider's short name and the model's name
+    /// ("default" when neither the default nor Settings names one). "{Job}: not set up" when the default names no
+    /// provider that is registered and switched on (the job would fail with "Set up an AI provider"); "(blocked by Local
+    /// only)" after a remote one while Local only is on. `providers`: the descriptors known to the window.
+    static func lines(settings: AppSettings, providers: [ProviderDescriptor]) -> [String] {
+        let defaults = settings.defaults
+        let jobs: [(String, ProviderRef?)] = [("Review", defaults.review), ("Chat", defaults.chat ?? defaults.review),
+                                               ("Report", defaults.report ?? defaults.review)]
+        return jobs.map { job, ref in
+            guard let ref, let entry = settings.providers[ref.providerID], entry.enabled,
+                  let descriptor = providers.first(where: { $0.id == ref.providerID }) else { return "\(job): not set up" }
+            let model = (ref.model ?? entry.model).flatMap { $0.isEmpty ? nil : $0 }
+            var line = "\(job): \(ShellDestination.shortName(descriptor)) · "
+                + (model.map { ShellModelChoices.name(of: $0, in: entry.cachedModels) } ?? "default")
+            if settings.privacy.localOnly && !descriptor.isLocal { line += " (blocked by Local only)" }
+            return line
+        }
+    }
+}

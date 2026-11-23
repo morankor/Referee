@@ -28,6 +28,9 @@ import AppCore
     var navigatorVisibility: NavigationSplitViewVisibility = .all
     var showSidebar = true
     var destinationMenuOpen = false
+    /// The provider whose models the destination menu lists under its row: the one chosen for the paper when the menu
+    /// opens, none in Custom; a chevron changes it.
+    var expandedProvider: ProviderID?
     var notice: ShellNotice?
     /// The navigator was hidden because the window is narrow (design review D19), and comes back when it is wide again.
     private(set) var navigatorAutoHidden = false
@@ -43,6 +46,16 @@ import AppCore
     static let wideWidth: CGFloat = 1_240         // from this on an auto-hidden navigator comes back
 
     var showsNavigator: Bool { navigatorVisibility != .detailOnly }
+
+    /// Opens the destination menu with the models of the paper's own provider listed (none in Custom), or closes it.
+    func toggleDestinationMenu(chosen: ProviderRef?) {
+        if destinationMenuOpen {
+            destinationMenuOpen = false
+        } else {
+            expandedProvider = chosen?.providerID
+            destinationMenuOpen = true
+        }
+    }
 
     /// The toolbar button and View ▸ Hide/Show Navigator (⌃⌘S): a choice by hand, which ends the width rule (D19).
     func toggleNavigator() {

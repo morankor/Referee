@@ -23,7 +23,7 @@ import TestSupport
     /// The scenes the design review names for the Shell, and the one of step 5b.
     @Test func theDesignScenesOfStep5Exist() {
         let names = Set(ShellScenes.all.map(\.name))
-        for name in ["design-review-split-destinations", "design-review-provider-offline", "design-review-choose-model"] {
+        for name in ["design-review-split-destinations", "design-review-provider-offline", "design-review-choose-model", "design-review-custom-menu"] {
             #expect(names.contains(name), "scene \(name)")
         }
         #expect(ShellScenes.all.filter { $0.name == "review-destination-menu" }.first?.fixtureSession == "sample.json")   // D34
