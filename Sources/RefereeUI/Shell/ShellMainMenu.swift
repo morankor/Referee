@@ -7,6 +7,8 @@ import AppKit
 ///
 /// The single keys of section 9.4 are shown next to their commands. The key monitor handles them before the menu
 /// sees them; the items are disabled while text is being edited, so that a letter typed into a field stays there.
+/// Find and zoom carry their keys only while a review window is key, so that a reference viewer's own find and zoom
+/// get ⌘F, ⌘G, ⌘+, ⌘− and ⌘0 (`setReaderKeys`, Wave 3).
 @MainActor enum ShellMainMenu {
     static let openRecentIdentifier = NSUserInterfaceItemIdentifier("Referee.OpenRecent")
 
@@ -87,9 +89,9 @@ import AppKit
         menu.addItem(item("Paste", #selector(NSText.paste(_:)), "v"))
         menu.addItem(item("Select All", #selector(NSText.selectAll(_:)), "a"))
         menu.addItem(.separator())
-        menu.addItem(item("Find…", #selector(ShellReviewWindowController.shellFind(_:)), "f"))
-        menu.addItem(item("Find Next", #selector(ShellReviewWindowController.shellFindNext(_:)), "g"))
-        menu.addItem(item("Find Previous", #selector(ShellReviewWindowController.shellFindPrevious(_:)), "g", modifiers: [.command, .shift]))
+        menu.addItem(readerItem("Find…", #selector(ShellReviewWindowController.shellFind(_:)), "f"))
+        menu.addItem(readerItem("Find Next", #selector(ShellReviewWindowController.shellFindNext(_:)), "g"))
+        menu.addItem(readerItem("Find Previous", #selector(ShellReviewWindowController.shellFindPrevious(_:)), "g", modifiers: [.command, .shift]))
         return menu
     }
 
@@ -119,14 +121,14 @@ import AppKit
         menu.addItem(item("Hide Navigator", #selector(ShellReviewWindowController.shellToggleNavigator(_:)), "s", modifiers: [.command, .control]))
         menu.addItem(item("Hide Sidebar", #selector(ShellReviewWindowController.shellToggleSidebar(_:)), "0", modifiers: [.command, .option]))
         menu.addItem(.separator())
-        menu.addItem(item("Zoom In", #selector(ShellReviewWindowController.shellZoomIn(_:)), "+"))
+        menu.addItem(readerItem("Zoom In", #selector(ShellReviewWindowController.shellZoomIn(_:)), "+"))
         // ⌘= zooms in too, as on a keyboard where + needs Shift; the item is hidden but its key works.
-        let zoomInEquals = item("Zoom In", #selector(ShellReviewWindowController.shellZoomIn(_:)), "=")
+        let zoomInEquals = readerItem("Zoom In", #selector(ShellReviewWindowController.shellZoomIn(_:)), "=")
         zoomInEquals.isHidden = true
         zoomInEquals.allowsKeyEquivalentWhenHidden = true
         menu.addItem(zoomInEquals)
-        menu.addItem(item("Zoom Out", #selector(ShellReviewWindowController.shellZoomOut(_:)), "-"))
-        menu.addItem(item("Fit Width", #selector(ShellReviewWindowController.shellFitWidth(_:)), "0"))
+        menu.addItem(readerItem("Zoom Out", #selector(ShellReviewWindowController.shellZoomOut(_:)), "-"))
+        menu.addItem(readerItem("Fit Width", #selector(ShellReviewWindowController.shellFitWidth(_:)), "0"))
         menu.addItem(.separator())
         menu.addItem(item("Enter Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", modifiers: [.command, .control]))
         return menu
@@ -149,6 +151,33 @@ import AppKit
         return menu
     }
 
+    // ---- the keys of the reader items (Wave 3) ----
+
+    /// Find, Find Next, Find Previous and the zoom items act on a review window's PDF. A reference viewer has its own
+    /// find and zoom with the same keys (⌘F, ⌘G, ⇧⌘G, ⌘+, ⌘−, ⌘0), and AppKit offers a key to the main menu before the
+    /// viewer sees it: an item that matches takes the key even while it is disabled, so the viewer's keys would never
+    /// work. These items therefore carry their keys only while a review window is key; the application delegate calls
+    /// this whenever another window becomes key.
+    static func setReaderKeys(enabled: Bool, in menu: NSMenu?) {
+        guard let menu else { return }
+        for entry in menu.items {
+            if let reader = entry as? ShellReaderMenuItem {
+                reader.keyEquivalent = enabled ? reader.readerKey : ""
+                reader.keyEquivalentModifierMask = enabled ? reader.readerModifiers : []
+            }
+            setReaderKeys(enabled: enabled, in: entry.submenu)
+        }
+    }
+
+    /// Whether the reader items should have their keys: a review window is key.
+    static func reviewWindowIsKey(_ keyWindow: NSWindow?) -> Bool {
+        keyWindow?.delegate is ShellReviewWindowController
+    }
+
+    private static func readerItem(_ title: String, _ action: Selector, _ key: String, modifiers: NSEvent.ModifierFlags = .command) -> NSMenuItem {
+        ShellReaderMenuItem(title: title, action: action, key: key, modifiers: modifiers)
+    }
+
     // ---- building blocks ----
 
     private static func item(_ title: String, _ action: Selector?, _ key: String = "", modifiers: NSEvent.ModifierFlags = .command,
@@ -163,5 +192,25 @@ import AppKit
         let item = NSMenuItem(title: title ?? menu.title, action: nil, keyEquivalent: "")
         item.submenu = menu
         return item
+    }
+}
+
+/// A menu item that acts on a review window's PDF and remembers its key, so that the key can be taken out of the menu
+/// while another kind of window is key and put back afterwards (`ShellMainMenu.setReaderKeys`). It is built with its key.
+final class ShellReaderMenuItem: NSMenuItem {
+    let readerKey: String
+    let readerModifiers: NSEvent.ModifierFlags
+
+    init(title: String, action: Selector, key: String, modifiers: NSEvent.ModifierFlags) {
+        readerKey = key
+        readerModifiers = modifiers
+        super.init(title: title, action: action, keyEquivalent: key)
+        keyEquivalentModifierMask = modifiers
+    }
+
+    required init(coder: NSCoder) {
+        readerKey = ""
+        readerModifiers = []
+        super.init(coder: coder)
     }
 }

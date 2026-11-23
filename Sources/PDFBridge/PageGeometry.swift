@@ -16,6 +16,12 @@ import RefereeCore
 /// `bounds(of:on:in:)` takes the bounds of a range between its outermost non-blank characters whose boxes are plausible:
 /// exact for ordinary text, the true left edge for a range that ends at such a character, and at worst one character short
 /// at the right. Blank characters at either end are ignored, as their boxes span whatever gap they stand for.
+///
+/// With `completingTheLastGlyph` (highlights and selections, `PDFPaperService.rects`; Wave 3) a range whose last
+/// non-blank character has no plausible box is widened by one glyph: that character is the one before glued margin
+/// digits, its glyph starts where the measured part ends (its wrong box ends there too: 493.5 against 493.6 above), and its
+/// width is taken as the mean width of the last plausible glyphs of the range. The line bounds that the text cleaning
+/// reads are measured without it, so extraction and rendering do not change.
 enum PageGeometry {
     /// A box wider than this many times its height is not a single glyph.
     static let maximumGlyphAspect: CGFloat = 2
@@ -23,10 +29,13 @@ enum PageGeometry {
     /// Slack, in points, when comparing the edges of PDFKit's bounds with those of the outermost characters.
     private static let tolerance: CGFloat = 0.5
 
+    /// How many plausible glyphs, counted back from the last one, give the width of a glyph that has no box of its own.
+    private static let widthSamples = 8
+
     /// The bounds on `page` of the characters of `range`, a range in `string` (the page's `PDFPage.string`).
     /// nil when the range is empty, lies outside the string, holds only blank characters, or no character in it has a
     /// plausible box.
-    static func bounds(of range: NSRange, on page: PDFPage, in string: NSString) -> CGRect? {
+    static func bounds(of range: NSRange, on page: PDFPage, in string: NSString, completingTheLastGlyph: Bool = false) -> CGRect? {
         guard let range = clamped(range, toLength: string.length) else { return nil }
 
         // The first and the last non-blank characters, from the outside in, whose own boxes are plausible.
@@ -39,31 +48,55 @@ enum PageGeometry {
         }
         guard let head else { return nil }
         var tail = head
+        var lastGlyphHasNoBox = false
         var end = NSMaxRange(range)
         while end > NSMaxRange(head.range) {
             let piece = character(at: end - 1, within: range, in: string)
             end = piece.location
-            if !isBlank(piece, in: string), let box = glyphBox(of: piece, on: page) {
+            guard !isBlank(piece, in: string) else { continue }
+            if let box = glyphBox(of: piece, on: page) {
                 tail = (piece, box)
                 break
             }
+            lastGlyphHasNoBox = true
         }
 
         // PDFKit's bounds of everything from the one to the other are right unless a character in between has a box that
         // reaches beyond both of them; then the plausible boxes are united one by one.
         let inner = NSRange(location: head.range.location, length: NSMaxRange(tail.range) - head.range.location)
+        var measured: CGRect
         if let whole = finite(page.selection(for: inner)?.bounds(for: page)), !whole.isEmpty,
            whole.minX >= min(head.box.minX, tail.box.minX) - tolerance, whole.maxX <= max(head.box.maxX, tail.box.maxX) + tolerance {
-            return whole
+            measured = whole
+        } else {
+            var union = CGRect.null
+            index = inner.location
+            while index < NSMaxRange(inner) {
+                let piece = character(at: index, within: inner, in: string)
+                index = NSMaxRange(piece)
+                if !isBlank(piece, in: string), let box = glyphBox(of: piece, on: page) { union = union.union(box) }
+            }
+            guard !union.isNull else { return nil }
+            measured = union
         }
-        var union = CGRect.null
-        index = inner.location
-        while index < NSMaxRange(inner) {
-            let piece = character(at: index, within: inner, in: string)
-            index = NSMaxRange(piece)
-            if !isBlank(piece, in: string), let box = glyphBox(of: piece, on: page) { union = union.union(box) }
+        if completingTheLastGlyph, lastGlyphHasNoBox, let width = meanGlyphWidth(endingAt: tail, from: head.range.location, on: page, in: string) {
+            measured.size.width += width
         }
-        return union.isNull ? nil : union
+        return measured
+    }
+
+    /// The mean width of the last `widthSamples` non-blank characters with plausible boxes, from `tail` back to `start`.
+    private static func meanGlyphWidth(endingAt tail: (range: NSRange, box: CGRect), from start: Int, on page: PDFPage,
+                                       in string: NSString) -> CGFloat? {
+        var widths: [CGFloat] = [tail.box.width]
+        var end = tail.range.location
+        while end > start, widths.count < widthSamples {
+            let piece = character(at: end - 1, within: NSRange(location: start, length: end - start), in: string)
+            end = piece.location
+            if !isBlank(piece, in: string), let box = glyphBox(of: piece, on: page) { widths.append(box.width) }
+        }
+        let mean = widths.reduce(0, +) / CGFloat(widths.count)
+        return mean > 0 ? mean : nil
     }
 
     /// The part of `range` that lies inside a string of `length` UTF-16 units; nil when nothing does.

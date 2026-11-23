@@ -66,7 +66,7 @@ public actor PDFPaperService: PaperService {
     /// One rectangle per text line touched (section 6.7, "From spans to highlight rectangles"): for each span, the part
     /// of it inside the `contentRange` of each line of its page, so margin numbers never count. Spans of a document that
     /// is not loaded, on a page it does not have, or outside every line give nothing; so does a part that holds only
-    /// blank characters.
+    /// blank characters. A part that ends at the character before glued margin digits gets that glyph back (Wave 3).
     public func rects(for spans: [TextSpan], in document: DocumentRef) async -> [PageRect] {
         guard let entry = documents[document.sha256] else {
             Log.event("pdf.rects.notLoaded", ["spans": .int(spans.count)])
@@ -80,7 +80,7 @@ public actor PDFPaperService: PaperService {
             for line in entry.text.pages[position].lines {
                 guard let content = PageGeometry.clamped(line.contentRange.nsRange, toLength: string.length) else { continue }
                 let piece = NSIntersectionRange(wanted, content)
-                guard piece.length > 0, let box = PageGeometry.bounds(of: piece, on: page, in: string),
+                guard piece.length > 0, let box = PageGeometry.bounds(of: piece, on: page, in: string, completingTheLastGlyph: true),
                       let rect = PageGeometry.pageRect(box, pageIndex: span.pageIndex) else { continue }
                 rects.append(rect)
             }

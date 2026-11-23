@@ -103,7 +103,7 @@ enum Samples {
         let exact = Anchor(quote: "The coefficient in Table 2 is 0.91 with a confidence interval that crosses one",
                            spans: [TextSpan(pageIndex: 0, range: TextRange(location: 676, length: 18)),
                                    TextSpan(pageIndex: 0, range: TextRange(location: 697, length: 59))],
-                           rects: [PageRect(pageIndex: 0, x: 410.2, y: 189.2, width: 82.7, height: 10.6),
+                           rects: [PageRect(pageIndex: 0, x: 410.2, y: 189.2, width: 88.6, height: 10.6),
                                    PageRect(pageIndex: 0, x: 110.9, y: 165.2, width: 286.2, height: 10.6)],
                            pageIndex: 0, confidence: .exact, locationLabel: "p. 1, lines 13\u{2013}14")
         let comments = [

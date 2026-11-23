@@ -236,6 +236,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     model.beginComposingComment()
     model.cancelComposing()
     model.addUserComment(kind: .minor, category: "other", title: "", body: "", anchoredTo: selection)
+    model.addUserComment(kind: .minor, category: "other", title: "", body: "", suggestion: "Say so.", anchoredTo: nil)   // Wave 3
     model.reanchorComment(id, to: selection)
     model.setIncludeInReport(false, for: id)
     model.sendDiscussionMessage("Why?", commentID: id)
@@ -259,6 +260,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     model.readerClickedComment(id)
     model.readerClickedCitation(mentionID: 0)
     model.dismissBanner()
+    model.dismissCitationLookup()                                       // Wave 3
     model.dismissTransientUI()
     model.updateMeta(ManuscriptMeta(reviewerNotes: ""))
     await model.flushPendingSave()
@@ -288,6 +290,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: Result<String, LLMError> = await settings.sendTestPrompt(to: "ollama")
     settings.resetPromptsToDefaults()
     await settings.applyFirstRunDefaultsIfNeeded()
+    await settings.flushPendingSave()                                   // public since Wave 3
 
     // ==== RefereeUI/Common ====
     let window = NSWindow()
@@ -349,6 +352,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     reader.showFind()
     reader.findNext()
     reader.findPrevious()
+    let _: Bool = reader.dismissFind()                                  // Wave 3
     reader.zoom(step)
     let _: any View = ReaderPane(controller: reader)
     let _: any View = NavigatorPane(controller: reader)

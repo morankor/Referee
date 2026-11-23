@@ -90,7 +90,7 @@ import AppCore
 
     /// Whether the key was a triage key of this window and was acted on. Keys reach triage only while this window is
     /// key and no text is being edited. While the consent card is up the window is blocked: Esc answers it "no" and the
-    /// other triage keys do nothing. Esc also closes the destination menu.
+    /// other triage keys do nothing. Esc then closes the destination menu, and after that what `dismiss` lists.
     func handleKeyDown(_ event: NSEvent) -> Bool {
         guard event.window === window, keysReachTriage else { return false }
         let intent = TriageKeymap.intent(characters: event.charactersIgnoringModifiers ?? "", keyCode: event.keyCode, modifiers: event.modifierFlags)
@@ -108,13 +108,29 @@ import AppCore
     }
 
     /// An intent, from a key or from the menu. The thread, the editor and a new comment live in the sidebar, which
-    /// opens for them if it is hidden.
+    /// opens for them if it is hidden. Esc goes through `dismiss(model:reader:)`, which knows about the find bar.
     private func perform(_ intent: TriageIntent) {
+        if intent == .dismiss {
+            Self.dismiss(model: model, reader: reader)
+            return
+        }
         TriageKeymap.apply(intent, to: model)
         switch intent {
         case .discuss, .edit, .newComment: windowState.showSidebar = true
         default: break
         }
+    }
+
+    /// Esc in the window, once the consent card and the destination menu are out of the way (section 9.4, Wave 3): the
+    /// model's transient UI first (citation card, new comment, editor, open thread: `dismissTransientUI` closes the first
+    /// of these that is open), then the find bar (`ReaderController.dismissFind()`), and only then the PDF selection.
+    /// The find bar comes after the others because it stays open on purpose while the referee steps through matches,
+    /// and before the selection because the selection is what Esc clears when nothing else is open.
+    static func dismiss(model: ReviewSessionModel, reader: ReaderController) {
+        let modelHasTransientUI = model.citationLookup != .idle || model.composing != nil || model.editingCommentID != nil
+            || model.openThreadCommentID != nil
+        if !modelHasTransientUI, reader.dismissFind() { return }
+        TriageKeymap.apply(.dismiss, to: model)
     }
 
     /// A text view or a field editor has the keyboard.

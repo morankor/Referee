@@ -7,8 +7,10 @@ enum Endpoint {
     /// `defaultURL` (a literal of an adapter) with the scheme, host and port of `override`. An override without a scheme
     /// gets the default's. Throws `.invalidRequest` for an override that is not an http or https address.
     static func resolve(_ defaultURL: String, override: String?) throws -> URL {
+        // An adapter's own literal that is no URL is a programming error; it fails the request instead of stopping the
+        // app (no `preconditionFailure` in Sources/, plan section 3.7).
         guard var components = URLComponents(string: defaultURL), let defaultScheme = components.scheme else {
-            preconditionFailure("not a URL literal: \(defaultURL)")
+            throw LLMError.invalidRequest("the built-in address “\(defaultURL)” is not a URL")
         }
         if let base = try base(override, defaultScheme: defaultScheme) {
             components.scheme = base.scheme

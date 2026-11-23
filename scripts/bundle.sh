@@ -9,6 +9,7 @@ rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Referee"
 [[ -f build/AppIcon.icns ]] || scripts/make-icon.sh || echo "bundle.sh: no icon (continuing)"
 [[ -f build/AppIcon.icns ]] && cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp README.md "$APP/Contents/Resources/README.md"      # Help ▸ Referee Help opens it from here
 cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

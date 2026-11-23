@@ -80,6 +80,29 @@ import TestSupport
         #expect(abs(rects[0].y - Double(theT.minY)) < 0.01 && abs(rects[1].y - Double(tableT.minY)) < 0.01)
     }
 
+    /// Wave 3: a part that ends at the character before glued margin digits (whose own box is not plausible) gets that
+    /// glyph back, one mean glyph wide; a part that ends at an ordinary character keeps its exact right edge.
+    @Test func theGlyphBeforeGluedDigitsIsAddedBack() async throws {
+        let service = PDFPaperService(builder: TrailingDigitsBuilder())
+        let paper = try await service.load(url: Fixtures.url("pdf/ay_nolinks.pdf"))
+        let string = paper.text.pages[0].string as NSString
+        let line13 = string.range(of: "The coefficient in")          // "…in" with "13" glued after it
+        let page = try #require(try fixtureDocument("ay_nolinks").page(at: 0))
+        let lastI = try #require(characterBox(on: page, at: NSMaxRange(line13) - 2))
+
+        let short = NSRange(location: line13.location, length: line13.length - 1)       // "The coefficient i": exact
+        let exact = await service.rects(for: [TextSpan(pageIndex: 0, range: TextRange(short))], in: paper.ref)
+        #expect(exact.count == 1)
+        #expect(abs((exact.first.map { $0.x + $0.width } ?? 0) - Double(lastI.maxX)) < 0.01, "\(exact)")
+
+        let whole = await service.rects(for: [TextSpan(pageIndex: 0, range: TextRange(line13))], in: paper.ref)
+        #expect(whole.count == 1)
+        let end = whole.first.map { $0.x + $0.width } ?? 0
+        #expect(end > Double(lastI.maxX) + 3 && end < Double(lastI.maxX) + 9, "the \"n\" ends at \(end); \"i\" ends at \(lastI.maxX)")
+        #expect(abs((whole.first?.x ?? 0) - (exact.first?.x ?? 0)) < 0.01)            // the left edge does not move
+        #expect(end < 501)                                                              // the text block ends at about 499.5
+    }
+
     @Test func spansThatIncludeTheMarginDigitsAreCutToTheText() async throws {
         let service = PDFPaperService(builder: TrailingDigitsBuilder())
         let paper = try await service.load(url: Fixtures.url("pdf/ay_nolinks.pdf"))

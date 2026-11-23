@@ -16,6 +16,7 @@ import AppCore
     private let launchFiles: [URL]
     private(set) var windowManager: ShellWindowManager?
     private var pendingFiles: [URL] = []
+    private var keyWindowObservers: [NSObjectProtocol] = []
 
     init(makeDependencies: @escaping @Sendable ([String: String]) async -> AppDependencies, arguments: [String]) {
         self.makeDependencies = makeDependencies
@@ -40,6 +41,17 @@ import AppCore
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         ShellMainMenu.install(appDelegate: self)
+        ShellMainMenu.setReaderKeys(enabled: false, in: NSApp.mainMenu)
+        // Find and zoom keep their keys only while a review window is key (ShellMainMenu.setReaderKeys). A window that
+        // resigns is followed by the next one becoming key, or by none (the app went to the background), so both
+        // notifications look at the key window a moment later, once AppKit has settled which one it is.
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
+            keyWindowObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in
+                Task { @MainActor in
+                    ShellMainMenu.setReaderKeys(enabled: ShellMainMenu.reviewWindowIsKey(NSApp.keyWindow), in: NSApp.mainMenu)
+                }
+            })
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

@@ -345,6 +345,7 @@ rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Referee"
 [[ -f build/AppIcon.icns ]] || scripts/make-icon.sh || echo "bundle.sh: no icon (continuing)"
 [[ -f build/AppIcon.icns ]] && cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp README.md "$APP/Contents/Resources/README.md"      # Help ▸ Referee Help opens it from here
 cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -445,6 +446,8 @@ What PDFKit actually returns for these files is part of the specification; the s
 
 - Four-space indentation, one type per file where practical, `public` only for what another target uses.
 - **File names are unique within a target** (§3.1). In `Sources/RefereeUI/<Area>/` and `Tests/RefereeUITests/<Area>/` every file name starts with its area: `Reader…`, `Sidebar…`, `Shell…`, `Common…`. In `Sources/AppCore/Export/` and `Tests/AppCoreTests/Export/` every file name starts with `Export`.
+- **Names inside `RefereeUI` and `RefereeUITests`** (the coordinator's Wave 2 rules, recorded at Wave 3). Three areas share one module, so: every top-level declaration that is not `private` starts with its area's prefix, `Reader`, `Sidebar` or `Shell`, except the names the plan prints (§11.3, §9.2: `ReaderPane`, `BannerView`, `TriageKeymap`…); `Common` keeps the names of Wave 0 (`Snapshot…`, `Theme`, `UIActions`, `IntegrationScenes`). Members added in an extension of a type the area does not own (SwiftUI's, AppKit's, another area's, the models') are `private` or carry the prefix (`View.sidebarCardChrome`); no conformance is added to such a type; test suites carry the prefix too. A new file in `Fixtures/sessions/` starts with its area (`sidebar-states.json`).
+- **No source path in a binary.** `Sources/` holds no `#file`, `#filePath`, `fatalError`, `precondition`, `preconditionFailure` or `assertionFailure`: each carries the path of its source file, and with it the home folder, into a release binary, which `scripts/bundle.sh` refuses (§3.4). A function that cannot go on throws or returns instead. The one exception is the `#filePath` of `TestSupport`'s `Fixtures.root`, compiled in debug builds only (§3.6). `IntegrationTreeTests` checks every tracked file under `Sources/`.
 - Every public struct in `RefereeCore` has the explicit public memberwise initialiser printed in Appendix A (parameters in declaration order, optionals default to `nil`, collections to empty).
 - No `print` in libraries; use `Log.event`. `referee-cli` and tests may print.
 - No file outside your owned paths may be edited (§11.2).
@@ -503,7 +506,7 @@ Encoded with `JSONEncoder` (ISO-8601 dates in whole seconds, §3.7; `prettyPrint
         "pageIndex" : 0,
         "quote" : "The coefficient in Table 2 is 0.91 with a confidence interval that crosses one",
         "rects" : [
-          { "height" : 10.6, "pageIndex" : 0, "width" : 82.7, "x" : 410.2, "y" : 189.2 },
+          { "height" : 10.6, "pageIndex" : 0, "width" : 88.6, "x" : 410.2, "y" : 189.2 },
           { "height" : 10.6, "pageIndex" : 0, "width" : 286.2, "x" : 110.9, "y" : 165.2 }
         ],
         "spans" : [ { "pageIndex" : 0, "range" : { "length" : 18, "location" : 676 } },
@@ -1226,7 +1229,7 @@ So: margin numbers are glued to the **end** of most lines with no space, and sta
 
 The match is an interval of `stream`; converting through the parallel arrays gives `spans`: **one per text line touched**, from the first to the last matched character on that line. A span never covers text between two lines.
 
-**From spans to highlight rectangles** — `PaperService.rects(for:in:)`: for each span, for each `TextLine` of that page whose `contentRange` intersects the span (normally exactly one; a span from a user selection may cover several), take the intersection and measure it. One rectangle per line. `PDFSelection.bounds(for:)` is the union of the boxes PDFKit gives each character, and on a line with glued margin digits the digits **and the character just before them** have boxes that reach back across the page (x from −2 to 495 in the fixture) [V]; so a range that merely *ends* at that character, without any digit, also gets bounds that begin mid-line [V, WP2]. `PDFPaperService` therefore measures a range between its outermost characters whose own boxes are plausible: blanks and boxes more than twice as wide as high are skipped (no single glyph is), PDFKit's bounds of the range between the first and the last remaining character are taken, and if those reach beyond the two outer boxes the plausible boxes are united one by one. A rectangle can be one glyph short where a margin number is glued ("…difficult to" ends at 493.6 instead of about 499.5). Ranges that start at the line's left edge are exact (x = 110.9) [V].
+**From spans to highlight rectangles** — `PaperService.rects(for:in:)`: for each span, for each `TextLine` of that page whose `contentRange` intersects the span (normally exactly one; a span from a user selection may cover several), take the intersection and measure it. One rectangle per line. `PDFSelection.bounds(for:)` is the union of the boxes PDFKit gives each character, and on a line with glued margin digits the digits **and the character just before them** have boxes that reach back across the page (x from −2 to 495 in the fixture) [V]; so a range that merely *ends* at that character, without any digit, also gets bounds that begin mid-line [V, WP2]. `PDFPaperService` therefore measures a range between its outermost characters whose own boxes are plausible: blanks and boxes more than twice as wide as high are skipped (no single glyph is), PDFKit's bounds of the range between the first and the last remaining character are taken, and if those reach beyond the two outer boxes the plausible boxes are united one by one. That measurement alone leaves a rectangle one glyph short where a margin number is glued ("…difficult to" ends at 493.6 instead of about 499.5): the glyph before the digits starts where the measured part ends, so `rects(for:in:)` adds it back, as wide as the mean of the last eight plausible glyphs ("…difficult to" then ends at 500.2, "The coefficient in" at 498.8; Wave 3, G.7). The line bounds that the cleaning reads (§7.2) are measured without that step. Ranges that start at the line's left edge are exact (x = 110.9) [V].
 
 **Label** — `locationLabel(for:)`. Let the first and last lines touched be on pages A and B (1-based) with margin numbers a and b (`TextLine.marginNumber`, which is the line's own printed number or the ruler number level with it, §7.2).
 
@@ -1578,7 +1581,7 @@ public extension EnvironmentValues {
 
 The shell sets real closures with `.environment(\.uiActions, …)` on every window's root view; the defaults do nothing, which is what the snapshot mode uses. Everything else flows through `ReviewSessionModel` and, for find and zoom, `ReaderController`.
 
-- `AppDelegate`: builds the main menu; at launch creates the `SettingsModel`, hands it to `WindowManager`, and calls `applyFirstRunDefaultsIfNeeded()` once; `application(_:open:)` forwards file URLs to `WindowManager.openReview(url:)`; `applicationShouldTerminateAfterLastWindowClosed` → false; on terminate, flushes every model's pending save.
+- `AppDelegate`: builds the main menu; at launch creates the `SettingsModel`, hands it to `WindowManager`, and calls `applyFirstRunDefaultsIfNeeded()` once; `application(_:open:)` forwards file URLs to `WindowManager.openReview(url:)`; `applicationShouldTerminateAfterLastWindowClosed` → false; on terminate, flushes every model's pending save, the `SettingsModel`'s included (`flushPendingSave()`, public since Wave 3). It also keeps the keys of Find, Find Next, Find Previous and the zoom items in the menu only while a review window is key: an item that matches a key takes it even while disabled, and AppKit offers a key to the menu before the window, so otherwise a reference viewer's own ⌘F, ⌘G, ⌘+, ⌘− and ⌘0 would never work (Wave 3).
 - `WindowManager` (main actor): `openReview(url:)` (one window per document hash; brings an existing one forward), `openReferenceViewer(fileURL:title:)`, `showSettings()`, `showWelcome()`. It holds the app's one `SettingsModel`, observes `Notification.Name.refereeSettingsDidChange`, and on each notification calls `reloadSettings(settingsModel.settings)` on every open `ReviewSessionModel`. Review windows: 1280 × 800 default, 1000 × 640 minimum, `styleMask` titled, closable, resizable, miniaturizable, `fullSizeContentView`; frame autosaved per document hash.
 - `ReviewWindowController`: owns one `ReviewSessionModel` and one `ReaderController` per window, calls `reader.attach()` right after creating it, installs the key monitor (§9.4), sets the title, and flushes on close.
 - **Main menu** (built in code with `NSMenu`; SwiftUI `.commands` is not used):
@@ -1587,11 +1590,11 @@ The shell sets real closures with `.environment(\.uiActions, …)` on every wind
 |---|---|---|
 | Referee | About, Settings… (⌘,), Hide, Quit (⌘Q) | `WindowManager.showSettings()` |
 | File | Open… (⌘O), Open Recent ▸, Close (⌘W), Export Report… (⇧⌘E), Delete Review Data… | `openReview(url:)`; `model.exportReport`; after confirmation `model.deleteReviewData()`, then the window closes |
-| Edit | Undo, Redo, Cut, Copy, Paste, Select All (standard selectors, so text fields work); Find… (⌘F), Find Next (⌘G), Find Previous (⇧⌘G) | `reader.showFind()`, `findNext()`, `findPrevious()` of the key window |
+| Edit | Undo, Redo, Cut, Copy, Paste, Select All (standard selectors, so text fields work); Find… (⌘F), Find Next (⌘G), Find Previous (⇧⌘G); the find keys are in the menu only while a review window is key | `reader.showFind()`, `findNext()`, `findPrevious()` of the key window |
 | Review | Run Review (⌘R), Cancel (⌘.), Generate Report (⇧⌘R), Approve, Reject, Discuss, Edit, Next Comment, Previous Comment, New Comment (the single-key shortcuts of §9.4 are shown as hints but handled by the key monitor) | model methods |
-| View | Comments (⌘1), Chat (⌘2), Report (⌘3), Toggle Navigator (⌃⌘S), Toggle Sidebar (⌥⌘0), Zoom In (⌘+), Zoom Out (⌘−), Fit Width (⌘0) | `model.sidebarTab`; `reader.zoom(_:)` |
+| View | Comments (⌘1), Chat (⌘2), Report (⌘3), Hide/Show Navigator (⌃⌘S), Hide/Show Sidebar (⌥⌘0), Zoom In (⌘+, also ⌘=), Zoom Out (⌘−), Fit Width (⌘0); the zoom keys are in the menu only while a review window is key | `model.sidebarTab`; `reader.zoom(_:)` |
 | Window | standard | |
-| Help | Referee Help (opens README) | |
+| Help | Referee Help: the keys and commands, and a button that opens the README (`scripts/bundle.sh` copies it to `Contents/Resources/README.md`) | |
 
 - **Welcome window** (shown at launch when no document is opened): "Open PDF…" button, drop target, list of recent reviews from `SessionStoring.listSessions()` (title, file name, date, "12 comments · 3 pending"), and a provider status line ("AI: Local · gemma4:e4b" or "No AI provider set up — Open Settings").
 
@@ -1662,7 +1665,7 @@ Card anatomy:
 | AI comment in category `literature` | a small "verify" tag beside the category: the model cannot look references up, so any paper it names must be checked |
 | reply failed | red inline line under the thread with the error message and Retry, while `model.replyFailure?.targetID` is the comment: `message` is the text, Retry calls `retryFailedReply()`. A failed reply raises no banner |
 
-New own comment ("+", N, or Comment in the selection bar → `model.beginComposingComment()`): while `model.composing != nil` an editing card sits at the top of the list, anchored to the selection captured in `composing.selection` (shown as its quote), kind default minor; Save calls `addUserComment(…)` (status approved), Cancel calls `cancelComposing()`.
+New own comment ("+", N, or Comment in the selection bar → `model.beginComposingComment()`): while `model.composing != nil` an editing card sits at the top of the list, anchored to the selection captured in `composing.selection` (shown as its quote), kind default minor, with the same fields as the editing state, the suggestion editor included; Save calls `addUserComment(…, suggestion:, anchoredTo:)` (status approved; a blank suggestion is none), Cancel calls `cancelComposing()`.
 
 ### 9.4 Keyboard triage
 
@@ -1680,9 +1683,11 @@ A local `NSEvent` key-down monitor installed by `ReviewWindowController` handles
 | Return | reveal the passage in the PDF again |
 | N | new own comment |
 | 1 2 3 4 | set kind: major, minor, question, strength |
-| Esc | close the open overlay, editor or thread; then clear the selection |
+| Esc | close one thing, in this order: the consent card ("no"), the destination menu, the citation card, the new comment's card, the editor, the open thread, the find bar; with nothing of these open, clear the selection |
 
 Intent → model call (`TriageKeymap.apply`): `next` → `selectNextComment(pendingOnly: false)`; `previous` → `selectPreviousComment()`; `approve` / `reject` / `resetStatus` → `setStatus(_:for: selectedCommentID)`; `discuss` → `openThreadCommentID = selectedCommentID`; `edit` → `editingCommentID = selectedCommentID`; `reveal` → `revealSelectedCommentInPDF()`; `newComment` → `beginComposingComment()`; `setKind(k)` → `setKind(k, for:)`; `dismiss` → `dismissTransientUI()`. The sidebar reacts to those properties (expands the thread and focuses its input, shows the editor, shows the composing card).
+
+Esc and the find bar (Wave 3): the find bar is the Reader's own state, which the model does not know (§7.4), so `TriageKeymap.apply` cannot close it. The window's key monitor does: after the consent card and the destination menu, it lets `dismissTransientUI()` close the model's transient UI while any of it is open (`citationLookup != .idle`, `composing`, `editingCommentID`, `openThreadCommentID`), then calls `reader.dismissFind()`, and only when that returns false does `dismissTransientUI()` clear the selection. The find bar comes after the card, the editors and the thread because the referee keeps it open on purpose while stepping through matches; it comes before the selection because clearing the selection is what Esc does when nothing else is open. Esc typed in the find field closes the bar itself (the field has the keyboard, so the monitor does not see the key).
 
 Modified keys go through the menu: ⌘R, ⌘., ⇧⌘R, ⌘F, ⌘G, ⌘1–3, ⌘+, ⌘−, ⌘0. In any text input ⌘↩ sends or saves.
 
@@ -1713,6 +1718,8 @@ The indicator is always visible in the toolbar and is the only place the destina
 | experimental provider without `verifiedAt` | the above plus " · experimental" | orange |
 | nothing ready | slashed circle, "No AI provider" (click opens Settings) | grey |
 | Local-only is on and a remote provider is selected | lock, "Remote blocked (Local only)" | red |
+
+In v1 "nothing ready" means that no provider is configured (`model.activeProvider == nil`): the window does not check whether the chosen provider is running (an Ollama that is not running shows "Local · gemma4:e4b" until a job fails with its banner), because each check costs a request or a process run. Left for the design pass (Wave 3, `docs/contract-notes/wave3.md`).
 
 Clicking it opens a menu-style overlay: the enabled providers (choose one; stored as `session.preferredProvider`); the current `SendPlan` in words; the provider's `retentionNote`; the "Local only" switch; "Privacy settings…". The plan sentence is built from `SendPlan` and the descriptor:
 
@@ -1774,7 +1781,7 @@ Referee --ui-snapshot <outDir> [--scene <name>]… [--dark] [--size 1280x800]
 Mechanism, verified end to end on this machine without any Screen Recording permission [V, also reviewer], as `RefereeUI/Common/CommonSnapshotRunner.swift` implements it (Wave 0b; the comment at the top of that file lists the same decisions):
 
 1. `NSApplication.shared.setActivationPolicy(.accessory)`; create a fresh temporary directory for the run, removed at its end. **Each scene gets a data folder of its own** in it (named after the scene) and a dependency graph of its own, so that no scene sees what an earlier one saved and no picture depends on which scenes ran before it. For each scene: write `SnapshotSupport.settings()` into its folder as `settings.json` (the four mock providers enabled, `mock` the review default) and build the dependencies with the overrides `REFEREE_HOME=<that folder>`, `REFEREE_SNAPSHOT=1` and `REFEREE_NO_KEYCHAIN=1`; the same settings are also saved through `dependencies.settings`, and the scene's models are created with them. `LiveDependencies.make` sees `REFEREE_SNAPSHOT` and builds the whole graph, **the engine included**, on `SnapshotSupport.providers()` and `FakeResolver()` (§11.3). A snapshot run therefore starts no process and makes no network request, and the engine and the model agree on which providers exist. Nothing of the user's is read or written.
-2. If the scene names a `fixtureSession` (it must then name a `fixturePDF` too), copy that file to `<home>/sessions/<sha256>/session.json`, where the hash and `byteCount` are computed from the fixture PDF as it is on disk right now and written into the copy's `document` (a rebuilt fixture has a different hash). Create the window as the app does, with an `NSHostingController(rootView: …)` as its content view controller; `window.appearance` forced to aqua (or dark aqua); content, size, style and title as in the table below; then `orderFrontRegardless()`. The window is a private subclass of `NSWindow` that overrides one method, `constrainFrameRect(_:to:)`, to return the frame unchanged: a plain window is cut down to the visible part of the screen when it is shown (a scene of 1500 × 1000 came out 1500 × 828 on a display with 828 points between menu bar and Dock), and a scene must have its size on any display. It is placed where AppKit puts a plain window sent to (−6000, −6000): only its top right corner, 40 × 74 points, lies inside the bottom left of the main screen, and the capture is complete [V, reviewer; WP0b], so a snapshot run does not flash windows over the user's work. In a review scene the runner then calls `reader.attach()`, opens the `fixturePDF` with `model.open(url:)`, and waits until the reader shows the display document (three seconds at most), so that `prepare` can use the PDF view at once.
+2. If the scene names a `fixtureSession` (it must then name a `fixturePDF` too), copy that file to `<home>/sessions/<sha256>/session.json`, where the hash and `byteCount` are computed from the fixture PDF as it is on disk right now and written into the copy's `document` (a rebuilt fixture has a different hash). Create the window as the app does, with an `NSHostingController(rootView: …)` as its content view controller; `window.appearance` forced to aqua (or dark aqua); content, size, style and title as in the table below; then `orderFrontRegardless()`. The window is a private subclass of `NSWindow` that overrides one method, `constrainFrameRect(_:to:)`, to return the frame unchanged: a plain window is cut down to the visible part of the screen when it is shown (a scene of 1500 × 1000 came out 1500 × 828 on a display with 828 points between menu bar and Dock), and a scene must have its size on any display. It is placed where AppKit puts a plain window sent to (−6000, −6000): only its top right corner, 40 × 74 points, lies inside the bottom left of the main screen, and the capture is complete [V, reviewer; WP0b], so a snapshot run does not flash windows over the user's work. In a review scene the runner then calls `reader.attach()`, opens the `fixturePDF` with `model.open(url:)`, waits until the reader shows the display document (three seconds at most), and lays the window out once more (`window.contentView?.layoutSubtreeIfNeeded()`), so that `prepare` can use the PDF view at once. The last step is Wave 3's: `open` sets `.ready` in the same turn of the run loop in which it returns, and SwiftUI applies that on the window's next layout pass; until then the Shell's "Opening <file>…" panel still lies over the PDF, and a click placed by `window.contentView.hitTest` lands on the panel (that is why `reader-citation` failed in the merged window). The window's content view controller is `NSHostingController(rootView:)` on the bare view, with no modifier wrapped round it: the settings scenes and `review-destination-menu` reach view state through `rootView` (`(window.contentViewController as? NSHostingController<SettingsRootView>)?.rootView.navigation`), and fail their `verify` if that changes.
 
    | Kind | Window content | Content size (points) | Style mask | Title |
    |---|---|---|---|---|
@@ -1809,7 +1816,7 @@ Required scenes:
 | `reader-find` | Reader | find bar with a count and highlighted matches |
 | `reader-references` | Reader | navigator on References |
 | `reader-ruler` | Reader | `s1_ruler.pdf` with a comment on the Table 2 sentence; `verify`: its label is "p. 1, lines 47–49" |
-| `reference-viewer` | Reader | viewer window showing `num_twocol_links.pdf` |
+| `reference-viewer` | Reader | viewer window showing `num_twocol_links.pdf`; `verify` (after the capture): its own ⌘+ and ⌘0 work in its window |
 | `sidebar-pending` | Sidebar | six comments, one selected, mixed kinds |
 | `sidebar-streaming` | Sidebar | `setActiveProvider("mock-stall")`, review: two finished cards, one draft still being written |
 | `sidebar-states` | Sidebar | approved, rejected, similar, fuzzy, page-only and unanchored cards |
@@ -2159,7 +2166,7 @@ public enum SelectionNormalizer {
     /// Runs ShellScenes.all + ReaderScenes.all + SidebarScenes.all + IntegrationScenes.all (or the named ones) and returns the exit code.
     public static func run(arguments: [String], makeDependencies: @escaping @Sendable ([String: String]) async -> AppDependencies) async -> Int32
 }
-@MainActor public enum IntegrationScenes { public static var all: [SnapshotScene] { get } }    // empty until Wave 3
+@MainActor public enum IntegrationScenes { public static var all: [SnapshotScene] { get } }    // the three check- scenes of section 10.1 (Wave 3)
 /// The look the three panes share (section 9.10; highlights of section 7.3). Every colour is a system colour, so light and dark both work.
 public enum Theme {
     public static func kindColor(_ kind: CommentKind) -> Color             // major red, minor grey, question purple, strength teal
@@ -2197,6 +2204,7 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
     public func showFind()               // Edit ▸ Find…
     public func findNext()
     public func findPrevious()
+    public func dismissFind() -> Bool    // Esc (section 9.4): hides the find bar; true when it was shown (Wave 3)
     public func zoom(_ step: ZoomStep)   // View ▸ Zoom In / Zoom Out / Fit Width
 }
 public struct ReaderPane: View { public init(controller: ReaderController) }          // PDF, find bar, selection bar, citation card
@@ -2864,7 +2872,7 @@ Each item has a default so that nothing waits for the user.
 
 ## Appendix A. Contracts (Swift)
 
-These files are the shared language of the project. A.1–A.8 are the complete contents of `Sources/RefereeCore/` apart from `DefaultSettings` and `FormatSpec` (§11.3); they compile exactly as printed (Swift 5 language mode, no warnings) [V]. Wave 0a copies them verbatim. Every public struct carries its public memberwise initialiser inside the struct: parameters in declaration order, optionals defaulting to `nil`, arrays to `[]`, dictionaries to `[:]`. A.9 lists the public members of the two application models in `AppCore` (declarations only; it compiles with stub bodies [V]; Gate 1's additions are marked in G.6).
+These files are the shared language of the project. A.1–A.8 are the complete contents of `Sources/RefereeCore/` apart from `DefaultSettings` and `FormatSpec` (§11.3); they compile exactly as printed (Swift 5 language mode, no warnings) [V]. Wave 0a copies them verbatim. Every public struct carries its public memberwise initialiser inside the struct: parameters in declaration order, optionals defaulting to `nil`, arrays to `[]`, dictionaries to `[:]`. A.9 lists the public members of the two application models in `AppCore` (declarations only; it compiles with stub bodies [V]; Gate 1's additions are marked in G.6, Wave 3's in G.7).
 
 ### A.1 `Basics.swift`
 
@@ -4134,7 +4142,8 @@ public final class ReviewSessionModel {
     public func deletePendingAIComments()      // "Clear undecided AI comments" before running a review again
     public func beginComposingComment()        // captures the current selection; the sidebar shows the editor card
     public func cancelComposing()
-    public func addUserComment(kind: CommentKind, category: String, title: String, body: String, anchoredTo selection: SelectionInfo?)   // also ends composing
+    public func addUserComment(kind: CommentKind, category: String, title: String, body: String, suggestion: String? = nil,
+                               anchoredTo selection: SelectionInfo?)   // also ends composing; a blank suggestion is none (Wave 3)
     public func reanchorComment(_ id: UUID, to selection: SelectionInfo)
     public func setIncludeInReport(_ include: Bool, for id: UUID)
 
@@ -4170,6 +4179,7 @@ public final class ReviewSessionModel {
 
     // ---- misc ----
     public func dismissBanner()
+    public func dismissCitationLookup()         // the citation card alone: a click elsewhere, a page change, a mention out of sight (Wave 3)
     public func dismissTransientUI()            // Esc: citation card, composing, editing, open thread, then the PDF selection
     public func updateMeta(_ meta: ManuscriptMeta)
     public func flushPendingSave() async
@@ -4210,6 +4220,8 @@ public final class SettingsModel {
     /// Settings ▸ Privacy ▸ "Delete all review data…": every review folder and the resolver's memory of it. The window
     /// manager closes every review window first, so that none saves its session again. Throws StoreError.
     public func deleteAllReviewData() async throws
+    /// Saves a change still waiting for its 0.5 s debounce; the app calls it before quitting (Wave 3).
+    public func flushPendingSave() async
 }
 ```
 
@@ -5228,3 +5240,22 @@ Gate 1 merged the nine Wave 1 branches, read their notes (`docs/contract-notes/w
 | Gate 1, on the real papers of `Fixtures/private`: arXiv's side stamp became the title guess | The stamp is boilerplate of step 2 (`.watermark`); a reference to arXiv in the text is not | §7.2 |
 | Gate 1: `referee-cli` written in full | §10.2 states its output lines, the model lookup (`phi4` finds `phi4:latest`; without `--model` the first listed model), Ctrl-C and the temporary data folder | §10.2 |
 | Gate 1: three rows of the Gate 1 table did not say how they are checked | "snapshot graph": no task or process, by construction (mocks, static rows, the fake resolver); "real papers": `Fixtures/private/journal/` too, papers named by position; "CLI": `scripts/build.sh` runs first, since `scripts/test.sh` builds no executable | Gate 1 |
+
+### G.7 Amendments at Wave 3
+
+Wave 3 merged the three UI branches, read their notes (`docs/contract-notes/wp9-reader.md`, `wp10-sidebar.md`, `wp11-shell.md`) and applied the coordinator's decisions (`docs/contract-notes/wave3.md`, which has the reasons). Every change below is additive with defaults, and is in the code and in the sections named, in the same commit.
+
+| Problem | Decision | Where |
+|---|---|---|
+| WP9 1: no way to close only the citation card | `ReviewSessionModel.dismissCitationLookup()`; the Reader calls it instead of its `dismissTransientUI()` workaround; `dismissTransientUI()` uses it for its first step | A.9 |
+| WP9 2: Esc could not close the find bar from the PDF | `ReaderController.dismissFind() -> Bool`. Esc's order: consent card, destination menu, the model's transient UI (card, new comment, editor, thread), then the find bar, then the selection | §9.4, §11.3 |
+| WP10 1: `addUserComment` had no suggestion | `addUserComment(…, suggestion: String? = nil, anchoredTo:)`, a blank suggestion being none; the composing card has the suggestion editor | A.9, §9.3 |
+| WP11 1: `SettingsModel.flushPendingSave()` was internal | Public; the Shell calls it on terminate, and its 0.75 s wait is gone | A.9, §9.1 |
+| WP11 2: the window does not know whether its provider is ready | Left out of v1 (each check costs a request or a process run): "No AI provider" means that none is configured; noted for the design pass | §9.7 |
+| WP11 3: scenes reach view state through `NSHostingController.rootView` | The runner keeps making `NSHostingController(rootView:)` on the bare view; stated | §10.1 |
+| WP11 4: the app bundle carries no README | `scripts/bundle.sh` copies `README.md` into `Contents/Resources/`, where Help finds it | §3.4, §9.1 |
+| The coordinator's Wave 2 rules | Recorded: names, extension members and test suites in `RefereeUI` and `RefereeUITests` prefixed by area, no conformances on others' types, new session fixtures prefixed by area; no `#file`, `#filePath`, `fatalError`, `precondition`, `preconditionFailure` or `assertionFailure` in `Sources/` except the debug-only `#filePath` of `Fixtures.root`. LLMKit's one `preconditionFailure` became a thrown `.invalidRequest`; `IntegrationTreeTests` checks the rule | §3.7 |
+| Wave 3: `reader-citation` failed in the merged window ("the click did not open the card") | The runner lays the window out once after the document is shown: `open` sets `.ready` in the turn in which it returns, and until SwiftUI's next layout pass the Shell's "Opening…" panel still covered the PDF, so `hitTest` found the panel | §10.1 |
+| WP9, for Wave 3: the main menu took ⌘F, ⌘G, ⌘+, ⌘− and ⌘0 from a reference viewer | A matching menu item takes its key even while disabled, and the menu sees a key before the window (both measured): the find and zoom items carry their keys only while a review window is key. `reference-viewer`'s `verify` presses ⌘+ and ⌘0 in the viewer's window | §9.1, §10.1 |
+| WP2 and WP9: a highlight that ends before glued margin digits stopped one glyph short | `rects(for:in:)` adds the missing glyph, as wide as the mean of the last eight plausible glyphs; the line bounds the cleaning reads are unchanged; §4.3's sample remeasured (first rectangle 82.7 → 88.6 wide) | §6.7, §4.3 |
+| The integration scenes | `check-document-loaded`, `check-citation-click`, `check-triage-keys` in `CommonIntegrationScenes.swift`, as §10.1 prints them | §10.1, §11.3 |

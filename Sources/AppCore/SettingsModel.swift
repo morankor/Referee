@@ -211,8 +211,9 @@ public final class SettingsModel {
         Log.event("settings.reviewData.deleted", ["documents": .int(documents.count)])
     }
 
-    /// Writes a pending change now (the app has no caller for it yet; tests use it).
-    func flushPendingSave() async {
+    /// Writes a pending change now, and waits for a save already under way. The app calls it before quitting, so that a
+    /// setting changed in the last half second is not lost (public since Wave 3).
+    public func flushPendingSave() async {
         saveTask?.cancel()
         saveTask = nil
         if hasUnsavedChanges { await save() } else { await saveChain?.value }

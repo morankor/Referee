@@ -162,6 +162,14 @@ import TestSupport
         #expect(scene?.fixturePDF == "ay_round_nolinks.pdf")
         #expect(scene?.fixtureSession == nil)
         #expect(scene?.verify != nil)
-        #expect(IntegrationScenes.all.isEmpty)
+    }
+
+    /// Wave 3: the three scenes of section 10.1 that check behaviour, each with a `verify`, on the fixtures the table names.
+    @Test @MainActor func theIntegrationScenesOfSection101() {
+        let scenes = IntegrationScenes.all
+        #expect(scenes.map(\.name) == ["check-document-loaded", "check-citation-click", "check-triage-keys"])
+        #expect(scenes.allSatisfy { $0.kind == .review && $0.verify != nil })
+        #expect(scenes.map(\.fixturePDF) == ["ay_round_nolinks.pdf", "ay_links.pdf", "ay_nolinks.pdf"])
+        #expect(scenes.map(\.fixtureSession) == [nil, nil, "sample.json"])
     }
 }

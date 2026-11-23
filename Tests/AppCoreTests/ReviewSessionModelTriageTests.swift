@@ -439,4 +439,49 @@ import TestSupport
         #expect(model.citationLookup == .idle)                            // a lookup that was dismissed does not come back
         #expect(model.selection == nil)
     }
+
+    /// Wave 3: the reader closes the card alone (a click elsewhere, a page change), whatever else is open.
+    @Test @MainActor func dismissingTheCitationLookupClosesTheCardAndNothingElse() async throws {
+        let paper = SyntheticPaper.lineNumbered
+        let comment = ModelSample.comment("Card", page: nil)
+        let index = CitationIndex(style: .authorYear, entries: [BibEntry(id: 0, rawText: "Lee (2021).", parsed: ParsedReference())],
+                                  mentions: [CitationMention(id: 0, pageIndex: 0, text: "Lee [2021]", entryIDs: [0], source: .textPattern)])
+        let harness = try await makeModelHarness(paper: paper, index: index, seed: ModelSample.session(for: paper, comments: [comment]))
+        await harness.open()
+        let model = harness.model
+        model.readerSelectionChanged(SelectionNormalizerTests.twoLineRawSelection)
+        model.openThreadCommentID = comment.id
+        model.editingCommentID = comment.id
+        model.beginComposingComment()
+        model.dismissCitationLookup()                                     // no card: nothing happens
+        #expect(model.composing != nil)
+        model.lookUpCitation(mentionID: 0)
+        #expect(model.citationLookup == .resolving(target: .mention(0)))
+        model.dismissCitationLookup()
+        #expect(model.citationLookup == .idle)
+        #expect(model.composing != nil)
+        #expect(model.editingCommentID == comment.id)
+        #expect(model.openThreadCommentID == comment.id)
+        #expect(model.selection != nil)
+        await model.waitForBackgroundWork()
+        #expect(model.citationLookup == .idle)                            // the lookup under way does not bring the card back
+    }
+
+    /// Wave 3: the composing card's suggestion reaches the comment; a blank one is none.
+    @Test @MainActor func anOwnCommentKeepsItsSuggestion() async throws {
+        let harness = try await makeModelHarness(paper: SyntheticPaper.lineNumbered)
+        await harness.open()
+        let model = harness.model
+        model.beginComposingComment()
+        model.addUserComment(kind: .minor, category: "other", title: "Interval", body: "Say what the interval is.",
+                             suggestion: "Report the 95% interval in the abstract.", anchoredTo: nil)
+        #expect(model.session?.comments.last?.suggestion == "Report the 95% interval in the abstract.")
+        #expect(model.composing == nil)
+        model.addUserComment(kind: .minor, category: "other", title: "Blank", body: "No suggestion.", suggestion: "  \n", anchoredTo: nil)
+        #expect(model.session?.comments.last?.title == "Blank")
+        #expect(model.session?.comments.last?.suggestion == nil)
+        model.addUserComment(kind: .minor, category: "other", title: "Default", body: "None given.", anchoredTo: nil)
+        #expect(model.session?.comments.last?.title == "Default")
+        #expect(model.session?.comments.last?.suggestion == nil)
+    }
 }

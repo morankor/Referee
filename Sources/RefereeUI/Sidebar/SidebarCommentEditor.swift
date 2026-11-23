@@ -5,7 +5,7 @@ import AppCore
 /// The editor of a comment (plan.md section 9.3, "editing"): kind and category pickers, title field, body and suggestion
 /// editors, Save (⌘↩) and Cancel (Esc). The same editor writes a new own comment while `model.composing` is set; it
 /// then shows the passage it will be anchored to, starts as a minor comment in category "other", and saves with
-/// `addUserComment`, which has no suggestion, so the suggestion editor is left out (docs/contract-notes/wp10-sidebar.md).
+/// `addUserComment`, suggestion included (the parameter was added at Wave 3; docs/contract-notes/wave3.md).
 struct SidebarCommentEditor: View {
     enum Mode {
         case edit(ReviewComment)
@@ -77,10 +77,8 @@ struct SidebarCommentEditor: View {
             .controlSize(.small)
             fieldLabel("Comment")
             SidebarTextArea(text: $text, height: 96)
-            if !isComposing {
-                fieldLabel("Suggestion")
-                SidebarTextArea(text: $suggestion, height: 52)
-            }
+            fieldLabel("Suggestion")
+            SidebarTextArea(text: $suggestion, height: 52)
             HStack(spacing: 6) {
                 Spacer(minLength: 0)
                 Button("Cancel", action: cancel)
@@ -138,7 +136,8 @@ struct SidebarCommentEditor: View {
         case .edit(let comment):
             model.editComment(comment.id, kind: kind, category: category, title: finalTitle, body: text, suggestion: suggestion)
         case .compose:
-            model.addUserComment(kind: kind, category: category, title: finalTitle, body: text, anchoredTo: model.composing?.selection)
+            model.addUserComment(kind: kind, category: category, title: finalTitle, body: text, suggestion: suggestion,
+                                 anchoredTo: model.composing?.selection)
         }
     }
 

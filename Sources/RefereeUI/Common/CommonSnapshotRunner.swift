@@ -17,7 +17,8 @@ import TestSupport
 //   for (640 × 440 when it asks for none). `--size` applies to review and reference-viewer scenes only.
 // - A welcome scene gets two sample summaries of recent reviews. A reference-viewer scene shows the scene's `fixturePDF`.
 // - In a review scene `prepare` is called once the reader has loaded the display document (after three seconds at
-//   the latest), so a scene can use the PDF view at once.
+//   the latest) and the window has been laid out once more, so a scene can use the PDF view at once, a click placed
+//   by `hitTest` included (Wave 3).
 // - Besides what `verify` returns, these count as failed expectations: a review scene whose `fixturePDF` does not
 //   load; a window that did not keep the size it was given (a view whose minimum size is larger makes the window
 //   grow, in the app as much as here); a data folder, a capture or a PNG that could not be made.
@@ -158,6 +159,12 @@ import TestSupport
             while model.paper != nil, context.reader?.isDocumentLoaded != true, clock.now < deadline {
                 try? await Task.sleep(for: .milliseconds(10))
             }
+            // `open` sets `.ready` last, in the same turn of the run loop in which it returns, and SwiftUI applies a
+            // change on the window's next layout pass. Until then the window still shows the document as loading: the
+            // Shell's "Opening…" panel lies over the PDF, and `hitTest` finds the panel there instead of the PDF view
+            // (Wave 3: this is why `reader-citation` failed in the merged window). One layout pass now, so that
+            // `prepare` gets the window as the model is.
+            window.contentView?.layoutSubtreeIfNeeded()
         }
 
         // 3. The scene drives its models; then the main run loop turns while pages render and layout settles.

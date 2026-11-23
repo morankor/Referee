@@ -1,8 +1,8 @@
 import SwiftUI
 import AppKit
 
-/// Help ▸ Referee Help: the keys of section 9.4 and the commands of the menus, and a button that opens the README when
-/// it can be found (next to a build in the checkout, or in the app's resources if a later bundle carries it).
+/// Help ▸ Referee Help: the keys of section 9.4 and the commands of the menus, and a button that opens the README: in
+/// the app's resources, where `scripts/bundle.sh` puts it (Wave 3), or next to a build in the checkout.
 struct ShellHelpView: View {
     let readme: URL?
 
@@ -16,7 +16,7 @@ struct ShellHelpView: View {
         ("Return", "Show the passage in the PDF again"),
         ("N", "New comment of your own, on the selection if there is one"),
         ("1 2 3 4", "Kind: major, minor, question, strength"),
-        ("Esc", "Close what is open, then clear the selection"),
+        ("Esc", "Close the open card, editor, thread or find bar, then clear the selection"),
     ]
 
     static let commands: [(String, String)] = [
@@ -61,8 +61,9 @@ struct ShellHelpView: View {
         }
     }
 
-    /// The README: in the app's resources, or in the checkout the running binary was built in (scripts/run.sh), found
-    /// by walking up from the executable to a folder that holds both README.md and Package.swift.
+    /// The README: in the app's resources (`Contents/Resources/README.md`, copied by `scripts/bundle.sh`), or in the
+    /// checkout the running binary was built in (scripts/run.sh), found by walking up from the executable to a folder
+    /// that holds both README.md and Package.swift.
     static func findReadme() -> URL? {
         if let bundled = Bundle.main.url(forResource: "README", withExtension: "md") { return bundled }
         var folder = Bundle.main.executableURL?.deletingLastPathComponent()

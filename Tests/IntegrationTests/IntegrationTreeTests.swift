@@ -44,6 +44,28 @@ import TestSupport
         }
     }
 
+    /// Wave 3 (plan.md section 3.7): no `#file`, `#filePath`, `fatalError`, `precondition`, `preconditionFailure` or
+    /// `assertionFailure` in `Sources/`. They carry the source file's path, and with it the home folder, into a release
+    /// binary, which `scripts/bundle.sh` refuses. The one exception is the `#filePath` of `Fixtures.root`, compiled in
+    /// debug builds only (section 3.6). Comments do not count.
+    @Test func noSourceFileUsesTheFilePathOrATrap() async throws {
+        // Put together at run time, so that this file would not match itself if it were under Sources/.
+        let names = ["#" + "file", "#" + "filePath", "fatal" + "Error", "pre" + "condition", "pre" + "conditionFailure", "assertion" + "Failure"]
+        let expression = try NSRegularExpression(pattern: "(?<![A-Za-z0-9_])(" + names.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|") + #")\b"#)
+        var checked = 0
+        for (path, data) in try await Self.trackedFiles() where path.hasPrefix("Sources/") && path.hasSuffix(".swift") {
+            checked += 1
+            for (number, line) in String(decoding: data, as: UTF8.self).components(separatedBy: "\n").enumerated() {
+                let code = line.components(separatedBy: "//").first ?? line
+                guard let match = expression.firstMatch(in: code, range: NSRange(location: 0, length: (code as NSString).length)) else { continue }
+                let found = (code as NSString).substring(with: match.range)
+                let allowed = path == "Sources/TestSupport/Fixtures.swift" && found == "#" + "filePath"
+                #expect(allowed, "\(path):\(number + 1) uses \(found)")
+            }
+        }
+        #expect(checked > 50)
+    }
+
     @Test func noTrackedFileHoldsAPathUnderAHomeDirectory() async throws {
         // Put together at run time, so that this file does not match itself.
         let home = try NSRegularExpression(pattern: "/" + "Users" + #"/[A-Za-z][A-Za-z0-9._-]*"#)

@@ -157,12 +157,23 @@ import AppCore
         })
     }
 
-    /// The reference viewer on `num_twocol_links.pdf`.
+    /// The reference viewer on `num_twocol_links.pdf`. After the capture, `verify` also presses ⌘+ and ⌘0 in the viewer's
+    /// window: its own zoom keys must work there (Wave 3: the main menu no longer takes them while a viewer is key).
     static var referenceViewer: SnapshotScene {
         SnapshotScene(name: "reference-viewer", kind: .referenceViewer, fixturePDF: "num_twocol_links.pdf", verify: { context in
-            let documents = ReaderSceneSupport.views(of: PDFView.self, in: context.window.contentView).compactMap(\.document)
-            guard let document = documents.first else { return ["the viewer shows no document"] }
-            return document.pageCount == 2 ? [] : ["the viewer shows \(document.pageCount) pages, expected 2"]
+            let views = ReaderSceneSupport.views(of: PDFView.self, in: context.window.contentView).filter { $0.document != nil }
+            guard let pdfView = views.first, let document = pdfView.document else { return ["the viewer shows no document"] }
+            var failures: [String] = []
+            if document.pageCount != 2 { failures.append("the viewer shows \(document.pageCount) pages, expected 2") }
+            guard let zoomIn = ReaderSceneSupport.commandKey("+", keyCode: 24), let fitWidth = ReaderSceneSupport.commandKey("0", keyCode: 29) else {
+                return failures + ["the key events could not be made"]
+            }
+            let fitted = pdfView.scaleFactor
+            _ = context.window.performKeyEquivalent(with: zoomIn)
+            if pdfView.autoScales || pdfView.scaleFactor <= fitted { failures.append("⌘+ in the viewer's window did not zoom in") }
+            _ = context.window.performKeyEquivalent(with: fitWidth)
+            if !pdfView.autoScales { failures.append("⌘0 in the viewer's window did not fit the width") }
+            return failures
         })
     }
 }
@@ -200,6 +211,13 @@ import AppCore
             hit.mouseDown(with: down)
         }
         return hit
+    }
+
+    /// A key-down event of `key` with Command, as the keyboard makes it.
+    static func commandKey(_ key: String, keyCode: UInt16) -> NSEvent? {
+        NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                         windowNumber: 0, context: nil, characters: key, charactersIgnoringModifiers: key, isARepeat: false,
+                         keyCode: keyCode)
     }
 
     /// Every view of `type` under `root`, depth first.

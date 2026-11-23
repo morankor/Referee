@@ -461,14 +461,17 @@ public final class ReviewSessionModel {
     }
 
     /// An own comment: approved, included in the report, anchored to the normalised selection (confidence `.exact`,
-    /// label from the matcher), or unanchored (`quote == ""`, `.none`) without one.
-    public func addUserComment(kind: CommentKind, category: String, title: String, body: String, anchoredTo selection: SelectionInfo?) {   // also ends composing
+    /// label from the matcher), or unanchored (`quote == ""`, `.none`) without one. A blank suggestion is none, as in
+    /// `editComment`; the parameter was added at Wave 3, so that the composing card can have a suggestion editor.
+    public func addUserComment(kind: CommentKind, category: String, title: String, body: String, suggestion: String? = nil,
+                               anchoredTo selection: SelectionInfo?) {   // also ends composing
         composing = nil
         guard session != nil, let paper else { return }
         let now = clock.now()
         let anchor = self.anchor(from: selection, in: paper) ?? Anchor(quote: "", confidence: .none, locationLabel: "")
         let comment = ReviewComment(id: UUID(), origin: .user, status: .approved, kind: kind, category: category, title: title, body: body,
-                                    anchor: anchor, includeInReport: true, createdAt: now, updatedAt: now)
+                                    suggestion: ModelSupport.cleanedSuggestion(suggestion), anchor: anchor, includeInReport: true,
+                                    createdAt: now, updatedAt: now)
         mutateSession { $0.comments.append(comment) }
         fillRectsIfNeeded(for: .comment(comment.id))
     }
@@ -677,10 +680,17 @@ public final class ReviewSessionModel {
         banner = nil
     }
 
+    /// Closes the citation card and nothing else (Wave 3): the reader calls it on a click elsewhere in the PDF, a page
+    /// change, or a mention scrolled out of sight. A lookup still under way is forgotten, so its card does not come back.
+    public func dismissCitationLookup() {
+        guard citationLookup != .idle else { return }
+        lookupGeneration += 1
+        citationLookup = .idle
+    }
+
     public func dismissTransientUI() {            // Esc: citation card, composing, editing, open thread, then the PDF selection
         if citationLookup != .idle {
-            lookupGeneration += 1
-            citationLookup = .idle
+            dismissCitationLookup()
         } else if composing != nil {
             composing = nil
         } else if editingCommentID != nil {

@@ -23,7 +23,6 @@ import AppCore
     private var helpWindow: NSWindow?
     private var auxiliaryWindows: [ObjectIdentifier: (window: NSWindow, observer: NSObjectProtocol)] = [:]
     private var settingsObserver: NSObjectProtocol?
-    private var lastSettingsChange: Date?
     /// Bumped by every request for the welcome window and by every document opened: a welcome window whose recent
     /// list arrives after a document was opened is not shown over it.
     private var welcomeGeneration = 0
@@ -38,7 +37,6 @@ import AppCore
     }
 
     private func settingsDidChange() {
-        lastSettingsChange = Date()
         let settings = settingsModel.settings
         for controller in reviewControllers { controller.model.reloadSettings(settings) }
     }
@@ -127,17 +125,14 @@ import AppCore
     }
 
     /// Before the app quits: every text field hands over what is typed in it (fields save on leaving them), every open
-    /// review saves now, closing ones finish, and a settings change made in the last half second reaches the disk
-    /// (`SettingsModel` saves 0.5 s after the last change and offers no public flush).
+    /// review saves now, closing ones finish, and the settings save a change still waiting for its 0.5 s debounce
+    /// (`SettingsModel.flushPendingSave`, public since Wave 3).
     func flushAll() async {
         for window in NSApp.windows { window.makeFirstResponder(nil) }
         try? await Task.sleep(for: .milliseconds(150))        // the views see the focus go and commit
         for controller in reviewControllers { await controller.model.flushPendingSave() }
         for entry in closing.values { await entry.task.value }
-        if let lastSettingsChange {
-            let remaining = 0.75 - Date().timeIntervalSince(lastSettingsChange)
-            if remaining > 0 { try? await Task.sleep(for: .milliseconds(Int(remaining * 1_000))) }
-        }
+        await settingsModel.flushPendingSave()
     }
 
     /// The SHA-256 of a file's bytes, read off the main actor; nil when the file cannot be read.

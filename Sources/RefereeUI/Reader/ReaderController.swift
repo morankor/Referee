@@ -13,7 +13,7 @@ import PDFBridge
 // - The PDF view tells the model about selections (debounced 150 ms, raw: the model normalises them), clicks on
 //   highlights and clicks on citations (`RefereePDFView` asks `handleMouseDown(at:)`).
 // - Find and zoom do not pass through the model: the menu calls `showFind()`, `findNext()`, `findPrevious()` and
-//   `zoom(_:)` here (section 2.4).
+//   `zoom(_:)` here (section 2.4), and the window's Esc calls `dismissFind()` (section 9.4, Wave 3).
 //
 // Decisions (also in docs/contract-notes/wp9-reader.md):
 // - A command issued before `attach()` is not replayed; one issued before the document is shown waits for it.
@@ -79,6 +79,14 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
     public func findNext() { finder.next() }
     public func findPrevious() { finder.previous() }
 
+    /// Esc in the PDF (section 9.4): hides the find bar if it is shown, and says whether it was. The window's key monitor
+    /// calls it when none of the model's transient UI is open (Wave 3).
+    public func dismissFind() -> Bool {
+        guard finder.isVisible else { return false }
+        finder.close()
+        return true
+    }
+
     public func zoom(_ step: ZoomStep) {                   // View ▸ Zoom In / Zoom Out / Fit Width
         switch step {
         case .zoomIn: pdfView.zoomIn(nil)
@@ -109,11 +117,9 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
         navigator.scrollRequest &+= 1
     }
 
-    /// Closes the citation card, if one is open. With a lookup on screen the model's Esc closes the card and nothing else
-    /// (Appendix A.9, `dismissTransientUI`); with none it would clear other things, so it is not called then.
+    /// Closes the citation card, if one is open, and nothing else (`dismissCitationLookup`, Appendix A.9).
     func dismissCitationCard() {
-        guard model.citationLookup != .idle else { return }
-        model.dismissTransientUI()
+        model.dismissCitationLookup()
     }
 
     /// A rectangle of the display document in the PDF view's own coordinates (origin at the bottom left); nil when the
