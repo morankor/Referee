@@ -155,7 +155,7 @@ final class ModelTestGate: @unchecked Sendable {
 
 /// Reviews as a real engine plays them, built per call from what the call was given (step 5c): a run record of the
 /// call's own provider and model (`.started`, status `.running`), the comments `script` makes for that run, then
-/// `.finished` with the run completed. A call with
+/// `.finished` with the run completed and `reportedModel` set to what `reports` says for the call's context. A call with
 /// a gate in `gates` (by its position, 0 for the first review) waits after its comments until the test opens the gate:
 /// a review under way. Every other job, and the plan, goes to the scripted engine, which records them as usual.
 final class StagedReviewEngine: ReviewEngineProtocol, @unchecked Sendable {
@@ -163,13 +163,16 @@ final class StagedReviewEngine: ReviewEngineProtocol, @unchecked Sendable {
 
     let scripted: ScriptedReviewEngine
     private let script: Script
+    private let reports: @Sendable (EngineContext) -> String?
     private let gates: [Int: ModelTestGate]
     private let lock = NSLock()
     private var reviews: [(context: EngineContext, existing: [ReviewComment])] = []
 
-    init(scripted: ScriptedReviewEngine, gates: [Int: ModelTestGate] = [:], script: @escaping Script) {
+    init(scripted: ScriptedReviewEngine, gates: [Int: ModelTestGate] = [:], reports: @escaping @Sendable (EngineContext) -> String? = { _ in nil },
+         script: @escaping Script) {
         self.scripted = scripted
         self.gates = gates
+        self.reports = reports
         self.script = script
     }
 
@@ -190,6 +193,7 @@ final class StagedReviewEngine: ReviewEngineProtocol, @unchecked Sendable {
         finished.status = .completed
         finished.requestCount = 1
         finished.finishedAt = started.startedAt.addingTimeInterval(60)
+        finished.reportedModel = reports(context)
         let events: [ReviewEvent] = [.started(started)] + comments.map { .comment($0, replacesDraft: UUID()) }
         let gate = gates[call]
         return AsyncThrowingStream { continuation in
