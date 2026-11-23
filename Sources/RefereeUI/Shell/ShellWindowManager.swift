@@ -229,11 +229,6 @@ import AppCore
         helpWindow?.makeKeyAndOrderFront(nil)
     }
 
-    /// The review window controller of a window, if it is a review window.
-    func reviewController(for window: NSWindow?) -> ShellReviewWindowController? {
-        reviewControllers.first { $0.window === window }
-    }
-
     /// Keeps a window of no other owner alive until it closes.
     private func keepUntilClosed(_ window: NSWindow) {
         let key = ObjectIdentifier(window)

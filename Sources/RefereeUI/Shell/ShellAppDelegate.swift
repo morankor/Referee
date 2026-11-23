@@ -30,7 +30,7 @@ import AppCore
             let url = argument.hasPrefix("/") ? URL(fileURLWithPath: argument) : URL(fileURLWithPath: argument, relativeTo: directory)
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), !isDirectory.boolValue else { return nil }
-            return url.standardizedFileURL
+            return url.absoluteURL.standardizedFileURL
         }
     }
 

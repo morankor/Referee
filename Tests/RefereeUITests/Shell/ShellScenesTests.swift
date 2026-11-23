@@ -44,7 +44,7 @@ import TestSupport
                                                 "Fixtures/pdf/no_such.pdf", "Fixtures/pdf", Fixtures.url("pdf/s1_ruler.pdf").path],
                                            relativeTo: root)
         #expect(files.map(\.lastPathComponent) == ["ay_nolinks.pdf", "s1_ruler.pdf"])
-        #expect(files.allSatisfy { $0.path.hasPrefix("/") })
+        #expect(files.allSatisfy { $0.path.hasPrefix("/") && $0.baseURL == nil })
     }
 
     @Test func recentReviewsSayHowFarTheTriageIs() {
@@ -88,6 +88,10 @@ import TestSupport
         #expect(ShellExportFormatPicker.contentType(.markdown).tags[.filenameExtension]?.contains("md") == true)
         #expect(ShellExportFormatPicker.contentType(.docx).preferredFilenameExtension == "docx")
         #expect(ExportFormat.allCases.map(ShellExportFormatPicker.fileExtension) == ["md", "txt", "docx", "pdf"])
+        #expect(ShellExportFormatPicker.fileName("paper report", for: .markdown) == "paper report.md")
+        #expect(ShellExportFormatPicker.fileName("paper report.md", for: .docx) == "paper report.docx")
+        #expect(ShellExportFormatPicker.fileName("paper.v2 report", for: .pdf) == "paper.v2 report.pdf")
+        #expect(ShellExportFormatPicker.fileName("paper report.markdown", for: .plainText) == "paper report.txt")
         #expect(ShellExportFormatPicker.choices.map(\.0) == ExportFormat.allCases)
     }
 }

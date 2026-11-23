@@ -288,8 +288,16 @@ import AppCore
     private func apply() {
         guard let panel else { return }
         panel.allowedContentTypes = [Self.contentType(format)]
-        let name = (panel.nameFieldStringValue as NSString).deletingPathExtension
-        panel.nameFieldStringValue = name + "." + Self.fileExtension(format)
+        panel.nameFieldStringValue = Self.fileName(panel.nameFieldStringValue, for: format)
+    }
+
+    /// The name with the format's extension: an extension of one of the four formats is replaced, anything else kept
+    /// ("paper.v2 report" -> "paper.v2 report.md").
+    nonisolated static func fileName(_ name: String, for format: ExportFormat) -> String {
+        let known = Set(ExportFormat.allCases.map(fileExtension) + ["markdown"])
+        let current = (name as NSString).pathExtension.lowercased()
+        let base = known.contains(current) ? (name as NSString).deletingPathExtension : name
+        return base + "." + fileExtension(format)
     }
 
     nonisolated static func fileExtension(_ format: ExportFormat) -> String {
