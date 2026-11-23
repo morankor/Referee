@@ -22,7 +22,6 @@ struct SidebarChatTab: View {
                         .font(Theme.bodyFont)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(Theme.sidebarPadding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

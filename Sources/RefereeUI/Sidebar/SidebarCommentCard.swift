@@ -258,9 +258,13 @@ struct SidebarCommentCard: View {
                 model.selectedCommentID = comment.id
                 model.openThreadCommentID = state.isThreadOpen ? nil : comment.id
             } label: {
-                Text(state.isThreadOpen ? "Close" : "Discuss")
+                if state.isThreadOpen {
+                    Label("Discuss", systemImage: "chevron.up")      // open: the same button hides it again
+                } else {
+                    Text("Discuss")
+                }
             }
-            .help("Discuss this comment with the assistant (D)")
+            .help(state.isThreadOpen ? "Hide the discussion (Esc)" : "Discuss this comment with the assistant (D)")
         case .edit:
             Button {
                 model.selectedCommentID = comment.id

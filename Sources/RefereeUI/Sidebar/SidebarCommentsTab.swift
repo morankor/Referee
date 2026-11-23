@@ -125,7 +125,6 @@ struct SidebarCommentsTab: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(count == 1 ? "Delete the 1 AI comment that is still pending?" : "Delete the \(count) AI comments that are still pending?")
                 .font(Theme.bodyFont)
-                .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 6) {
                 Spacer(minLength: 0)
                 Button("Cancel") { confirmsClearing = false }

@@ -100,7 +100,6 @@ struct SidebarReportTab: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image(systemName: "exclamationmark.circle.fill")
                     Text(exportProblem)
-                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Button("Dismiss") { self.exportProblem = nil }
                         .controlSize(.small)
@@ -116,7 +115,6 @@ struct SidebarReportTab: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("You have edited this report. Regenerating replaces the text; your edited version stays under Versions.")
                 .font(Theme.bodyFont)
-                .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 6) {
                 Spacer(minLength: 0)
                 Button("Cancel") { confirmsRegenerate = false }
@@ -204,7 +202,6 @@ struct SidebarReportTab: View {
                     .font(Theme.bodyFont)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
                     .padding(Theme.sidebarPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -269,7 +266,6 @@ struct SidebarReportTab: View {
                         }
                         Text(finding.message)
                             .font(Theme.metadataFont)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
@@ -299,7 +295,6 @@ struct SidebarReportTab: View {
                 Label(SidebarReportFacts.mismatchMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(Theme.metadataFont)
                     .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .controlSize(.small)
