@@ -3,32 +3,40 @@ import RefereeCore
 import AppCore
 
 /// A comment the model is still writing (plan.md section 9.3, "draft (streaming)"): title and body grow as text
-/// arrives, the kind badge shows once the kind is known, there are no buttons, and the left bar pulses.
+/// arrives, the kind badge shows once the kind is known, there are no buttons, and the left bar pulses. Its header
+/// names the provider and model of the review that writes it, as a finished comment's does (step 5b).
 struct SidebarDraftCard: View {
     let draft: DraftComment
     let rubric: [RubricCategory]
+    var source: SidebarSource?
 
     @State private var isPulsing = false
 
     var body: some View {
         let state = SidebarDraftState.make(for: draft, rubric: rubric)
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 5) {
-                if let kind = state.kind {
-                    SidebarKindBadge(kind: kind)
+            SidebarCardHeader(hasFacts: source != nil) {
+                HStack(spacing: 5) {
+                    if let kind = state.kind {
+                        SidebarKindBadge(kind: kind)
+                    }
+                    if let category = state.categoryTitle {
+                        Text(category)
+                            .font(Theme.metadataFont)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                if let category = state.categoryTitle {
-                    Text(category)
-                        .font(Theme.metadataFont)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 8)
+            } location: {
                 if let page = state.pageLabel {
                     Text(page)
                         .font(Theme.metadataFont)
                         .foregroundStyle(.secondary)
                         .fixedSize()
+                }
+            } facts: {
+                if let source {
+                    SidebarSourceLabel(source: source)
                 }
             }
             if let title = state.title {

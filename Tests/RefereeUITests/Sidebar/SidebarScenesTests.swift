@@ -45,6 +45,32 @@ import TestSupport
         #expect(Set(comments.map(\.id)).count == comments.count)
     }
 
+    /// design-two-models (step 5b): two review runs by two providers, their comments interleaved, one of the second run
+    /// similar to one of the first, and one comment of the referee's own.
+    @Test func theTwoModelsSessionHasTwoReviewsByTwoProviders() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let session = try decoder.decode(ReviewSession.self, from: Data(contentsOf: Fixtures.url("sessions/design-sidebar-two-models.json")))
+        #expect(session.document.fileName == "ay_nolinks.pdf")
+        let runs = session.runs
+        #expect(runs.map(\.provider) == [ProviderRef(providerID: "claude-cli", model: "sonnet"), ProviderRef(providerID: "codex-cli", model: nil)])
+        #expect(runs.allSatisfy { $0.kind == .review })
+        func run(of comment: ReviewComment) -> ProviderID? {
+            guard case .ai(let runID) = comment.origin else { return nil }
+            return runs.first { $0.id == runID }?.provider.providerID
+        }
+        let comments = session.comments
+        #expect(comments.count == 7)
+        #expect(comments.filter { run(of: $0) == "claude-cli" }.count == 3)
+        #expect(comments.filter { run(of: $0) == "codex-cli" }.count == 3)
+        #expect(comments.filter { $0.origin == .user }.count == 1)
+        let similar = try #require(comments.first { $0.similarTo != nil })
+        let earlier = try #require(comments.first { $0.id == similar.similarTo })
+        #expect(run(of: similar) == "codex-cli" && run(of: earlier) == "claude-cli")
+        #expect(similar.kind == earlier.kind && similar.anchor.quote == earlier.anchor.quote)
+        #expect(Set(comments.map(\.id)).count == comments.count)
+    }
+
     @Test @MainActor func theSampleSessionHasTheCommentsTheScenesName() throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

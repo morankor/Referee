@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import RefereeCore
 import AppCore
@@ -32,5 +33,56 @@ import AppCore
     /// A comment id of a session fixture.
     static func id(_ text: String) -> UUID {
         UUID(uuidString: text) ?? UUID()
+    }
+
+    /// Switches on a provider of the snapshot registry that `SnapshotSupport.settings()` leaves off (`mock-slow`), with
+    /// its model, and makes it this document's provider; waits until the model has its plan (step 5a's notes).
+    static func choose(_ id: ProviderID, model name: String, in model: ReviewSessionModel) async {
+        var settings = model.settings
+        settings.providers[id] = ProviderSettings(enabled: true, model: name, inputMode: .auto)
+        model.reloadSettings(settings)
+        model.setActiveProvider(ProviderRef(providerID: id, model: name))
+        await wait { model.activeProvider?.id == id && model.sendPlan != nil }
+    }
+
+    // ---- what the window shows (D2, D8) ----
+
+    /// nil when the keyboard is in a multi-line editor of the comment holding `expectedText` (the editor's Comment
+    /// field, D2), else what holds it.
+    static func keyboardProblem(in window: NSWindow, expectedText: String) -> String? {
+        guard let responder = window.firstResponder else { return "nothing has the keyboard" }
+        guard let textView = responder as? NSTextView else { return "the keyboard is in \(type(of: responder)), not in the comment" }
+        if textView.isFieldEditor { return "the keyboard is in a one-line field, not in the comment" }
+        if textView.string != expectedText { return "the keyboard is in a text holding \"\(textView.string.prefix(40))\", not in the comment" }
+        return nil
+    }
+
+    /// The report editor's height, the scroll view of the text view whose accessibility label is "Report".
+    static func reportEditorHeight(in window: NSWindow) -> CGFloat? {
+        guard let root = window.contentView else { return nil }
+        var pending: [NSView] = [root]
+        while let view = pending.popLast() {
+            if let textView = view as? NSTextView, textView.accessibilityLabel() == "Report" {
+                return (textView.enclosingScrollView ?? textView).frame.height
+            }
+            pending.append(contentsOf: view.subviews)
+        }
+        return nil
+    }
+
+    /// The least height the report editor must have in a window of this height (D8): 470 points at 1,280 × 800 and 320
+    /// at 1,000 × 640; nil for another size.
+    static func reportEditorMinimum(windowHeight: CGFloat) -> CGFloat? {
+        if windowHeight >= 800 { return 470 }
+        if windowHeight >= 640 { return 320 }
+        return nil
+    }
+
+    /// nil when the report editor has the room D8 asks for in this window, else why not.
+    static func reportEditorProblem(in window: NSWindow) -> String? {
+        guard let height = reportEditorHeight(in: window) else { return "the report editor is not in the window" }
+        let windowHeight = window.contentView?.bounds.height ?? 0
+        guard let minimum = reportEditorMinimum(windowHeight: windowHeight), height < minimum else { return nil }
+        return "the report editor is \(Int(height)) points high in a window of \(Int(windowHeight)), expected at least \(Int(minimum))"
     }
 }

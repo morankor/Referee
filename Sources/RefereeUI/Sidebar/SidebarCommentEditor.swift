@@ -6,11 +6,17 @@ import AppCore
 /// editors, Save (⌘↩) and Cancel (Esc). The same editor writes a new own comment while `model.composing` is set; it
 /// then shows the passage it will be anchored to, starts as a minor comment in category "other", and saves with
 /// `addUserComment`, suggestion included (the parameter was added at Wave 3; docs/contract-notes/wave3.md).
+///
+/// Step 5 (D2): the editor opens with the cursor in the comment, so that E and N lead straight to typing; after Save or
+/// Cancel the window takes the keyboard back, so that the triage keys work at once.
 struct SidebarCommentEditor: View {
     enum Mode {
         case edit(ReviewComment)
         case compose
     }
+
+    /// The editor's three text fields.
+    enum EditorField: Hashable { case title, body, suggestion }
 
     let model: ReviewSessionModel
     let mode: Mode
@@ -20,6 +26,7 @@ struct SidebarCommentEditor: View {
     @State private var title: String
     @State private var text: String
     @State private var suggestion: String
+    @FocusState private var focusedField: EditorField?
 
     init(model: ReviewSessionModel, mode: Mode) {
         self.model = model
@@ -68,21 +75,24 @@ struct SidebarCommentEditor: View {
                 }
                 GridRow {
                     fieldLabel("Title")
-                    TextField("Title", text: $title, prompt: Text("Short title"), axis: .vertical)
+                    TextField("Title", text: $title, prompt: Text("Title (optional)"), axis: .vertical)
                         .lineLimit(1...3)
                         .textFieldStyle(.roundedBorder)
                         .labelsHidden()
+                        .focused($focusedField, equals: .title)
+                        .help("Left empty, the title is taken from the comment")
                 }
             }
             .controlSize(.small)
             fieldLabel("Comment")
-            SidebarTextArea(text: $text, height: 96)
+            SidebarTextArea(text: $text, height: 96, focus: $focusedField, field: .body)
             fieldLabel("Suggestion")
-            SidebarTextArea(text: $suggestion, height: 52)
+            SidebarTextArea(text: $suggestion, height: 52, focus: $focusedField, field: .suggestion)
             HStack(spacing: 6) {
                 Spacer(minLength: 0)
                 Button("Cancel", action: cancel)
                     .keyboardShortcut(.cancelAction)
+                    .help("Cancel (Esc)")
                 Button("Save", action: save)
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.borderedProminent)
@@ -91,6 +101,8 @@ struct SidebarCommentEditor: View {
             }
             .controlSize(.small)
         }
+        .onExitCommand(perform: cancel)
+        .onAppear { focusedField = .body }
     }
 
     /// The passage a new comment will be anchored to: the selection captured when composing began.
@@ -132,6 +144,7 @@ struct SidebarCommentEditor: View {
     private func save() {
         guard SidebarEditorRules.canSave(title: title, body: text) else { return }
         let finalTitle = SidebarEditorRules.title(title, body: text)
+        focusedField = nil
         switch mode {
         case .edit(let comment):
             model.editComment(comment.id, kind: kind, category: category, title: finalTitle, body: text, suggestion: suggestion)
@@ -139,23 +152,28 @@ struct SidebarCommentEditor: View {
             model.addUserComment(kind: kind, category: category, title: finalTitle, body: text, suggestion: suggestion,
                                  anchoredTo: model.composing?.selection)
         }
+        SidebarKeyboard.giveBackToTheList()
     }
 
     private func cancel() {
+        focusedField = nil
         switch mode {
         case .edit: model.editingCommentID = nil
         case .compose: model.cancelComposing()
         }
+        SidebarKeyboard.giveBackToTheList()
     }
 }
 
-/// A multi-line plain-text field in the look of a text field.
+/// A multi-line plain-text field in the look of a text field. With `focus`, it takes part in the editor's focus (D2).
 struct SidebarTextArea: View {
     @Binding var text: String
     let height: CGFloat
+    var focus: FocusState<SidebarCommentEditor.EditorField?>.Binding?
+    var field: SidebarCommentEditor.EditorField = .body
 
     var body: some View {
-        TextEditor(text: $text)
+        focusable(TextEditor(text: $text))
             .font(Theme.bodyFont)
             .scrollContentBackground(.hidden)
             .padding(.horizontal, 3)
@@ -163,6 +181,14 @@ struct SidebarTextArea: View {
             .frame(height: height)
             .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
             .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1))
+    }
+
+    @ViewBuilder private func focusable(_ editor: TextEditor) -> some View {
+        if let focus {
+            editor.focused(focus, equals: field)
+        } else {
+            editor
+        }
     }
 }
 

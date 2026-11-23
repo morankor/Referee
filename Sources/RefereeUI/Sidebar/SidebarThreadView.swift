@@ -3,8 +3,12 @@ import RefereeCore
 import AppCore
 
 /// The discussion under a card (plan.md section 9.3, "discussion open"; section 6.8): the messages, the reply while it
-/// streams, a reply that failed (red, with Retry), and the field to write the next message. While a reply streams Send
-/// is disabled and Stop shows. The field takes the focus when the thread opens (D, section 9.4).
+/// streams, the proposed revision, a reply that failed (red, with Retry), and the field to write the next message.
+/// While a reply streams Send is disabled and Stop shows. The field takes the focus when the thread opens (D, section
+/// 9.4); Esc in it gives the keyboard back to the list (D2).
+///
+/// Step 5 (D18): the proposed revision is the outcome of the discussion, so it comes where the discussion ends, right
+/// after the last message and above the reply field.
 struct SidebarThreadView: View {
     let model: ReviewSessionModel
     let comment: ReviewComment
@@ -14,6 +18,7 @@ struct SidebarThreadView: View {
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
+        let names = SidebarSourceNames(model: model)
         VStack(alignment: .leading, spacing: 8) {
             Divider()
             if comment.thread.isEmpty && !state.isReceivingReply {
@@ -23,10 +28,13 @@ struct SidebarThreadView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(comment.thread) { message in
-                SidebarMessageBubble(role: message.role, text: message.text)
+                SidebarMessageBubble(role: message.role, text: message.text, source: names.source(of: message))
             }
             if state.isReceivingReply {
                 SidebarMessageBubble(role: .assistant, text: model.streamingReplyText, isStreaming: true)
+            }
+            if let proposal = state.proposal {
+                SidebarProposalBox(model: model, comment: comment, proposal: proposal)
             }
             if let failure = state.replyFailureMessage {
                 SidebarReplyFailureLine(message: failure, canRetry: model.streamingTargetID == nil) { model.retryFailedReply() }
@@ -41,11 +49,12 @@ struct SidebarThreadView: View {
     }
 }
 
-/// "Proposed revision" under the thread (section 9.3): the new kind, title, body and suggestion, or "Proposes
-/// withdrawing this comment"; Accept or Discard. A proposal never changes the comment by itself (section 6.8).
+/// "Proposed revision" (section 9.3): what changes, then the new kind, title, body and suggestion, or "Proposes
+/// withdrawing this comment"; Accept Revision (or Accept Withdrawal) and Discard. A proposal never changes the comment
+/// by itself (section 6.8).
 struct SidebarProposalBox: View {
     let model: ReviewSessionModel
-    let commentID: UUID
+    let comment: ReviewComment
     let proposal: CommentRevision
 
     var body: some View {
@@ -53,6 +62,12 @@ struct SidebarProposalBox: View {
             Label("Proposed revision", systemImage: "square.and.pencil")
                 .font(Theme.metadataFont.weight(.semibold))
                 .foregroundStyle(Color.accentColor)
+            if let changes = SidebarProposalFacts.changes(from: comment, to: proposal) {
+                Text(changes)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if proposal.withdraw {
                 Text("Proposes withdrawing this comment")
                     .font(Theme.bodyFont)
@@ -76,11 +91,14 @@ struct SidebarProposalBox: View {
                 }
             }
             HStack(spacing: 6) {
-                Button("Accept") { model.acceptProposedRevision(commentID: commentID) }
-                    .buttonStyle(.borderedProminent)
-                    .help(proposal.withdraw ? "Withdraw the comment: it becomes rejected" : "Replace the comment with this version")
-                Button("Discard") { model.discardProposedRevision(commentID: commentID) }
+                Button(proposal.withdraw ? "Accept Withdrawal" : "Accept Revision") {
+                    model.acceptProposedRevision(commentID: comment.id)
+                }
+                .buttonStyle(.borderedProminent)
+                .help(proposal.withdraw ? "Withdraw the comment: it becomes rejected" : "Replace the comment with this version")
+                Button("Discard") { model.discardProposedRevision(commentID: comment.id) }
                     .buttonStyle(.bordered)
+                    .help("Keep the comment as it is")
             }
             .controlSize(.small)
         }

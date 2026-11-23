@@ -2,13 +2,21 @@ import SwiftUI
 import RefereeCore
 import AppCore
 
-/// One comment in the Comments tab (plan.md section 9.3): the card of the diagram, or its collapsed forms, with the
-/// editor, the discussion thread, a reply that failed and a proposed revision under it. What it shows is decided by
-/// `SidebarCardState`; this view only draws that and calls the model.
+/// One comment in the Comments tab (plan.md section 9.3): the card of the diagram, its compact form, or its collapsed
+/// forms, with the editor, the discussion thread, a proposed revision and a reply that failed under it. What it shows is
+/// decided by `SidebarCardState`; this view only draws that and calls the model.
+///
+/// Step 5 (docs/design-review.md): only the card being worked on is shown in full; the others are compact, their header
+/// and title (D1). With the thread open the proposed revision sits where the discussion ends, above the reply field
+/// (D18). Locations say what they mean (D17), and VoiceOver hears kind, status, place and title, with the four triage
+/// actions (D22).
 struct SidebarCommentCard: View {
     let model: ReviewSessionModel
     let comment: ReviewComment
     let inputs: SidebarCardInputs
+    /// Called when a click on this card in the list selects it, before the selection changes: the list then leaves its
+    /// scroll position alone, since the card is already where the referee looks (D7).
+    var onSelectFromList: (UUID) -> Void = { _ in }
 
     @State private var isExpanded = false           // a collapsed similar card the referee clicked open
     @State private var showsEverything = false      // "More": quote, body and suggestion in full
@@ -23,26 +31,33 @@ struct SidebarCommentCard: View {
             } else {
                 switch state.layout {
                 case .full: fullCard(state)
+                case .compact: compactCard(state)
                 case .collapsedRejected: rejectedLine(state)
                 case .collapsedSimilar: similarLines(state)
                 }
             }
             if state.isThreadOpen, !state.isEditing {
                 SidebarThreadView(model: model, comment: comment, state: state)
-            } else if let failure = state.replyFailureMessage {
-                SidebarReplyFailureLine(message: failure, canRetry: inputs.streamingTargetID == nil) { model.retryFailedReply() }
-            }
-            if let proposal = state.proposal, !state.isEditing {
-                SidebarProposalBox(model: model, commentID: comment.id, proposal: proposal)
+            } else {
+                if let proposal = state.proposal, !state.isEditing, state.layout == .full {
+                    SidebarProposalBox(model: model, comment: comment, proposal: proposal)
+                }
+                if let failure = state.replyFailureMessage {
+                    SidebarReplyFailureLine(message: failure, canRetry: inputs.streamingTargetID == nil) { model.retryFailedReply() }
+                }
             }
         }
         .sidebarCardChrome(bar: barColor(state.bar), isSelected: state.isSelected, isMuted: state.layout == .collapsedRejected)
         .onHover { isHovered = $0 }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(SidebarCardState.kindName(comment.kind)) comment: \(comment.title)")
+        .accessibilityLabel(SidebarCardState.accessibilityLabel(of: comment, location: state.location))
+        .accessibilityAction(named: "Approve") { model.setStatus(.approved, for: comment.id) }
+        .accessibilityAction(named: "Reject") { model.setStatus(.rejected, for: comment.id) }
+        .accessibilityAction(named: "Discuss") { openThread() }
+        .accessibilityAction(named: "Edit") { edit() }
     }
 
-    // ---- the three layouts ----
+    // ---- the four layouts ----
 
     private func fullCard(_ state: SidebarCardState) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -79,10 +94,25 @@ struct SidebarCommentCard: View {
             footer(state)
         }
         .contentShape(Rectangle())
-        .onTapGesture { select() }
+        .onTapGesture { selectFromList() }
     }
 
-    /// Rejected: one grey line, kind and title; Undo on hover or selection.
+    /// Compact (D1): the header, with the number of messages and a waiting revision, then the title on two lines at
+    /// most. No quote, body, suggestion or buttons; a click selects the comment, which then shows in full.
+    private func compactCard(_ state: SidebarCardState) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            header(state)
+            Text(comment.title)
+                .font(Theme.cardTitleFont)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .help(comment.title)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { selectFromList() }
+    }
+
+    /// Rejected: one grey line, kind, title and who wrote it; Undo on hover or selection.
     private func rejectedLine(_ state: SidebarCardState) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "xmark.circle")
@@ -95,6 +125,12 @@ struct SidebarCommentCard: View {
                 .lineLimit(1)
                 .help(comment.title)
             Spacer(minLength: 4)
+            if let source = state.source {
+                // Its own width, at most 170 points (then cut in the middle); the title gives way first.
+                SidebarSourceLabel(source: source)
+                    .frame(maxWidth: 170)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
             if state.actions.contains(.undo) {
                 Button("Undo") { model.setStatus(.pending, for: comment.id) }
                     .controlSize(.small)
@@ -103,18 +139,29 @@ struct SidebarCommentCard: View {
         }
         .frame(minHeight: 20)
         .contentShape(Rectangle())
-        .onTapGesture { select() }
+        .onTapGesture { selectFromList() }
     }
 
-    /// Similar and still pending: kind and title, then "Similar to: <title>", which selects the other comment.
+    /// Similar and still pending: kind, title and who wrote it, then "Similar to: <title> (<who wrote that one>)",
+    /// which selects the other comment: two models that raised the same point show as such (step 5b).
     private func similarLines(_ state: SidebarCardState) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                SidebarKindBadge(kind: comment.kind)
-                Text(comment.title)
-                    .font(Theme.bodyFont.weight(.semibold))
-                    .lineLimit(1)
-                    .help(comment.title)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    SidebarKindBadge(kind: comment.kind)
+                    similarTitle
+                    if let source = state.source {
+                        Spacer(minLength: 8)
+                        SidebarSourceLabel(source: source)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        SidebarKindBadge(kind: comment.kind)
+                        if let source = state.source { SidebarSourceLabel(source: source) }
+                    }
+                    similarTitle
+                }
             }
             if let otherID = state.similarToID, let otherTitle = state.similarToTitle {
                 Button {
@@ -127,36 +174,50 @@ struct SidebarCommentCard: View {
                         Text(otherTitle)
                             .underline()
                             .lineLimit(1)
+                        if let otherSource = state.similarToSource {
+                            Text("(\(otherSource.text))")
+                                .lineLimit(1)
+                                .layoutPriority(1)
+                        }
                     }
                     .font(Theme.metadataFont)
                     .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Show the comment on the same passage: \(otherTitle)")
+                .help("Show the comment on the same passage: \(otherTitle)"
+                      + (state.similarToSource.map { ", written by \($0.text)" } ?? ""))
             }
         }
         .contentShape(Rectangle())
         .onTapGesture {
             isExpanded = true
-            select()
+            selectFromList()
         }
     }
 
-    // ---- header and footer of the full card ----
+    private var similarTitle: some View {
+        Text(comment.title)
+            .font(Theme.bodyFont.weight(.semibold))
+            .lineLimit(1)
+            .help(comment.title)
+    }
 
-    /// kind badge · category · location; the location moves to a line of its own when the three do not fit.
+    // ---- header and footer ----
+
+    /// kind badge · category on the left, the location on the right; then who wrote the comment (step 5b) and, on a
+    /// compact card, the number of messages and a waiting revision, on the first line when everything fits.
     private func header(_ state: SidebarCardState) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) {
-                headerLeading(state)
-                Spacer(minLength: 8)
-                location(state)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                headerLeading(state)
-                location(state)
-            }
+        SidebarCardHeader(hasFacts: hasFacts(state)) {
+            headerLeading(state)
+        } location: {
+            location(state)
+        } facts: {
+            headerFacts(state)
         }
+    }
+
+    private func hasFacts(_ state: SidebarCardState) -> Bool {
+        state.source != nil || (state.layout == .compact && (state.threadCount > 0 || state.proposal != nil))
     }
 
     private func headerLeading(_ state: SidebarCardState) -> some View {
@@ -168,7 +229,7 @@ struct SidebarCommentCard: View {
             }
             SidebarKindBadge(kind: comment.kind)
             if state.showsYouBadge {
-                SidebarTag(text: "You", color: Theme.ownColor)
+                CommonTag("You", color: Theme.ownColor)
             }
             if let category = state.categoryTitle {
                 Text(category)
@@ -177,25 +238,47 @@ struct SidebarCommentCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if state.showsVerifyTag {
-                SidebarTag(text: "verify", color: .orange)
+                CommonTag("verify", color: .orange)
                     .help("The model cannot look references up: check any paper it names.")
+            }
+        }
+    }
+
+    /// Who wrote it; on a compact card also the number of messages and a waiting revision (D1).
+    private func headerFacts(_ state: SidebarCardState) -> some View {
+        HStack(spacing: 6) {
+            if let source = state.source {
+                SidebarSourceLabel(source: source)
+            }
+            if state.layout == .compact && state.threadCount > 0 {
+                Label("\(state.threadCount)", systemImage: "bubble.left.and.bubble.right")
+                    .font(Theme.metadataFont)
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .help(state.threadCount == 1 ? "1 message in the discussion" : "\(state.threadCount) messages in the discussion")
+                    .accessibilityLabel(state.threadCount == 1 ? "1 message" : "\(state.threadCount) messages")
+            }
+            if state.layout == .compact && state.proposal != nil {
+                CommonTag("Revision proposed", color: .accentColor)
+                    .help("The assistant proposed a revision: select the comment to see it")
             }
         }
     }
 
     @ViewBuilder private func location(_ state: SidebarCardState) -> some View {
         switch state.location {
-        case .exact(let label):
-            if !label.isEmpty {
-                revealButton { Text(label) }
-                    .help("Show the passage in the PDF")
+        case .exact, .fuzzy, .pageOnly:
+            if let text = SidebarCardState.locationText(state.location) {
+                Button(action: selectFromList) {
+                    Text(text)
+                        .font(Theme.metadataFont)
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                }
+                .buttonStyle(.plain)
+                .help(SidebarCardState.locationHelp(state.location) ?? "")
+                .accessibilityLabel(SidebarCardState.spokenLocation(state.location) ?? text)
             }
-        case .fuzzy(let label):
-            revealButton { Text("≈ " + label) }
-                .help("Approximate match")
-        case .pageOnly(let label):
-            revealButton { Text(label).underline(true, pattern: .dot) }
-                .help("Passage not located on the page")
         case .notFound:
             Label("Passage not found", systemImage: "exclamationmark.triangle.fill")
                 .font(Theme.metadataFont)
@@ -204,16 +287,6 @@ struct SidebarCommentCard: View {
         case .noPassage:
             EmptyView()
         }
-    }
-
-    private func revealButton<Content: View>(@ViewBuilder _ label: () -> Content) -> some View {
-        Button(action: select) {
-            label()
-                .font(Theme.metadataFont)
-                .foregroundStyle(.secondary)
-                .fixedSize()
-        }
-        .buttonStyle(.plain)
     }
 
     /// The buttons of the state, then "Attach to selection" for an unanchored comment; the ⋯ menu at the end.
@@ -255,8 +328,11 @@ struct SidebarCommentCard: View {
                 .help("Back to pending (U)")
         case .discuss:
             Button {
-                model.selectedCommentID = comment.id
-                model.openThreadCommentID = state.isThreadOpen ? nil : comment.id
+                if state.isThreadOpen {
+                    model.openThreadCommentID = nil
+                } else {
+                    openThread()
+                }
             } label: {
                 if state.isThreadOpen {
                     Label("Discuss", systemImage: "chevron.up")      // open: the same button hides it again
@@ -266,17 +342,15 @@ struct SidebarCommentCard: View {
             }
             .help(state.isThreadOpen ? "Hide the discussion (Esc)" : "Discuss this comment with the assistant (D)")
         case .edit:
-            Button {
-                model.selectedCommentID = comment.id
-                model.editingCommentID = comment.id
-            } label: {
+            Button(action: edit) {
                 Text("Edit")
             }
             .help("Edit (E)")
         }
     }
 
-    /// ⋯: change kind, include in or exclude from the report, attach to selection, delete (section 9.3).
+    /// ⋯: change kind, earlier versions, include in or exclude from the report, attach to selection, delete (section
+    /// 9.3; "Earlier Versions" is D31).
     private func moreMenu(_ state: SidebarCardState) -> some View {
         Menu {
             Menu("Change Kind") {
@@ -285,6 +359,7 @@ struct SidebarCommentCard: View {
                                                                          set: { _ in model.setKind(kind, for: comment.id) }))
                 }
             }
+            earlierVersionsMenu
             Button(comment.includeInReport ? "Exclude from Report" : "Include in Report") {
                 model.setIncludeInReport(!comment.includeInReport, for: comment.id)
             }
@@ -303,12 +378,41 @@ struct SidebarCommentCard: View {
         .help("More actions")
     }
 
+    /// The versions an edit or an accepted revision replaced, newest first. Choosing one makes it the comment again;
+    /// the model keeps the version it replaces, so that the step can be undone the same way (D31).
+    private var earlierVersionsMenu: some View {
+        let versions = comment.previousVersions
+        return Menu("Earlier Versions") {
+            ForEach(Array(versions.indices.reversed()), id: \.self) { index in
+                let version = versions[index]
+                Button(SidebarCardState.versionTitle(version.title)) {
+                    model.editComment(comment.id, kind: version.kind, category: comment.category, title: version.title,
+                                      body: version.body, suggestion: version.suggestion)
+                }
+                .help(version.title)
+            }
+        }
+        .disabled(versions.isEmpty)
+    }
+
     // ---- actions ----
 
-    /// Selects the comment and shows its passage in the PDF again (section 9.3, "selected").
-    private func select() {
+    /// A click on the card: selects the comment and shows its passage in the PDF again (section 9.3, "selected"). The
+    /// list is told first, so that it does not scroll a card the referee just clicked (D7).
+    private func selectFromList() {
+        if model.selectedCommentID != comment.id { onSelectFromList(comment.id) }
         model.selectedCommentID = comment.id
         model.revealSelectedCommentInPDF()
+    }
+
+    private func openThread() {
+        model.selectedCommentID = comment.id
+        model.openThreadCommentID = comment.id
+    }
+
+    private func edit() {
+        model.selectedCommentID = comment.id
+        model.editingCommentID = comment.id
     }
 
     private func attachToSelection() {
