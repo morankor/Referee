@@ -93,6 +93,12 @@ enum ReaderCitationText {
         return entry.parsed.url.flatMap(webURL)
     }
 
+    /// The open-access PDF of a lookup, when it names one: Open PDF and the "Open access" tag show only then.
+    static func openAccessPDF(_ reference: ResolvedReference?) -> String? {
+        guard let address = reference?.openAccessPDFURL?.trimmingCharacters(in: .whitespacesAndNewlines), !address.isEmpty else { return nil }
+        return address
+    }
+
     /// The DOI "Copy DOI" puts on the pasteboard: the record's, else the entry's.
     static func doi(reference: ResolvedReference?, entry: BibEntry) -> String? {
         for candidate in [reference?.doi, entry.parsed.doi] {
@@ -173,7 +179,7 @@ struct ReaderCardActions: Equatable {
     /// The buttons for `entry` and its lookup (nil while the lookup has not returned).
     static func make(reference: ResolvedReference?, entry: BibEntry) -> ReaderCardActions {
         var shown: [Action] = []
-        if let pdf = reference?.openAccessPDFURL, !pdf.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { shown.append(.openPDF) }
+        if ReaderCitationText.openAccessPDF(reference) != nil { shown.append(.openPDF) }
         if ReaderCitationText.browserURL(reference: reference, entry: entry) != nil { shown.append(.openInBrowser) }
         if ReaderCitationText.doi(reference: reference, entry: entry) != nil { shown.append(.copyDOI) }
         shown += [.searchScholar, .showInReferences]

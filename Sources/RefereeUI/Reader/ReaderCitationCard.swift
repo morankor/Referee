@@ -163,9 +163,10 @@ private struct ReaderCitationEntry: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 let yearNote = ReaderCitationText.yearNote(listYear: entry.parsed.year, recordYear: reference.year)
-                if reference.openAccessPDFURL != nil || yearNote != nil {
+                let isOpenAccess = ReaderCitationText.openAccessPDF(reference) != nil
+                if isOpenAccess || yearNote != nil {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        if reference.openAccessPDFURL != nil {
+                        if isOpenAccess {
                             CommonTag("Open access", color: .green)
                         }
                         if let yearNote {

@@ -9,8 +9,10 @@ import AppCore
 // - design-citation-states (D15): the citation card when a lookup failed, when nothing was found, and for a citation
 //   that matches no entry of the reference list. The snapshot graph's resolver resolves every entry, so the model
 //   cannot reach the first two states here, and the overlay shows one card at a time; the scene draws the Reader's own
-//   card view (`ReaderCitationCard`) for each state, over the PDF column, with the content the model would hand over,
-//   for real entries of `ay_links.pdf`. Remove this workaround once the snapshot graph can fail a lookup.
+//   card view (`ReaderCitationCard`) for each state, over the PDF column. Each card's content is made as the overlay
+//   makes it, by `ReaderCardContent.make` from a `CitationLookup` and the paper's citation index: the lookups the
+//   model would hold for real entries of `ay_links.pdf`, and a numbered mention that matches no entry, added to a copy
+//   of the index. Remove this workaround once the snapshot graph can fail a lookup.
 // - design-find-no-matches: the find bar with a query that is not in the paper.
 // - design-selection-asked (D14): a passage selected in the PDF, then a question about it: the conversation is in the
 //   Chat tab and the selection bar has stepped aside, while the PDF still marks the passage.
@@ -44,12 +46,19 @@ import AppCore
         SnapshotScene(name: "design-citation-states", kind: .review, fixturePDF: "ay_links.pdf", prepare: { context in
             guard let model = context.model, let reader = context.reader else { return }
             await ReaderSceneSupport.wait { (model.citations?.entries.count ?? 0) >= 2 }
-            guard let (failing, missing) = chosenEntries(model.citations?.entries ?? []) else { return }
+            guard let (failing, missing) = chosenEntries(model.citations?.entries ?? []),
+                  let failed = card(for: failing, status: .failed, citations: model.citations),
+                  let notFound = card(for: missing, status: .notFound, citations: model.citations),
+                  let unmatched = unmatchedMention(in: model.citations) else { return }
+            // On a blank of the page's own white (in both appearances, as a PDF page is), so that no line of the page
+            // shows between the cards: they look as the overlay looks over an empty part of a page.
             let cards = VStack(alignment: .leading, spacing: 14) {
-                ReaderCitationCard(controller: reader, content: card(for: failing, status: .failed))
-                ReaderCitationCard(controller: reader, content: card(for: missing, status: .notFound))
-                ReaderCitationCard(controller: reader, content: unmatchedMention)
+                ReaderCitationCard(controller: reader, content: failed)
+                ReaderCitationCard(controller: reader, content: notFound)
+                ReaderCitationCard(controller: reader, content: unmatched)
             }
+            .padding(14)
+            .background(Color.white)
             .environment(\.uiActions, UIActions())
             let host = NSHostingView(rootView: cards)
             host.identifier = cardStackIdentifier
@@ -78,8 +87,20 @@ import AppCore
             // offers the search alone.
             let searchOnly = ReaderCardActions(shown: [.searchScholar, .showInReferences], prominent: .searchScholar)
             for (entry, status) in [(failing, ResolutionStatus.failed), (missing, .notFound)] {
-                let actions = ReaderCardActions.make(reference: reference(for: entry, status: status), entry: entry)
+                guard let content = card(for: entry, status: status, citations: model.citations),
+                      let shownEntry = content.entries.first, let lookup = content.references[shownEntry.id] else {
+                    failures.append("the \(status) card has no content")
+                    continue
+                }
+                if lookup.status != status { failures.append("the \(status) card shows a lookup that is \(lookup.status)") }
+                let actions = ReaderCardActions.make(reference: lookup, entry: shownEntry)
                 if actions != searchOnly { failures.append("the \(status) card offers \(actions.shown), \(actions.prominent) prominent") }
+            }
+            if let unmatched = unmatchedMention(in: model.citations) {
+                if !unmatched.entries.isEmpty { failures.append("the unmatched mention has \(unmatched.entries.count) entries") }
+                if unmatched.heading != "[14]" { failures.append("the unmatched mention is headed \"\(unmatched.heading)\", expected \"[14]\"") }
+            } else {
+                failures.append("the unmatched mention has no card")
             }
             if ReaderCardActions.noEntry.shown != [.searchScholar] { failures.append("the card without an entry offers more than the search") }
             return failures
@@ -101,15 +122,20 @@ import AppCore
                           confidence: 0, resolvedAt: lookupDate)
     }
 
-    /// What the card shows for `entry` after a lookup with `status`, as the model would hand it over.
-    static func card(for entry: BibEntry, status: ResolutionStatus) -> ReaderCardContent {
-        ReaderCardContent(target: .entry(entry.id), heading: ReaderCitationText.entryHeading(entry), mentionText: nil,
-                          entries: [entry], references: [entry.id: reference(for: entry, status: status)], isResolving: false)
+    /// What the card shows for `entry` after a lookup with `status`: the content the overlay makes when the model holds
+    /// that lookup for the entry chosen in the References list.
+    static func card(for entry: BibEntry, status: ResolutionStatus, citations: CitationIndex?) -> ReaderCardContent? {
+        ReaderCardContent.make(.resolved(target: .entry(entry.id), entries: [entry], references: [reference(for: entry, status: status)]),
+                               citations: citations)
     }
 
-    /// A numbered citation that no entry of the reference list matches: its text and Search Google Scholar only.
-    static var unmatchedMention: ReaderCardContent {
-        ReaderCardContent(target: .mention(-1), heading: "[14]", mentionText: "[14]", entries: [], references: [:], isResolving: false)
+    /// A numbered citation, "[14", that no entry of the reference list matches, in a copy of the paper's index: the card
+    /// the overlay makes for it shows its text and Search Google Scholar only.
+    static func unmatchedMention(in citations: CitationIndex?) -> ReaderCardContent? {
+        guard var index = citations else { return nil }
+        let id = (index.mentions.map(\.id).max() ?? 0) + 1
+        index.mentions.append(CitationMention(id: id, pageIndex: 0, text: "[14", source: .textPattern))
+        return ReaderCardContent.make(.resolved(target: .mention(id), entries: [], references: []), citations: index)
     }
 
     // ---- design-find-no-matches ----
