@@ -98,7 +98,7 @@ import AppKit
     private static func reviewMenu() -> NSMenu {
         let menu = NSMenu(title: "Review")
         menu.addItem(item("Run Review", #selector(ShellReviewWindowController.shellRunReview(_:)), "r"))
-        menu.addItem(item("Cancel", #selector(ShellReviewWindowController.shellCancel(_:)), "."))
+        menu.addItem(item("Stop", #selector(ShellReviewWindowController.shellCancel(_:)), "."))       // design review D9
         menu.addItem(item("Generate Report", #selector(ShellReviewWindowController.shellGenerateReport(_:)), "r", modifiers: [.command, .shift]))
         menu.addItem(.separator())
         menu.addItem(item("Approve", #selector(ShellReviewWindowController.shellApprove(_:)), "a", modifiers: []))
@@ -108,6 +108,7 @@ import AppKit
         menu.addItem(.separator())
         menu.addItem(item("Next Comment", #selector(ShellReviewWindowController.shellNextComment(_:)), "j", modifiers: []))
         menu.addItem(item("Previous Comment", #selector(ShellReviewWindowController.shellPreviousComment(_:)), "k", modifiers: []))
+        menu.addItem(item("Next Pending Comment", #selector(ShellReviewWindowController.shellNextPendingComment(_:)), "p", modifiers: []))   // D25
         menu.addItem(item("New Comment", #selector(ShellReviewWindowController.shellNewComment(_:)), "n", modifiers: []))
         return menu
     }

@@ -43,6 +43,7 @@ public struct ReviewWindowView: View {
                 if windowState.destinationMenuOpen {
                     ShellDestinationMenu(model: model, windowState: windowState, services: services)
                         .padding(.top, 6)
+                        .padding(.bottom, 12)                  // a menu taller than the window scrolls, and its end stays in view
                         .transition(.opacity)
                 }
             }
@@ -73,6 +74,11 @@ public struct ReviewWindowView: View {
         .onChange(of: model.consentRequest != nil) { _, asking in
             if asking { windowState.destinationMenuOpen = false }
         }
+        // D19: a narrow window gives the PDF the navigator's room, and a wide one gives it back.
+        .onGeometryChange(for: CGFloat.self) { proxy in proxy.size.width } action: { width in
+            windowState.adaptNavigator(toWidth: width)
+        }
+        .background { ShellSidebarFollower(model: model, windowState: windowState) }
     }
 
     /// A file URL of a PDF: by its type when the file says, else by its extension.
@@ -83,9 +89,65 @@ public struct ReviewWindowView: View {
     }
 }
 
-/// The toolbar of section 9.2, left to right: navigator toggle; the destination indicator (principal); Review (or
-/// Cancel with a spinner and the phase while the review lane runs); Report; sidebar toggle. Buttons that must show
-/// their word use `.titleAndIcon`: on macOS 26 a toolbar button otherwise shows its icon alone.
+/// What the model has open in the sidebar (the inspector), as far as the window needs to know: whether a comment is
+/// being written, which comment is in the editor or has its thread open, how many conversations the session holds,
+/// and the tab.
+struct ShellSidebarDemand: Equatable {
+    var sessionID: UUID?
+    var composing: Bool
+    var editingCommentID: UUID?
+    var openThreadCommentID: UUID?
+    var conversations: Int
+    var tab: SidebarTab
+
+    @MainActor init(_ model: ReviewSessionModel) {
+        self.init(sessionID: model.session?.id, composing: model.composing != nil, editingCommentID: model.editingCommentID,
+                  openThreadCommentID: model.openThreadCommentID, conversations: model.session?.conversations.count ?? 0,
+                  tab: model.sidebarTab)
+    }
+
+    init(sessionID: UUID?, composing: Bool, editingCommentID: UUID?, openThreadCommentID: UUID?, conversations: Int, tab: SidebarTab) {
+        self.sessionID = sessionID
+        self.composing = composing
+        self.editingCommentID = editingCommentID
+        self.openThreadCommentID = openThreadCommentID
+        self.conversations = conversations
+        self.tab = tab
+    }
+
+    /// Whether going from `old` to `new` opened something that lives in the sidebar: a comment of one's own being
+    /// written, an editor or a thread opening (or moving to another comment), a conversation added to the same session,
+    /// or another tab. Closing things never counts: the sidebar is never hidden by itself.
+    static func opensSomething(from old: ShellSidebarDemand, to new: ShellSidebarDemand) -> Bool {
+        (new.composing && !old.composing)
+            || (new.editingCommentID != nil && new.editingCommentID != old.editingCommentID)
+            || (new.openThreadCommentID != nil && new.openThreadCommentID != old.openThreadCommentID)
+            || (new.sessionID != nil && new.sessionID == old.sessionID && new.conversations > old.conversations)
+            || new.tab != old.tab
+    }
+}
+
+/// Shows a hidden sidebar when the model opens something in it, so that the selection bar's Comment and Ask AI, or
+/// a tab chosen from the menu, never act out of sight (step 5b, from the Reader's work). A view of no size of its own,
+/// so that only it, not the whole window, is drawn again when the session changes.
+struct ShellSidebarFollower: View {
+    let model: ReviewSessionModel
+    let windowState: ShellReviewWindowState
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+            .onChange(of: ShellSidebarDemand(model)) { old, new in
+                guard !windowState.showSidebar, ShellSidebarDemand.opensSomething(from: old, to: new) else { return }
+                withAnimation { windowState.showSidebar = true }
+            }
+    }
+}
+
+/// The toolbar of section 9.2, left to right: navigator toggle; the destination indicator (principal); Review (or the
+/// progress and Stop while the review lane runs); Report; sidebar toggle. Buttons that must show their word use
+/// `.titleAndIcon`: on macOS 26 a toolbar button otherwise shows its icon alone.
 struct ShellReviewToolbar: ToolbarContent {
     let model: ReviewSessionModel
     let windowState: ShellReviewWindowState
@@ -104,7 +166,7 @@ struct ShellReviewToolbar: ToolbarContent {
             ShellDestinationIndicator(model: model, windowState: windowState, services: services)
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            ShellReviewButton(model: model)
+            ShellReviewButton(model: model, windowState: windowState)
             Button {
                 model.sidebarTab = .report
                 windowState.showSidebar = true
@@ -123,37 +185,100 @@ struct ShellReviewToolbar: ToolbarContent {
     }
 }
 
-/// "Review", or "Cancel" with a spinner and the phase text while a job of the review lane runs.
+/// "Review" ("Review Again" once the session holds AI comments, D20), or, while a job of the review lane runs, a gauge
+/// or a spinner, the phase with the time since the job started, and "Stop" (D9).
 struct ShellReviewButton: View {
     let model: ReviewSessionModel
+    let windowState: ShellReviewWindowState
 
     var body: some View {
-        if case .running(let kind, let phase, _) = model.runState {
+        if case .running(let kind, let phase, let startedAt) = model.runState {
             HStack(spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
-                Text(ShellReviewButton.phaseText(kind: kind, phase: phase))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if let gauge = ShellReviewButton.gauge(kind: kind, phase: phase) {
+                    ProgressView(value: gauge.value, total: gauge.total)
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                } else {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                TimelineView(.periodic(from: startedAt, by: 1)) { context in
+                    Text(ShellReviewButton.progressText(kind: kind, phase: phase, elapsed: context.date.timeIntervalSince(startedAt)))
+                        .font(.callout)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Button {
                     model.cancelRun()
                 } label: {
-                    Label("Cancel", systemImage: "stop.fill")
+                    Label("Stop", systemImage: "stop.fill")
                         .labelStyle(.titleAndIcon)
                 }
                 .help("Stop the running job (⌘.)")
             }
+        } else if ShellReviewButton.isProminent(model) {
+            reviewButton
+                .buttonStyle(.borderedProminent)              // D30: the first thing to do with a new paper
         } else {
-            Button {
-                model.startReview()
-            } label: {
-                Label("Review", systemImage: "play.fill")
-                    .labelStyle(.titleAndIcon)
-            }
-            .disabled(!model.canStartReview)
-            .help(model.canStartReview ? "Run the review (⌘R)" : ShellReviewButton.disabledReason(model))
+            reviewButton
         }
+    }
+
+    private var reviewButton: some View {
+        Button {
+            if let request = windowState.requestReview { request() } else { model.startReview() }
+        } label: {
+            Label(ShellReviewButton.title(model), systemImage: "play.fill")
+                .labelStyle(.titleAndIcon)
+        }
+        .disabled(!model.canStartReview)
+        .help(model.canStartReview ? "Run the review (⌘R)" : ShellReviewButton.disabledReason(model))
+    }
+
+    /// "Review", or "Review Again" when the session holds comments of an earlier review (D20).
+    @MainActor static func title(_ model: ReviewSessionModel) -> String {
+        hasAIComments(model) ? "Review Again" : "Review"
+    }
+
+    @MainActor static func hasAIComments(_ model: ReviewSessionModel) -> Bool {
+        model.session?.comments.contains { if case .ai = $0.origin { return true } else { return false } } ?? false
+    }
+
+    /// D30: idle, with a session that has no comment yet.
+    @MainActor static func isProminent(_ model: ReviewSessionModel) -> Bool {
+        model.runState == .idle && model.session?.comments.isEmpty == true
+    }
+
+    /// D20: what the question before a second review says, or nil when none is asked: the session holds no AI comment,
+    /// the provider is on this Mac (a local review costs nothing), or there is no plan to give the figures.
+    @MainActor static func reviewAgainQuestion(_ model: ReviewSessionModel) -> String? {
+        guard hasAIComments(model), let provider = model.activeProvider, !provider.isLocal, let plan = model.sendPlan else { return nil }
+        return ShellPlanText.reviewAgain(plan: plan, descriptor: provider)
+    }
+
+    /// The gauge of a review read in parts (D9): the parts done of the parts and the whole-paper pass that follows
+    /// them. nil (a spinner) for any other phase, and for the report and its voice revision.
+    static func gauge(kind: RunKind, phase: ReviewPhase?) -> (value: Double, total: Double)? {
+        guard kind == .review, case .reading(let part, let total)? = phase, total > 1 else { return nil }
+        return (Double(max(0, part - 1)), Double(total + 1))
+    }
+
+    /// "Reading part 2 of 5 · 3:12": the phase without its "…", and the time since the job started (D9).
+    static func progressText(kind: RunKind, phase: ReviewPhase?, elapsed: TimeInterval) -> String {
+        var phrase = phaseText(kind: kind, phase: phase)
+        if phrase.hasSuffix("…") { phrase.removeLast() }
+        return "\(phrase) · \(elapsedText(elapsed))"
+    }
+
+    /// "0:07", "3:12", "59:59" under an hour; "1:00:00" from an hour on.
+    static func elapsedText(_ elapsed: TimeInterval) -> String {
+        let seconds = max(0, Int(elapsed.rounded(.down)))
+        let hours = seconds / 3_600
+        let minutes = (seconds % 3_600) / 60
+        let rest = seconds % 60
+        func two(_ value: Int) -> String { value < 10 ? "0\(value)" : "\(value)" }
+        return hours > 0 ? "\(hours):\(two(minutes)):\(two(rest))" : "\(minutes):\(two(rest))"
     }
 
     /// "Reading part 2 of 5…" and the like.

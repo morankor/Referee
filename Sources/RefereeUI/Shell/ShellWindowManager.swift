@@ -59,6 +59,10 @@ import AppCore
     var windowServices: ShellWindowServices {
         ShellWindowServices(settings: settingsModel,
                             openSettings: { [weak self] tab in self?.showSettings(tab: tab) },
+                            openProviderSettings: { [weak self] id in
+                                self?.settingsNavigation.provider = id
+                                self?.showSettings(tab: .providers)
+                            },
                             showOpenPanel: { [weak self] in self?.showOpenPanel() },
                             openFiles: { [weak self] urls in for url in urls { self?.open(url) } },
                             uiActions: uiActions)
@@ -174,38 +178,54 @@ import AppCore
         window.makeKeyAndOrderFront(nil)
     }
 
-    /// The one settings window (section 9.6), on `tab` when one is given.
+    /// The one settings window (section 9.6), on `tab` when one is given. Its title is the tab's, as in a preferences
+    /// window (design review D28).
     func showSettings(tab: ShellSettingsTab? = nil) {
         if let tab { settingsNavigation.tab = tab }
         if settingsWindow == nil {
             let view = SettingsRootView(model: settingsModel, navigation: settingsNavigation, services: settingsServices)
             let window = NSWindow(contentViewController: NSHostingController(rootView: view.environment(\.uiActions, uiActions)))
             window.styleMask = [.titled, .closable, .miniaturizable]
-            window.title = "Settings"
+            window.title = settingsNavigation.tab.title
             window.isReleasedWhenClosed = false
             window.isRestorable = false
             window.setContentSize(SettingsRootView.size)
             window.center()
             window.setFrameAutosaveName("Referee.Settings")
             settingsWindow = window
+            followSettingsTab()
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }
 
-    /// The welcome window (section 9.1), with the recent reviews as they are now.
+    /// D28: the settings window's title follows its tab ("Providers", "Prompts", …). `withObservationTracking` reports
+    /// one change, before it is made; the title is set after it, and the tracking starts again.
+    private func followSettingsTab() {
+        withObservationTracking {
+            settingsWindow?.title = settingsNavigation.tab.title
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.followSettingsTab() }
+        }
+    }
+
+    /// The welcome window (section 9.1), with the recent reviews as they are now: the files that are gone are found
+    /// off the main actor (D26).
     func showWelcome() {
         welcomeGeneration += 1
         let generation = welcomeGeneration
         Task { @MainActor in
             let recent = Array(await dependencies.sessions.listSessions().prefix(20))
+            let missing = await ShellWindowManager.missingFiles(of: recent)
             guard generation == welcomeGeneration else { return }       // a document was opened meanwhile
             let view = WelcomeView(recent: recent, open: { [weak self] url in
                 if let url { self?.open(url) } else { self?.showOpenPanel() }
             }, providerLine: { [weak self] in
                 guard let self else { return .unknown }
                 return ShellDestination.welcomeLine(settings: self.settingsModel.settings, providers: self.settingsModel.providers)
-            }, openSettings: { [weak self] in self?.showSettings(tab: .providers) })
+            }, openSettings: { [weak self] in self?.showSettings(tab: .providers) }, missing: missing,
+               showInFinder: { url in NSWorkspace.shared.activateFileViewerSelecting([url]) },
+               deleteReviewData: { [weak self] summary in self?.confirmDeleteReviewData(of: summary) })
             if let window = welcomeWindow, let hosting = window.contentViewController as? NSHostingController<WelcomeView> {
                 hosting.rootView = view
             } else {
@@ -220,6 +240,38 @@ import AppCore
             welcomeWindow?.makeKeyAndOrderFront(nil)
             NSApp.activate()
         }
+    }
+
+    /// The recent reviews whose file is not at its last known place, or whose place is not known (their ids).
+    @concurrent nonisolated static func missingFiles(of summaries: [SessionSummary]) async -> Set<String> {
+        Set(summaries.filter { summary in
+            guard let path = summary.lastKnownPath else { return true }
+            return !FileManager.default.fileExists(atPath: path)
+        }.map(\.id))
+    }
+
+    /// The welcome window's "Delete Review Data…" (D26): the File menu's confirmation, as a sheet on the welcome
+    /// window; then that paper's window, if one is open, closes and finishes saving, and only then its review folder
+    /// and its lookups go. The welcome window then lists what is left.
+    func confirmDeleteReviewData(of summary: SessionSummary) {
+        guard let window = welcomeWindow else { return }
+        let alert = ShellDeleteReviewData.alert(fileName: summary.fileName)
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn else { return }
+            Task { @MainActor in await self?.deleteReviewData(of: summary.id) }
+        }
+    }
+
+    private func deleteReviewData(of sha256: String) async {
+        for controller in reviewControllers where controller.documentHash == sha256 { controller.window?.close() }
+        for entry in closing.values where entry.controller.documentHash == sha256 { await entry.task.value }
+        do {
+            try await dependencies.sessions.deleteSession(sha256: sha256)
+        } catch {
+            Log.event("shell.welcome.delete.failed")
+        }
+        await dependencies.resolver.forget(documentSHA256: sha256)
+        if welcomeWindow?.isVisible == true { showWelcome() }
     }
 
     /// Help ▸ Referee Help: the keys and where things are, and the README when it can be found.

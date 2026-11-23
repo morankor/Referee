@@ -11,6 +11,8 @@ import AppCore
     var settings: SettingsModel?
     /// Opens the settings window, on the given tab.
     var openSettings: (ShellSettingsTab?) -> Void = { _ in }
+    /// Opens Settings ▸ Providers on one provider (the destination menu's "Choose in Settings…" and "More in Settings…").
+    var openProviderSettings: (ProviderID) -> Void = { _ in }
     /// File ▸ Open…: the open panel.
     var showOpenPanel: () -> Void = {}
     /// PDFs dropped on a window, or chosen in the welcome window.
@@ -26,12 +28,53 @@ import AppCore
     var navigatorVisibility: NavigationSplitViewVisibility = .all
     var showSidebar = true
     var destinationMenuOpen = false
+    /// The provider whose models the destination menu lists under its row: the one chosen for the paper when the menu
+    /// opens, none in Custom; a chevron changes it.
+    var expandedProvider: ProviderID?
     var notice: ShellNotice?
+    /// The navigator was hidden because the window is narrow (design review D19), and comes back when it is wide again.
+    private(set) var navigatorAutoHidden = false
+    /// The navigator was shown or hidden by hand: the width rule leaves it alone from then on, for the window's life.
+    private(set) var navigatorChosenByHand = false
+
+    /// What the Review button and ⌘R do: the window's controller asks first before a second review goes to a provider
+    /// that is not on this Mac (D20). nil (a window made with the public initialiser, as in the snapshot mode): start
+    /// the review at once.
+    @ObservationIgnored var requestReview: (@MainActor () -> Void)?
+
+    static let narrowWidth: CGFloat = 1_100       // below this the navigator steps aside (D19)
+    static let wideWidth: CGFloat = 1_240         // from this on an auto-hidden navigator comes back
 
     var showsNavigator: Bool { navigatorVisibility != .detailOnly }
 
+    /// Opens the destination menu with the models of the paper's own provider listed (none in Custom), or closes it.
+    func toggleDestinationMenu(chosen: ProviderRef?) {
+        if destinationMenuOpen {
+            destinationMenuOpen = false
+        } else {
+            expandedProvider = chosen?.providerID
+            destinationMenuOpen = true
+        }
+    }
+
+    /// The toolbar button and View ▸ Hide/Show Navigator (⌃⌘S): a choice by hand, which ends the width rule (D19).
     func toggleNavigator() {
         navigatorVisibility = showsNavigator ? .detailOnly : .all
+        navigatorAutoHidden = false
+        navigatorChosenByHand = true
+    }
+
+    /// D19: below 1,100 points the navigator collapses, so that the PDF gets the room; at 1,240 points or more a
+    /// navigator that collapsed this way comes back. Once the navigator has been shown or hidden by hand, nothing.
+    func adaptNavigator(toWidth width: CGFloat) {
+        guard !navigatorChosenByHand else { return }
+        if width < Self.narrowWidth, showsNavigator {
+            navigatorVisibility = .detailOnly
+            navigatorAutoHidden = true
+        } else if width >= Self.wideWidth, navigatorAutoHidden {
+            navigatorVisibility = .all
+            navigatorAutoHidden = false
+        }
     }
 }
 
@@ -87,7 +130,7 @@ enum ShellPromptSection: String, CaseIterable, Identifiable {
 }
 
 /// Where the settings window is: the tab, the provider shown on Providers, the section shown on Prompts. Kept outside
-/// the view so that the window manager ("Privacy settings…") and the settings scenes can choose it.
+/// the view so that the window manager ("Privacy settings…", the window's title) and the settings scenes can choose it.
 @MainActor @Observable final class ShellSettingsNavigation {
     var tab: ShellSettingsTab = .providers
     var provider: ProviderID?

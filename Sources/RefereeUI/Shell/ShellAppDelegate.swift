@@ -89,6 +89,12 @@ import AppCore
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    /// The Dock's count of new comments, or its "✓" after a report, set when a long job ended in the background
+    /// (design review D32), goes once the referee is back.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        NSApp.dockTile.badgeLabel = nil
+    }
+
     /// A click on the Dock icon with no window open shows the welcome window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag { windowManager?.showWelcome() }

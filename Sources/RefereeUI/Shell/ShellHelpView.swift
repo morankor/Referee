@@ -8,6 +8,7 @@ struct ShellHelpView: View {
 
     static let triageKeys: [(String, String)] = [
         ("J / K", "Next / previous comment"),
+        ("P", "Next pending comment, from the top again at the end"),           // design review D25
         ("A", "Approve, then go to the next pending comment"),
         ("R or X", "Reject, then go on"),
         ("U", "Back to pending"),
@@ -17,10 +18,11 @@ struct ShellHelpView: View {
         ("N", "New comment of your own, on the selection if there is one"),
         ("1 2 3 4", "Kind: major, minor, question, strength"),
         ("Esc", "Close the open card, editor, thread or find bar, then clear the selection"),
+        ("Esc in a text field", "Give the keyboard back to the comment list"),  // D2
     ]
 
     static let commands: [(String, String)] = [
-        ("⌘R", "Run the review"), ("⌘.", "Cancel"), ("⇧⌘R", "Generate the report"), ("⇧⌘E", "Export the report"),
+        ("⌘R", "Run the review"), ("⌘.", "Stop the running job"), ("⇧⌘R", "Generate the report"), ("⇧⌘E", "Export the report"),
         ("⌘F  ⌘G", "Find, find next"), ("⌘1 ⌘2 ⌘3", "Comments, Chat, Report"), ("⌘+ ⌘− ⌘0", "Zoom in, out, fit width"),
     ]
 

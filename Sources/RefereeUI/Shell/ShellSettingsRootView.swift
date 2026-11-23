@@ -169,9 +169,11 @@ struct ShellLongTextEditor: View {
     }
 }
 
-/// A command to run in Terminal, with a Copy button (section 9.6: install and sign-in commands).
+/// A command to run in Terminal, with a Copy button (section 9.6: install and sign-in commands). After a copy the button
+/// reads "Copied" for `Theme.feedbackDuration`, as the other Copy buttons of step 5 do (design review D16).
 struct ShellCommandBox: View {
     let command: String
+    @State private var copies = 0
 
     var body: some View {
         HStack(spacing: 8) {
@@ -184,11 +186,21 @@ struct ShellCommandBox: View {
             Button {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(command, forType: .string)
+                copies += 1
             } label: {
-                Label("Copy", systemImage: "doc.on.doc")
+                if copies > 0 {
+                    Label("Copied", systemImage: "checkmark")
+                } else {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
             }
             .controlSize(.small)
             .help("Copy the command")
+            .task(id: copies) {
+                guard copies > 0 else { return }
+                try? await Task.sleep(for: Theme.feedbackDuration)
+                if !Task.isCancelled { copies = 0 }
+            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)

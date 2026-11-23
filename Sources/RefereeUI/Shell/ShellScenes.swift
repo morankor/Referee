@@ -57,7 +57,8 @@ import TestSupport
 
     // ---- review windows ----
 
-    /// `ay_round_nolinks.pdf` open, no comments, the indicator "Local · mock" in green, Review enabled.
+    /// `ay_round_nolinks.pdf` open, no comments, the indicator "Local" over "mock" in green, Review enabled and prominent
+    /// (design review D3, D30). Below 1,100 points wide the navigator has stepped aside (D19).
     static var reviewEmpty: SnapshotScene {
         SnapshotScene(name: "review-empty", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -65,14 +66,19 @@ import TestSupport
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures = ShellSceneSupport.indicator(of: model, text: "Local · mock", tint: .green)
+            failures += ShellSceneSupport.indicatorLines(of: model, title: "Local", detail: "mock")
             if model.session?.comments.isEmpty != true { failures.append("the session has comments") }
             if !model.canStartReview { failures.append("Review is disabled: \(ShellReviewButton.disabledReason(model))") }
+            if !ShellReviewButton.isProminent(model) { failures.append("Review is not the prominent button of a paper without comments") }
+            if ShellReviewButton.title(model) != "Review" { failures.append("the button reads \(ShellReviewButton.title(model))") }
             if let banner = model.banner { failures.append("a banner is shown: \(banner.message)") }
+            failures += ShellSceneSupport.navigatorFollowsWidth(context)
             return failures
         })
     }
 
-    /// `setActiveProvider("mock-remote")`, `startReview()`: the consent card, with the text-only sentence. Nothing is sent.
+    /// `setActiveProvider("mock-remote")`, `startReview()`: the consent card, its facts with the text-only warning and
+    /// "Kept", "Don't Send" and "Send to Mock" (D12). Nothing is sent.
     static var consent: SnapshotScene {
         SnapshotScene(name: "consent", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -82,12 +88,17 @@ import TestSupport
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures = ShellSceneSupport.indicator(of: model, text: "Mock (remote) · mock · text only", tint: .orange)
+            failures += ShellSceneSupport.indicatorLines(of: model, title: "Mock (remote)", detail: "mock · text only")
             guard let request = model.consentRequest else { return failures + ["no consent card"] }
             let text = ShellPlanText.consent(request: request, pageCount: model.paper?.ref.pageCount ?? 0, byteCount: model.paper?.ref.byteCount ?? 0)
             if request.provider.id != "mock-remote" { failures.append("the card asks about \(request.provider.id)") }
             if request.plan.sendsPDF { failures.append("the plan sends the PDF; the text-only case was expected") }
             if !text.what.hasSuffix(ShellPlanText.textOnlyWarning) { failures.append("the card lacks the text-only sentence: \(text.what)") }
             if text.title != "Send this manuscript to Mock?" { failures.append("the title is \(text.title)") }
+            failures += ShellSceneSupport.facts(text.facts, labels: ["What", "To", "Requests", "Kept", ""])
+            if text.facts.first?.value != "Extracted text of 4 pages" { failures.append("What reads \(text.facts.first?.value ?? "nothing")") }
+            if text.facts.last?.isWarning != true { failures.append("the text-only warning row is missing") }
+            if text.sendButton != "Send to Mock" { failures.append("the send button reads \(text.sendButton)") }
             if model.session?.runs.isEmpty != true { failures.append("a run was recorded before consent") }
             model.answerConsent(granted: false)
             return failures
@@ -117,13 +128,17 @@ import TestSupport
         })
     }
 
-    /// The destination menu open, with a remote provider chosen: the providers, the plan sentence with the text-only
-    /// sentence, the retention note, Local only and "Privacy Settings…".
+    /// The destination menu open, with a remote provider chosen, on the sample session (whose two runs went to "mock"):
+    /// "For the review, chat and report of this paper.", Custom with where each job would go, the providers with the
+    /// chosen one's models (none listed yet: "Choose in Settings…"), what a review sends as a grid with the text-only
+    /// warning, the retention note, "Sent so far" with one line, Local only, "Provider Settings…" and "Privacy
+    /// Settings…" (design review D4, D24, D34; step 5b).
     static var reviewDestinationMenu: SnapshotScene {
-        SnapshotScene(name: "review-destination-menu", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
+        SnapshotScene(name: "review-destination-menu", kind: .review, fixturePDF: "ay_nolinks.pdf", fixtureSession: "sample.json",
+                      prepare: { context in
             guard let model = context.model else { return }
             await ShellSceneSupport.choose("mock-remote", in: model)
-            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
+            ShellSceneSupport.openDestinationMenu(context)
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures: [String] = []
@@ -133,13 +148,33 @@ import TestSupport
                 failures.append("the providers to choose are \(choices.sorted()), expected the four mocks and Ollama")
             }
             guard let provider = model.activeProvider, let plan = model.sendPlan else { return failures + ["no plan for the menu"] }
-            let lines = ShellPlanText.menuLines(plan: plan, descriptor: provider)
-            if lines.first?.text.hasSuffix(ShellPlanText.textOnlyWarning) != true { failures.append("the plan sentence lacks the text-only sentence") }
+            let summary = ShellPlanText.menuSummary(plan: plan, descriptor: provider, pageCount: model.paper?.ref.pageCount ?? 0,
+                                                    byteCount: model.paper?.ref.byteCount ?? 0)
+            failures += ShellSceneSupport.facts(summary.facts, labels: ["Sends", "To", "Requests", ""])
+            if summary.facts.last?.value != ShellPlanText.textOnlyWarning { failures.append("the grid lacks the text-only warning") }
+            if !ShellDestinationMenu.otherJobLines(model).isEmpty { failures.append("the menu names another job's provider") }
+            // Step 5b: the chosen provider's models, from the list Settings keeps; it has none yet, so "Choose in Settings…".
+            let models = ShellModelChoices.menu(for: provider.id, settings: model.settings, current: ShellDestinationMenu.chosenRef(model))
+            if models.choices.map(\.title) != ["Default model (mock)"] || models.settingsRow != ShellModelChoices.chooseInSettings {
+                failures.append("the models offered are \(models.choices.map(\.title)), then \(models.settingsRow ?? "nothing")")
+            }
+            if ShellDestinationMenu.chosenRef(model) != ProviderRef(providerID: "mock-remote", model: nil) || model.usesCustomProviders {
+                failures.append("the paper's choice is \(String(describing: ShellDestinationMenu.chosenRef(model)))")
+            }
+            if ShellSceneSupport.windowState(context)?.expandedProvider != "mock-remote" { failures.append("the chosen provider's models are not listed") }
+            // Custom, not chosen here, says where each job would go: the snapshot defaults send all three to "mock".
+            let custom = ShellCustomDestinations.lines(settings: model.settings,
+                                                       providers: ShellDestinationMenu.knownProviders(model, services: ShellWindowServices()))
+            if custom != ["Review: Mock · mock", "Chat: Mock · mock", "Report: Mock · mock"] { failures.append("Custom says \(custom)") }
+            let sent = ShellDestinationMenu.sentSoFar(model, services: ShellWindowServices())
+            if sent.count != 1 || sent.first?.hasPrefix("Mock: 2 times, last ") != true || sent.first?.hasSuffix("(extracted text)") != true {
+                failures.append("\"Sent so far\" reads \(sent), expected one line for Mock's two runs")
+            }
             return failures
         })
     }
 
-    /// `mock-stall`: the review lane runs; the toolbar shows the phase, a spinner and Cancel.
+    /// `mock-stall`: the review lane runs; the toolbar shows a spinner, "Reading the paper · 0:0x" and Stop (D9).
     static var reviewRunning: SnapshotScene {
         SnapshotScene(name: "review-running", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -149,7 +184,13 @@ import TestSupport
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures: [String] = []
-            if case .running(.review, _, _) = model.runState {} else { failures.append("no review is running") }
+            if case .running(.review, let phase, let startedAt) = model.runState {
+                let text = ShellReviewButton.progressText(kind: .review, phase: phase, elapsed: Date().timeIntervalSince(startedAt))
+                if !text.hasPrefix("Reading the paper · 0:0") { failures.append("the progress reads \(text)") }
+                if ShellReviewButton.gauge(kind: .review, phase: phase) != nil { failures.append("a one-part review shows a gauge") }
+            } else {
+                failures.append("no review is running")
+            }
             model.cancelRun()
             return failures
         })
@@ -180,6 +221,10 @@ import TestSupport
                 if let provider, !experimental.contains(where: { $0.id == provider }) {
                     failures.append("the provider shown, \(provider), has no experimental warning")
                 }
+                // D21: Send Test Prompt cannot be pressed for a provider that is not ready (Antigravity is not installed).
+                if let provider, ShellProviderRows.canSendTestPrompt(model.availability[provider]) {
+                    failures.append("Send Test Prompt is enabled for \(provider), which is not ready")
+                }
             case .privacy:
                 if model.dataDirectory == nil { failures.append("the data folder is not known") }
             case .references:
@@ -207,6 +252,12 @@ import TestSupport
             if !model.storedSecrets.contains("anthropic-api") { failures.append("no key is stored") }
             if (model.models["anthropic-api"] ?? []).isEmpty { failures.append("no model list") }
             if model.settings.providers["anthropic-api"]?.model == nil { failures.append("no model chosen") }
+            // D21: a ready provider's Send Test Prompt can be pressed, with the note of an API key.
+            if !ShellProviderRows.canSendTestPrompt(model.availability["anthropic-api"]) { failures.append("Send Test Prompt is disabled") }
+            if let anthropic = model.providers.first(where: { $0.id == "anthropic-api" }),
+               ShellProviderRows.testPromptNote(for: anthropic) != "Sends “Reply with exactly: OK” to api.anthropic.com; costs a few tokens." {
+                failures.append("the test prompt's note reads \(ShellProviderRows.testPromptNote(for: anthropic))")
+            }
             return failures
         })
     }
@@ -234,6 +285,14 @@ import TestSupport
         (context.window.contentViewController as? NSHostingController<ReviewWindowView>)?.rootView.windowState
     }
 
+    /// Opens the destination menu as a click on the indicator does (the models of the paper's own provider listed),
+    /// or with the models of `expanding` listed instead.
+    static func openDestinationMenu(_ context: SnapshotContext, expanding: ProviderID? = nil) {
+        guard let state = windowState(context), let model = context.model, !state.destinationMenuOpen else { return }
+        state.toggleDestinationMenu(chosen: model.session?.preferredProvider)
+        if let expanding { state.expandedProvider = expanding }
+    }
+
     /// The settings window's navigation, through the hosting controller the runner made.
     static func navigation(_ context: SnapshotContext) -> ShellSettingsNavigation? {
         (context.window.contentViewController as? NSHostingController<SettingsRootView>)?.rootView.navigation
@@ -246,5 +305,28 @@ import TestSupport
         if state.text != text { failures.append("the indicator reads \"\(state.text)\", expected \"\(text)\"") }
         if state.tint != tint { failures.append("the indicator is \(state.tint), expected \(tint)") }
         return failures
+    }
+
+    /// The indicator's two lines (design review D3), as expectations.
+    static func indicatorLines(of model: ReviewSessionModel, title: String, detail: String?) -> [String] {
+        let state = ShellDestination.state(of: model)
+        var failures: [String] = []
+        if state.title != title { failures.append("the indicator's title is \"\(state.title)\", expected \"\(title)\"") }
+        if state.detail != detail { failures.append("the indicator's detail is \"\(state.detail ?? "none")\", expected \"\(detail ?? "none")\"") }
+        return failures
+    }
+
+    /// The labels of a facts grid (D12, D24), in order; "" is the warning row.
+    static func facts(_ facts: [ShellConsentFact], labels: [String]) -> [String] {
+        let shown = facts.map(\.label)
+        return shown == labels ? [] : ["the facts are \(shown), expected \(labels)"]
+    }
+
+    /// D19: below 1,100 points wide the navigator has stepped aside; wider, it shows, as it does when a window opens.
+    static func navigatorFollowsWidth(_ context: SnapshotContext) -> [String] {
+        guard let state = windowState(context) else { return ["the window's state cannot be reached"] }
+        let width = context.window.contentRect(forFrameRect: context.window.frame).width
+        let expected = width >= ShellReviewWindowState.narrowWidth
+        return state.showsNavigator == expected ? [] : ["at \(Int(width)) points the navigator is \(state.showsNavigator ? "shown" : "hidden")"]
     }
 }

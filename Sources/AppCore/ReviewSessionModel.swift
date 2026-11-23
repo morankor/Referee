@@ -140,6 +140,9 @@ public final class ReviewSessionModel {
     public var chatProvider: ProviderDescriptor? { resolveTarget(for: .chat)?.descriptor }
     /// The same for the report and its voice revision (`settings.defaults.report`).
     public var reportProvider: ProviderDescriptor? { resolveTarget(for: .report)?.descriptor }
+    /// True while the document has no provider of its own ("Custom" in the destination menu, what every new document
+    /// starts with): each job goes to its default of Settings ▸ Providers, with that default's model (step 5b).
+    public var usesCustomProviders: Bool { session?.preferredProvider == nil }
 
     public init(dependencies: AppDependencies, settings: AppSettings) {
         self.dependencies = dependencies
@@ -313,6 +316,14 @@ public final class ReviewSessionModel {
     public func setActiveProvider(_ ref: ProviderRef) {
         guard session != nil, selectableProviders.contains(where: { $0.id == ref.providerID }) else { return }
         mutateSession { $0.preferredProvider = ref }
+        refreshPlan()
+    }
+
+    /// "Custom" in the destination menu (step 5b): the document's own choice goes, so that each job (review, chat,
+    /// report) goes to its own default of Settings ▸ Providers again. Nothing else of the session changes.
+    public func useCustomProviders() {
+        guard session?.preferredProvider != nil else { return }
+        mutateSession { $0.preferredProvider = nil }
         refreshPlan()
     }
 

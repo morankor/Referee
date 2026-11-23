@@ -13,7 +13,7 @@ import TestSupport
     /// Letters and digits by the characters they type; key codes of a US keyboard, which the table does not depend on.
     @Test func everyKeyOfTheTableHasItsIntent() {
         let table: [(String, UInt16, TriageIntent)] = [
-            ("j", 38, .next), ("k", 40, .previous), ("a", 0, .approve), ("r", 15, .reject), ("x", 7, .reject),
+            ("j", 38, .next), ("k", 40, .previous), ("p", 35, .nextPending), ("a", 0, .approve), ("r", 15, .reject), ("x", 7, .reject),
             ("u", 32, .resetStatus), ("d", 2, .discuss), ("e", 14, .edit), ("n", 45, .newComment),
             ("1", 18, .setKind(.major)), ("2", 19, .setKind(.minor)), ("3", 20, .setKind(.question)), ("4", 21, .setKind(.strength)),
         ]
@@ -66,8 +66,11 @@ import TestSupport
         #expect(TriageKeymap.intent(characters: "ר", keyCode: 15, modifiers: []) == .reject)       // Hebrew: R's key
         #expect(TriageKeymap.intent(characters: "о", keyCode: 38, modifiers: []) == .next)         // Russian: J's key
         #expect(TriageKeymap.intent(characters: "ψ", keyCode: 2, modifiers: []) == .discuss)       // Greek on D's key
+        #expect(TriageKeymap.intent(characters: "פ", keyCode: 35, modifiers: []) == .nextPending)  // Hebrew: P's key (D25)
+        #expect(TriageKeymap.intent(characters: "з", keyCode: 35, modifiers: []) == .nextPending)  // Russian: P's key
         #expect(TriageKeymap.intent(characters: "ג", keyCode: 3, modifiers: []) == nil)            // F's key: no intent
         #expect(TriageKeymap.intent(characters: "ש", keyCode: 0, modifiers: .shift) == nil)
+        #expect(TriageKeymap.intent(characters: "P", keyCode: 35, modifiers: .shift) == nil)
     }
 
     /// AZERTY's top row types "&", "é", "\"" and "'" without Shift; the key, not the character, gives the kind.
@@ -117,6 +120,21 @@ import TestSupport
         TriageKeymap.apply(.previous, to: model)
         #expect(status(1) == .pending)
         #expect(model.selectedCommentID == ids[0])
+    }
+
+    /// P (D25): the next pending comment, passing decided ones, and from the top again at the end.
+    @Test @MainActor func pGoesToTheNextPendingCommentAndWrapsRound() async throws {
+        let comments = [ShellTestData.comment("First", page: 0), ShellTestData.comment("Decided", page: 1, status: .approved),
+                        ShellTestData.comment("Third", page: 2), ShellTestData.comment("Rejected", page: 3, status: .rejected)]
+        let model = try await ShellTestModels.opened(with: comments, autoAdvance: false)
+        TriageKeymap.apply(.nextPending, to: model)
+        #expect(model.selectedCommentID == comments[0].id)       // nothing selected: the first pending one
+        TriageKeymap.apply(.nextPending, to: model)
+        #expect(model.selectedCommentID == comments[2].id)       // the approved one in between is passed over
+        TriageKeymap.apply(.nextPending, to: model)
+        #expect(model.selectedCommentID == comments[0].id)       // past the rejected last one, from the top again
+        TriageKeymap.apply(.next, to: model)
+        #expect(model.selectedCommentID == comments[1].id)       // J still walks decided ones
     }
 
     @Test @MainActor func approvingAdvancesToTheNextPendingCommentWhenThatIsOn() async throws {

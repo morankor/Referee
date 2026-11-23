@@ -9,24 +9,41 @@ import AppCore
 ///
 /// `WelcomeView(recent:open:)` knows nothing about providers, so it shows no provider line; the window manager uses
 /// the internal initialiser, whose `providerLine` reads the app's settings (and so follows them).
+///
+/// Design review D5: with no provider set up, "Set Up AI Provider…" and a sentence under the drop hint take the place
+/// of the bottom line; with one, the bottom line opens Settings ▸ Providers. D26: titles on two lines, only the
+/// pending count in orange, and a context menu to open a review, show its file in Finder or delete its data; a review
+/// whose file is gone says so, and a click on it asks for the file.
 public struct WelcomeView: View {
     let recent: [SessionSummary]
     let open: (URL?) -> Void
     /// Read in `body`, so a line that reads the app's settings model follows its changes.
     let providerLine: @MainActor () -> ShellWelcomeProvider
     let openSettings: @MainActor () -> Void
+    /// The recent reviews whose file is not where it was last seen (their ids), found off the main actor by the window
+    /// manager: asking the file system from `body` could hang on a volume that is gone.
+    let missing: Set<String>
+    let showInFinder: @MainActor (URL) -> Void
+    let deleteReviewData: @MainActor (SessionSummary) -> Void
 
     public init(recent: [SessionSummary], open: @escaping (URL?) -> Void) {   // nil = show the open panel
         self.init(recent: recent, open: open, providerLine: { .unknown }, openSettings: {})
     }
 
     init(recent: [SessionSummary], open: @escaping (URL?) -> Void, providerLine: @escaping @MainActor () -> ShellWelcomeProvider,
-         openSettings: @escaping @MainActor () -> Void) {
+         openSettings: @escaping @MainActor () -> Void, missing: Set<String> = [], showInFinder: @escaping @MainActor (URL) -> Void = { _ in },
+         deleteReviewData: @escaping @MainActor (SessionSummary) -> Void = { _ in }) {
         self.recent = recent
         self.open = open
         self.providerLine = providerLine
         self.openSettings = openSettings
+        self.missing = missing
+        self.showInFinder = showInFinder
+        self.deleteReviewData = deleteReviewData
     }
+
+    static let setUpProvider = "Set Up AI Provider…"
+    static let setUpExplanation = "Reviews need an AI provider. A local model through Ollama keeps the manuscript on this Mac."
 
     @State private var dropTargeted = false
 
@@ -58,7 +75,8 @@ public struct WelcomeView: View {
     // ---- left: the app, the open button, the provider line ----
 
     private var start: some View {
-        VStack(spacing: 14) {
+        let line = providerLine()
+        return VStack(spacing: 14) {
             Spacer(minLength: 0)
             ShellAppGlyph()
                 .frame(width: 84, height: 84)
@@ -71,44 +89,63 @@ public struct WelcomeView: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Button {
-                open(nil)
-            } label: {
-                Label("Open PDF…", systemImage: "doc.badge.plus")
-                    .frame(minWidth: 140)
+            VStack(spacing: 8) {
+                Button {
+                    open(nil)
+                } label: {
+                    Label("Open PDF…", systemImage: "doc.badge.plus")
+                        .frame(minWidth: 140)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                Text("or drop a PDF on this window")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            Text("or drop a PDF on this window")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if line == .notSetUp {
+                VStack(spacing: 6) {
+                    Button {
+                        openSettings()
+                    } label: {
+                        Label(WelcomeView.setUpProvider, systemImage: "cpu")
+                            .frame(minWidth: 140)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    Text(WelcomeView.setUpExplanation)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             Spacer(minLength: 0)
-            providerStatus
+            providerStatus(line)
         }
         .padding(20)
         .frame(maxHeight: .infinity)
     }
 
-    @ViewBuilder private var providerStatus: some View {
-        switch providerLine() {
-        case .unknown:
+    /// The bottom line (section 9.1): with a provider, a button that opens Settings ▸ Providers (D5); without one,
+    /// nothing, since "Set Up AI Provider…" is above.
+    @ViewBuilder private func providerStatus(_ line: ShellWelcomeProvider) -> some View {
+        switch line {
+        case .unknown, .notSetUp:
             EmptyView()
-        case .configured(let line, let isLocal):
-            Label {
-                Text(line).lineLimit(2)
-            } icon: {
-                Circle().fill(isLocal ? Color.green : Color.orange).frame(width: 8, height: 8)
+        case .configured(let text, let isLocal):
+            Button {
+                openSettings()
+            } label: {
+                Label {
+                    Text(text).lineLimit(2)
+                } icon: {
+                    Circle().fill(isLocal ? Color.green : Color.orange).frame(width: 8, height: 8)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        case .notSetUp:
-            HStack(spacing: 4) {
-                Text("No AI provider set up —")
-                    .foregroundStyle(.secondary)
-                Button("Open Settings") { openSettings() }
-                    .buttonStyle(.link)
-            }
-            .font(.caption)
+            .buttonStyle(.borderless)
+            .help("Change the provider in Settings ▸ Providers")
         }
     }
 
@@ -135,9 +172,11 @@ public struct WelcomeView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(recent) { summary in
-                            ShellRecentReviewRow(summary: summary) {
-                                open(summary.lastKnownPath.map { URL(fileURLWithPath: $0) })
-                            }
+                            let gone = missing.contains(summary.id)
+                            let file = gone ? nil : summary.lastKnownPath.map { URL(fileURLWithPath: $0) }
+                            ShellRecentReviewRow(summary: summary, missing: gone, open: { open(file) },
+                                                 showInFinder: file.map { url in { showInFinder(url) } },
+                                                 deleteReviewData: { deleteReviewData(summary) })
                         }
                     }
                     .padding(.horizontal, 8)
@@ -152,15 +191,21 @@ public struct WelcomeView: View {
 /// The welcome window's provider line (section 9.1).
 enum ShellWelcomeProvider: Equatable {
     case unknown                                  // nothing known (the public initialiser): no line
-    case notSetUp                                 // "No AI provider set up — Open Settings"
+    case notSetUp                                 // "Set Up AI Provider…" (D5)
     case configured(String, isLocal: Bool)        // "AI: Local · gemma4:e4b"
 }
 
-/// One recent review: title, file name and date, and how far the triage is ("12 comments · 3 pending").
+/// One recent review: title, file name and date, and how far the triage is ("12 comments · 3 pending", only the
+/// pending count in orange). A review whose file is gone shows "File not found"; a click then asks for the file (D26).
 struct ShellRecentReviewRow: View {
     let summary: SessionSummary
+    let missing: Bool
     let open: () -> Void
+    let showInFinder: (() -> Void)?              // nil: the file is gone, or its place is not known
+    let deleteReviewData: () -> Void
     @State private var hovering = false
+
+    static let fileNotFound = "File not found"
 
     var body: some View {
         Button(action: open) {
@@ -172,16 +217,22 @@ struct ShellRecentReviewRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ShellRecentReviewRow.title(summary))
                         .font(.body.weight(.medium))
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("\(summary.fileName) · \(summary.updatedAt.formatted(date: .abbreviated, time: .omitted))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    Text(ShellRecentReviewRow.progress(summary))
+                    if missing {
+                        Text(ShellRecentReviewRow.fileNotFound)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(ShellRecentReviewRow.progressText(summary))
                         .font(.caption)
-                        .foregroundStyle(summary.pendingCount > 0 ? Color.orange : Color.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
             }
@@ -192,7 +243,15 @@ struct ShellRecentReviewRow: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(summary.lastKnownPath.map { "Open \(($0 as NSString).abbreviatingWithTildeInPath)" } ?? "Choose the PDF")
+        .help(missing ? "Choose the PDF: it is no longer where it was"
+                      : summary.lastKnownPath.map { "Open \(($0 as NSString).abbreviatingWithTildeInPath)" } ?? "Choose the PDF")
+        .contextMenu {
+            Button("Open", action: open)
+            Button("Show in Finder") { showInFinder?() }
+                .disabled(showInFinder == nil)
+            Divider()
+            Button("Delete Review Data…", action: deleteReviewData)
+        }
     }
 
     /// The manuscript's title when the review has one, else the file name.
@@ -203,11 +262,28 @@ struct ShellRecentReviewRow: View {
 
     /// "12 comments · 3 pending", "7 comments · report drafted", "No comments yet".
     static func progress(_ summary: SessionSummary) -> String {
-        var parts: [String] = []
-        parts.append(summary.commentCount == 0 ? "No comments yet" : ShellFormat.count(summary.commentCount, "comment", "comments"))
-        if summary.pendingCount > 0 { parts.append("\(ShellFormat.grouped(summary.pendingCount)) pending") }
-        if summary.hasReport { parts.append("report drafted") }
-        return parts.joined(separator: " · ")
+        progressParts(summary).map(\.text).joined(separator: " · ")
+    }
+
+    /// The parts of the progress line; the pending count is the one to stand out (D26).
+    static func progressParts(_ summary: SessionSummary) -> [(text: String, standsOut: Bool)] {
+        var parts: [(text: String, standsOut: Bool)] = []
+        parts.append((summary.commentCount == 0 ? "No comments yet" : ShellFormat.count(summary.commentCount, "comment", "comments"), false))
+        if summary.pendingCount > 0 { parts.append(("\(ShellFormat.grouped(summary.pendingCount)) pending", true)) }
+        if summary.hasReport { parts.append(("report drafted", false)) }
+        return parts
+    }
+
+    /// The progress line with only the pending count in orange.
+    static func progressText(_ summary: SessionSummary) -> AttributedString {
+        var line = AttributedString()
+        for (index, part) in progressParts(summary).enumerated() {
+            if index > 0 { line.append(AttributedString(" · ")) }
+            var piece = AttributedString(part.text)
+            if part.standsOut { piece.foregroundColor = .orange }
+            line.append(piece)
+        }
+        return line
     }
 }
 
