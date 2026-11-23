@@ -14,6 +14,8 @@ import AppCore
 // - Two highlights with exactly the same rectangle (the "similar" pair of the sample session, two comments on one
 //   passage) are drawn once: two translucent layers would add up to the strength of a selected highlight. The one kept
 //   is the selected comment's, else the first of own, pending, approved, question, rejected, else the earlier one.
+// - While the find bar is shown, every highlight is drawn at 40% of its alpha, the dashed frame of a fuzzy anchor
+//   included, so that find's yellow matches do not mix with pending yellow (design review D29).
 
 /// One rectangle the PDF shows for a comment or a conversation (section 7.3).
 struct ReaderHighlight: Hashable {
@@ -22,31 +24,38 @@ struct ReaderHighlight: Hashable {
     var style: Theme.Highlight
     var isSelected: Bool
     var isFuzzy: Bool                    // a fuzzy anchor also gets a dashed border in its hue
+    var isDimmed = false                 // the find bar is shown (D29)
 
-    var alpha: CGFloat { Theme.highlightAlpha(style, selected: isSelected) }
-    var color: NSColor { Theme.highlightColor(style, selected: isSelected) }
+    var alpha: CGFloat { Theme.highlightAlpha(style, selected: isSelected) * (isDimmed ? ReaderHighlightPlan.findDimming : 1) }
+    var color: NSColor { hue.withAlphaComponent(alpha) }
     var hue: NSColor { Theme.highlightHue(style) }
+    /// The dashed frame of a fuzzy anchor: the hue, dimmed with the fill.
+    var frameColor: NSColor { isDimmed ? hue.withAlphaComponent(ReaderHighlightPlan.findDimming) : hue }
 }
 
 enum ReaderHighlightPlan {
+    /// The share of its alpha a highlight keeps while the find bar is shown (D29).
+    static let findDimming: CGFloat = 0.4
+
     /// The highlights for these comments and conversations, at most one per rectangle, ordered by page, then from the
-    /// top of the page down, then from left to right.
+    /// top of the page down, then from left to right; all of them `dimmed` while the find bar is shown.
     static func highlights(comments: [ReviewComment], conversations: [Conversation], filter: CommentFilter,
-                           selectedCommentID: UUID?, showRejected: Bool) -> [ReaderHighlight] {
+                           selectedCommentID: UUID?, showRejected: Bool, dimmed: Bool = false) -> [ReaderHighlight] {
         var candidates: [ReaderHighlight] = []
         for comment in comments where matches(comment, filter) {
             guard let style = style(of: comment, showRejected: showRejected) else { continue }
             let fuzzy = isFuzzy(comment.anchor.confidence)
             for rect in comment.anchor.rects where isDrawable(rect) {
                 candidates.append(ReaderHighlight(ownerID: comment.id, rect: rect, style: style, isSelected: comment.id == selectedCommentID,
-                                                  isFuzzy: fuzzy))
+                                                  isFuzzy: fuzzy, isDimmed: dimmed))
             }
         }
         for conversation in conversations {
             guard let anchor = conversation.anchor else { continue }
             let fuzzy = isFuzzy(anchor.confidence)
             for rect in anchor.rects where isDrawable(rect) {
-                candidates.append(ReaderHighlight(ownerID: conversation.id, rect: rect, style: .question, isSelected: false, isFuzzy: fuzzy))
+                candidates.append(ReaderHighlight(ownerID: conversation.id, rect: rect, style: .question, isSelected: false, isFuzzy: fuzzy,
+                                                  isDimmed: dimmed))
             }
         }
 

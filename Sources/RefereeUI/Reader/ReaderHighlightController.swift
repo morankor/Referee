@@ -96,7 +96,7 @@ final class ReaderHighlightController {
         fill.userName = name
         guard highlight.isFuzzy else { return [fill] }
         let frame = PDFAnnotation(bounds: bounds, forType: .square, withProperties: nil)
-        frame.color = highlight.hue
+        frame.color = highlight.frameColor
         let border = PDFBorder()
         border.style = .dashed
         border.lineWidth = Theme.fuzzyBorderWidth

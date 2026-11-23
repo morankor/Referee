@@ -9,9 +9,11 @@ import TestSupport
     @Test @MainActor func theViewerShowsTheFileFromItsBytes() async {
         let viewer = ReaderViewerModel(fileURL: Fixtures.url("pdf/num_twocol_links.pdf"), title: "A cited paper")
         #expect(viewer.state == .loading)
+        #expect(viewer.pageCountText == nil)                        // the toolbar shows no count before the file is read
         await viewer.load()
         #expect(viewer.state == .ready)
         #expect(viewer.pageCount == 2)
+        #expect(viewer.pageCountText == "2 pages")
         #expect(viewer.pdfView.document?.pageCount == 2)
         #expect(viewer.pdfView.document?.documentURL == nil)       // made from the bytes: the viewer cannot write the file
         await viewer.load()                                         // once only
@@ -47,5 +49,21 @@ import TestSupport
         #expect(byName["reference-viewer"]?.fixturePDF == "num_twocol_links.pdf")
         #expect(scenes.filter { $0.name != "reference-viewer" }.allSatisfy { $0.kind == .review })
         #expect(scenes.filter { $0.name != "reference-viewer" }.allSatisfy { $0.verify != nil })
+    }
+
+    /// The design scenes of the Reader (docs/design-review.md, steps 4 and 5), each checking its state in `verify`.
+    @Test @MainActor func theDesignScenesOfTheReader() {
+        let scenes = ReaderScenes.all.filter { $0.name.hasPrefix("design-") }
+        #expect(scenes.map(\.name) == ["design-citation-states", "design-find-no-matches", "design-selection-asked", "design-selection-copied",
+                                       "design-references-filter", "design-find-with-comments"])
+        #expect(scenes.allSatisfy { $0.kind == .review && $0.verify != nil })
+        let byName = Dictionary(uniqueKeysWithValues: scenes.map { ($0.name, $0) })
+        #expect(byName["design-selection-asked"]?.fixturePDF == "ay_nolinks.pdf")
+        #expect(byName["design-selection-copied"]?.fixturePDF == "ay_nolinks.pdf")
+        #expect(byName["design-references-filter"]?.fixturePDF == "ay_links.pdf")
+        #expect(byName["design-find-with-comments"]?.fixturePDF == "ay_nolinks.pdf")
+        #expect(byName["design-find-with-comments"]?.fixtureSession == "sample.json")
+        // Captured inside Copy's feedback time, so that the picture shows "Copied".
+        #expect((byName["design-selection-copied"]?.settleSeconds ?? 9) < Theme.feedbackDuration / .seconds(1))
     }
 }

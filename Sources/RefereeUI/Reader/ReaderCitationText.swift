@@ -4,16 +4,24 @@ import AppCore
 
 // The words and addresses of the citation card and the References list (plan.md sections 7.6, 8.6 and 9.9). Pure.
 //
-// Decisions (also in docs/contract-notes/wp9-reader.md):
+// Decisions (also in docs/contract-notes/wp9-reader.md and step5-reader.md):
 // - A mention's text runs from where the author key begins to the end of the year (section 8.4: "Acemoglu et al.
 //   [2011", "Avery and Zem- sky, 1998"). The card's header shows it readable: a word broken at a line end is joined
 //   and an opened bracket is closed ("Acemoglu et al. [2011]", "Avery and Zemsky, 1998"). Only the display changes.
 // - A card opened from the References list is headed by the entry's authors and year ("Acemoglu et al. (2011)"), or
-//   "Reference 3" when the entry has none.
+//   "Reference 3" when the entry has none. The References list heads each row the same way (design review D23).
 // - "Open in Browser" goes to the resolved landing page, else https://doi.org/<doi>, else the entry's own URL; only
 //   http and https addresses count. The DOI to copy is the record's, else the entry's.
+// - The record's one line under its title is "authors · year · venue" (D15).
+// - The References filter (D23) keeps an entry when every word typed occurs in the reference as printed or in its
+//   heading, ignoring case and diacritics; letters that Unicode does not decompose are spelled in plain Latin first,
+//   so that "sorensen" finds "Sørensen".
 
 enum ReaderCitationText {
+    /// A reference that no service knows (D15): the card's line, and the note under it.
+    static let notFoundLine = "No match in Crossref or OpenAlex."
+    static let notFoundNote = "Common for working papers and books."
+
     /// The mention's text as the card's header shows it.
     static func displayMention(_ text: String) -> String {
         var result = joinedBrokenWords(text.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -63,9 +71,11 @@ enum ReaderCitationText {
         return "year differs: the list says \(listYear), this record \(recordYear)"
     }
 
-    /// Year and venue of a resolved record, "2011 · Econometrica"; nil when neither is known.
-    static func recordDetails(_ reference: ResolvedReference) -> String? {
-        let parts = [reference.year.map(String.init), reference.venue?.trimmingCharacters(in: .whitespacesAndNewlines)]
+    /// The line under a resolved record's title (D15), "Acemoglu, Dahleh, Lobel, Ozdaglar · 2011 · Econometrica"; nil
+    /// when the record names no author, year or venue.
+    static func recordLine(_ reference: ResolvedReference) -> String? {
+        let parts = [authorsLine(reference.authors), reference.year.map(String.init),
+                     reference.venue?.trimmingCharacters(in: .whitespacesAndNewlines)]
             .compactMap { $0 }.filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
@@ -111,11 +121,73 @@ enum ReaderCitationText {
         return reason.isEmpty ? "Lookup failed." : "Lookup failed: " + reason
     }
 
+    // ---- the References list (D23) ----
+
+    /// "9 references", "1 reference"; while a filter is typed, "3 of 9 references".
+    static func referenceCount(shown: Int, total: Int, isFiltering: Bool) -> String {
+        let noun = total == 1 ? "reference" : "references"
+        return isFiltering ? "\(shown) of \(total) \(noun)" : "\(total) \(noun)"
+    }
+
+    /// Whether a filter is typed: anything but white space.
+    static func isFiltering(_ filter: String) -> Bool {
+        !filter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Whether `entry` stays in the References list under `filter`: every word of the filter occurs in the reference as
+    /// printed or in its heading, ignoring case and diacritics. An empty filter keeps every entry. Nothing is sent.
+    static func entry(_ entry: BibEntry, matches filter: String) -> Bool {
+        let words = folded(filter).split(whereSeparator: \.isWhitespace)
+        guard !words.isEmpty else { return true }
+        let text = folded(entry.rawText + " " + entryHeading(entry))
+        return words.allSatisfy { text.contains($0) }
+    }
+
+    /// Lower case, without diacritics, and with the letters that have no decomposition in plain Latin ("ø" → "o",
+    /// "æ" → "ae"), so that a filter typed on any keyboard finds a name as it is printed.
+    static func folded(_ text: String) -> String {
+        let base = text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
+        return base.reduce(into: "") { result, character in result += plainLatin[character] ?? String(character) }
+    }
+
+    private static let plainLatin: [Character: String] = [
+        "ø": "o", "æ": "ae", "œ": "oe", "ß": "ss", "ł": "l", "đ": "d", "ð": "d", "þ": "th", "ı": "i", "ħ": "h",
+    ]
+
     private static func webURL(_ text: String) -> URL? {
         guard let url = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)),
               let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http", url.host != nil else { return nil }
         return url
     }
+}
+
+/// The buttons of one entry of the citation card (design review D15): Open PDF, Open in Browser and Copy DOI only when
+/// they can act (hidden, not disabled), then Search Google Scholar, which is always there, and Show in References last.
+/// The first of Open PDF, Open in Browser and Search Google Scholar that is shown is the prominent button. Pure.
+struct ReaderCardActions: Equatable {
+    enum Action: Equatable { case openPDF, openInBrowser, copyDOI, searchScholar, showInReferences }
+
+    var shown: [Action]
+    var prominent: Action
+
+    /// The buttons for `entry` and its lookup (nil while the lookup has not returned).
+    static func make(reference: ResolvedReference?, entry: BibEntry) -> ReaderCardActions {
+        var shown: [Action] = []
+        if let pdf = reference?.openAccessPDFURL, !pdf.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { shown.append(.openPDF) }
+        if ReaderCitationText.browserURL(reference: reference, entry: entry) != nil { shown.append(.openInBrowser) }
+        if ReaderCitationText.doi(reference: reference, entry: entry) != nil { shown.append(.copyDOI) }
+        shown += [.searchScholar, .showInReferences]
+        let prominent = [Action.openPDF, .openInBrowser, .searchScholar].first { shown.contains($0) } ?? .searchScholar
+        return ReaderCardActions(shown: shown, prominent: prominent)
+    }
+
+    /// A citation that matches no entry of the reference list: Search Google Scholar alone, prominent.
+    static let noEntry = ReaderCardActions(shown: [.searchScholar], prominent: .searchScholar)
+
+    func shows(_ action: Action) -> Bool { shown.contains(action) }
+
+    /// Open PDF, Open in Browser and Copy DOI: the row above Search Google Scholar; empty when none can act.
+    var linkActions: [Action] { shown.filter { $0 == .openPDF || $0 == .openInBrowser || $0 == .copyDOI } }
 }
 
 /// What the citation card shows for the model's `citationLookup` (section 8.6): its header, the candidate entries and,
@@ -176,7 +248,7 @@ struct ReaderReferenceStatus: Equatable {
                 ? ReaderReferenceStatus(systemImage: "checkmark.circle", tint: .green, help: "Found")
                 : ReaderReferenceStatus(systemImage: "checkmark.circle.fill", tint: .green, help: "Found, with an open-access PDF")
         case .notFound:
-            return ReaderReferenceStatus(systemImage: "questionmark.circle", tint: .secondary, help: "No match found")
+            return ReaderReferenceStatus(systemImage: "questionmark.circle", tint: .secondary, help: ReaderCitationText.notFoundLine)
         case .failed:
             return ReaderReferenceStatus(systemImage: "exclamationmark.triangle.fill", tint: .orange, help: ReaderCitationText.failureLine(reference))
         }
