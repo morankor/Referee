@@ -49,6 +49,8 @@ No public signature changed. `SnapshotSupport.providers()` returns 15 providers 
 | `mock-slow` | `MockLLMProvider` | "Mock (slow)" | `.none`, true, "this Mac" | `MockScript.sample` with `delayPerChunk` 40 ms for every purpose, 7 characters a delta: the report (`report_sample.txt`, 162 deltas) takes about 6.5 s, the review (`review_clean.txt`, 372 deltas) about 15 s, a test prompt 40 ms. Status `.ready(detail: "Built in")`, one model "mock" |
 | `mock-offline` | `StaticProvider` | "Mock (offline)" | `.none`, true, "this Mac" | Status ``.needsSetup(reason: "Ollama is not running", hint: "Start the Ollama app or run `ollama serve`.")``, one model "mock" (context 1,000,000); `stream` throws `.notConfigured` |
 
+**The snapshot mode still starts no process and makes no request.** `LiveDependencies.make` under `REFEREE_SNAPSHOT=1` uses `SnapshotSupport.providers()` as the whole registry, and the two stand-ins are of the two kinds it had already: a mock that plays its script in-process and a static row that only reports a status. Checked by tests that pass with them: `IntegrationReviewTests.theSnapshotGraphReviewsOnMocksOnly` requires every provider of the snapshot graph to be a `MockLLMProvider` or a `StaticProvider` and the resolver to be `FakeResolver`; `IntegrationSmokeTests.theSnapshotGraphHasTheFourMocksAndNoRealProvider` now also requires `mock-offline`, like the nine rows, to refuse to stream. O2 adds no reach either: in the snapshot graph every local provider whose status the model asks for is a mock or a static row.
+
 ## Decisions
 
 Where the review left a choice.
@@ -117,15 +119,15 @@ None.
 
 ## Acceptance
 
-Run on the code of the step's first commit, before it was made: the tree then differed from it only in `plan.md` and this file.
+Final run at commit `83bab0b`, after every Swift file under `Sources/` and `Tests/` had been touched, so that the whole package compiled again and "no warning" covers every file, not only the changed ones. This file's acceptance lines and its paragraph on the snapshot mode were committed after that run; no code changed.
 
 | Command | Result | Final line |
 | --- | --- | --- |
-| `scripts/build.sh` | exit 0; no line with "warning:" or "error:" | `Build complete! (4.30s)` |
-| `scripts/test.sh --filter "ReviewSessionModelProviderTests\|SnapshotSupportTests\|SnapshotRowsTests\|IntegrationSmokeTests\|CommonThemeTests\|ShellProviderRowsTests\|SnapshotGraphTests\|ShellDestinationTests"` | exit 0; the suites this step touched, the new tests included | `test.sh: OK (40 tests)` |
-| `scripts/test.sh` | exit 0; no warning; 991 tests in 137 suites (984 before, and 7 new); four skipped visibly, as at Wave 3 (real Keychain, live reference services, the delivery experiment, the CLI smoke prompt); `LLMKitLiveOllamaTests` ran, its one 16-token prompt to the local Ollama server, and passed | `test.sh: OK (991 tests)` |
+| `scripts/build.sh` | exit 0; every module compiled; no line with "warning:" or "error:" | `Build complete! (7.60s)` |
+| `scripts/test.sh` | exit 0; no warning; 991 tests in 137 suites (984 before this step, 7 new); four skipped visibly, as at Wave 3 (real Keychain, live reference services, the delivery experiment, the CLI smoke prompt); `LLMKitLiveOllamaTests` ran, with its one 16-token prompt to the local Ollama server, and passed | `test.sh: OK (991 tests)` |
 | `scripts/snapshots.sh` | exit 0; 46 scenes, each `"nonBlank":true,"failures":[]` | `build/snapshots/welcome.png` (the script lists the PNGs) |
-| `scripts/snapshots.sh --out build/snapshots-dark --scene sidebar-states --scene sidebar-pending --dark` | exit 0; both `"failures":[]` | `build/snapshots-dark/sidebar-states.png` |
 | `git status --porcelain \| wc -l` | after the last commit | `0` |
+
+Before that commit, on the same code: `scripts/build.sh` (`Build complete! (4.30s)`); `scripts/test.sh --filter "ReviewSessionModelProviderTests|SnapshotSupportTests|SnapshotRowsTests|IntegrationSmokeTests|CommonThemeTests|ShellProviderRowsTests|SnapshotGraphTests|ShellDestinationTests"`, the suites this step touched (`test.sh: OK (40 tests)`); the full `scripts/test.sh` (`test.sh: OK (991 tests)`); `scripts/snapshots.sh` (46 scenes, exit 0); and `scripts/snapshots.sh --out build/snapshots-dark --scene sidebar-states --scene sidebar-pending --dark` (exit 0, both `"failures":[]`, last line `build/snapshots-dark/sidebar-states.png`).
 
 No network request went anywhere but the local Ollama server, and only from `LLMKitLiveOllamaTests` through `scripts/test.sh`. No AI command-line tool was run and nothing was installed.
