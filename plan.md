@@ -1974,6 +1974,10 @@ public enum DefaultSettings {
     public static let venues: [VenueProfile]
     /// A conference's recommendation scale until it is given the scale of its own review form, most favourable first.
     public static let conferenceScale: [String]               // ["Accept", "Weak accept", "Borderline", "Weak reject", "Reject"]
+    /// The conference report's prompt and template of Appendix B.4, which PromptSet.reportSystem(for:) and reportTemplate(for:)
+    /// give for settings written before venues.
+    public static let conferenceReportSystem: String
+    public static let conferenceReportTemplate: String
 }
 public enum FormatSpec {                                  // Appendix B.2: constants in code, never settings
     public static var review: String { get }            // FORMAT_REVIEW

@@ -200,7 +200,7 @@ public enum DefaultSettings {
 
     /// For a conference: the report of Appendix B.4 with the venue's scale, no revision round and "Chance of acceptance".
     /// `PromptSet.reportSystem(for:)` falls back on it for settings written before venues.
-    static let conferenceReportSystem = """
+    public static let conferenceReportSystem = """
         You are drafting a conference review from a referee's approved notes. The referee will edit it and submit it under their own name, so it must read as a person wrote it.
 
         Use only the approved comments and the reviewer's notes given below. Do not add criticisms of your own. Merge comments that make the same point. Order concerns by importance. Keep every location reference (page, lines, table, equation) exactly as given.
@@ -237,7 +237,8 @@ public enum DefaultSettings {
         Output the report in Markdown and nothing else.
         """
 
-    static let conferenceReportTemplate = """
+    /// Its template: "Chance of acceptance" where the journal's has "Publication probability".
+    public static let conferenceReportTemplate = """
         ## Summary assessment
 
         ## Recommendation
