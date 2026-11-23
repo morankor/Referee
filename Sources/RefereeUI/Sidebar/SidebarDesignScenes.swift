@@ -17,8 +17,9 @@ import AppCore
 // - design-report-streaming (step 5): the report half written, from the snapshot registry's slow stand-in `mock-slow`
 //   (step 5a, O3), on sample.json.
 // - design-two-models (step 5b, the user's requirement): Fixtures/sessions/design-sidebar-two-models.json on
-//   ay_nolinks.pdf, the comments of two reviews, Claude Code with "sonnet" and Codex with its default model, interleaved
-//   in paper order, one of each run on the same passage folded as similar, and one comment of the referee's own.
+//   ay_nolinks.pdf, the comments of two reviews, Claude Code asked for "sonnet" (which reported "claude-sonnet-4-6",
+//   step 5c) and Codex with its default model (Codex reports none), interleaved in paper order, one of each run on the
+//   same passage folded as similar, and one comment of the referee's own.
 //
 // Step 5 extended the checks with what the review's items make checkable: one card in full (D1), the Kind menu's items
 // (D11), "All 25 decided" (D6), the cursor in the comment (D2), the proposal before the failed reply (D18), and the room
@@ -208,13 +209,14 @@ import AppCore
 
     // ---- design-two-models (step 5b) ----
 
-    /// The labels design-sidebar-two-models.json's runs must give their comments.
-    static let twoModelsLabels: [ProviderID: String] = ["claude-cli": "Claude Code · Sonnet", "codex-cli": "Codex · default model"]
+    /// The labels design-sidebar-two-models.json's runs must give their comments: the model Claude Code reported wins over
+    /// the "sonnet" asked for (step 5c); Codex reports none and was asked for none.
+    static let twoModelsLabels: [ProviderID: String] = ["claude-cli": "Claude Code · claude-sonnet-4-6", "codex-cli": "Codex · default model"]
 
     /// Both CLIs stay switched off, as after a review with each: their names come from their descriptors among the
-    /// registered providers (`registeredProviders`, step 5c). Claude
-    /// Code's model list is what Settings ▸ Providers keeps once it has listed the CLI's models (its documented aliases),
-    /// so "sonnet" reads "Sonnet"; Codex's review asked for no model.
+    /// registered providers (`registeredProviders`, step 5c). Claude Code's model list is what Settings ▸ Providers keeps
+    /// once it has listed the CLI's models (its documented aliases): "sonnet" would read "Sonnet", but the run's reported
+    /// model, which that list does not have, is shown by its id; Codex's review asked for no model.
     static var twoModels: SnapshotScene {
         SnapshotScene(name: "design-two-models", kind: .review, fixturePDF: "ay_nolinks.pdf", fixtureSession: "design-sidebar-two-models.json",
                       prepare: { context in

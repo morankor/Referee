@@ -304,6 +304,7 @@
         "model" : "sonnet",
         "providerID" : "claude-cli"
       },
+      "reportedModel" : "claude-sonnet-4-6",
       "requestCount" : 1,
       "sentPDF" : true,
       "startedAt" : "2026-11-19T09:00:00Z",

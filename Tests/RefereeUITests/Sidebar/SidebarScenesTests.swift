@@ -54,6 +54,7 @@ import TestSupport
         #expect(session.document.fileName == "ay_nolinks.pdf")
         let runs = session.runs
         #expect(runs.map(\.provider) == [ProviderRef(providerID: "claude-cli", model: "sonnet"), ProviderRef(providerID: "codex-cli", model: nil)])
+        #expect(runs.map(\.reportedModel) == ["claude-sonnet-4-6", nil])        // step 5c: what Claude Code reported; Codex reports none
         #expect(runs.allSatisfy { $0.kind == .review })
         func run(of comment: ReviewComment) -> ProviderID? {
             guard case .ai(let runID) = comment.origin else { return nil }
