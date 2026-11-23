@@ -38,7 +38,7 @@ Every P1, P2 and P3 item is done; none was deferred. Where the result differs fr
 
 ### Step 5b, the user's request: a model wherever a provider is chosen
 
-- **Destination menu.** Each provider's row has a chevron; the chosen provider's models are listed when the menu opens, another's behind its chevron. Under the row: "Default model ({what Settings chose})" (a reference without a model; plain "Default model" when nothing is chosen, as for a CLI), then the models of the list Settings keeps (`cachedModels`, display names), at most eight, with the paper's model checked, and that model added when the shortened list leaves it out. "Choose in Settings…" when the list is empty, "More in Settings…" when it is longer; both open Settings ▸ Providers on that provider. Choosing calls `setActiveProvider(ProviderRef(providerID:, model:))`. The menu makes no request and starts no process for this; the only check it causes is D13's loopback status of a local provider. The pane is opened through the Shell's `ShellWindowServices.openProviderSettings`, not `uiActions.openSettings`, which cannot choose a provider.
+- **Destination menu.** Each provider's row has a chevron; the paper's chosen provider's models are listed when the menu opens (none in Custom, below), another's behind its chevron. Under the row: "Default model ({what Settings chose})" (a reference without a model; plain "Default model" when nothing is chosen, as for a CLI), then the models of the list Settings keeps (`cachedModels`, display names), at most eight, with the paper's model checked, and that model added when the shortened list leaves it out. "Choose in Settings…" when the list is empty, "More in Settings…" when it is longer; both open Settings ▸ Providers on that provider. Choosing calls `setActiveProvider(ProviderRef(providerID:, model:))`. The menu makes no request and starts no process for this; the only check it causes is D13's loopback status of a local provider. The pane is opened through the Shell's `ShellWindowServices.openProviderSettings`, not `uiActions.openSettings`, which cannot choose a provider.
 - **Settings ▸ Providers' default bar.** One menu per job: "None" (Review) or "Same as Review", then each provider switched on (or the one in force) as a submenu with "Default model (…)" and every listed model; the label reads "{provider} · {model}" ("Mock · mock", "Claude Code · Default model"). `ShellTaskDefaultsBar.set(_:for:in:)` writes the reference with its model (tested). Choosing a model in the detail pane now moves only the job defaults that had the provider's previous model, so a job given a model of its own keeps it; one on "Default model" follows by itself.
 - **The list.** Each provider shows its chosen model under its name in secondary text ("Example Large", "gemma4:e4b", "CLI default", "Not chosen").
 - **D20's wording,** above.
@@ -61,11 +61,24 @@ The user: "the choice of providers should be via the combo box at the top on the
 
 ## Commands
 
-Filled in at the last commit, below.
+Final run at commit `8fe6e4e`, in this order; this notes file was committed after it, and no code changed.
+
+| Command | Result | Final line |
+| --- | --- | --- |
+| `scripts/build.sh` | exit 0; no line with "warning:" | `Build complete! (1.10s)` (incremental) |
+| `scripts/test.sh --filter RefereeUITests` | exit 0; no warning | `test.sh: OK (214 tests)` |
+| `scripts/test.sh` | exit 0; no warning; skipped visibly as at step 5a (real Keychain, live reference services, the delivery experiment, the CLI smoke prompt, the two real-paper tests); `LLMKitLiveOllamaTests` ran with its one 16-token prompt to the local Ollama server and passed | `test.sh: OK (1035 tests)` |
+| `scripts/snapshots.sh` | exit 0; 51 scenes, each `"nonBlank":true,"failures":[]` | `build/snapshots/welcome.png` |
+| `scripts/snapshots.sh --out build/snapshots-dark --dark` | exit 0; 51 scenes, each clean | `build/snapshots-dark/welcome.png` |
+| `scripts/snapshots.sh --out build/snapshots-small --size 1000x640` | exit 0; 51 scenes, each clean | `build/snapshots-small/welcome.png` |
+| `scripts/bundle.sh && codesign --verify build/Referee.app` | exit 0; no warning in the release build; "valid on disk", "satisfies its Designated Requirement" | `Built build/Referee.app` |
+| `git status --porcelain \| wc -l` | after the last commit | `0` |
+
+The full `scripts/test.sh` ran three times in this step, not once, because code changed after each of the coordinator's later messages: at `012d357` (`test.sh: OK (1030 tests)`), at `dc779d1` (`OK (1031 tests)`, in a run stopped before its last sweep when the "Custom" request came) and at `8fe6e4e` above; each sent its one 16-token prompt to the local Ollama server and nothing else. The earlier sweeps of all scenes, at `012d357`, were clean in all three modes too. No other network request was made, no AI command-line tool was run, nothing was installed, and no screen was driven.
 
 ## Scenes
 
-`scripts/snapshots.sh` over all 49 scenes, in light, `--dark` and `--size 1000x640`: each `"nonBlank":true,"failures":[]`. What the Shell's scenes show now (1280 × 800 unless said; every review picture: the indicator as a title over a detail line, the toolbar never in its overflow menu):
+`scripts/snapshots.sh` over all 51 scenes (the 46 of step 5a and five new Shell ones), in light, `--dark` and `--size 1000x640`: each `"nonBlank":true,"failures":[]`. What the Shell's scenes show now (1280 × 800 unless said; every review picture: the indicator as a title over a detail line, the toolbar never in its overflow menu):
 
 - `placeholder`: unchanged; "Local" over "mock" in the toolbar.
 - `welcome`: as before, with only "3 pending" in orange and the "AI: Local · mock" line as a borderless button.
