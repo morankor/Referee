@@ -137,4 +137,19 @@ What no test or picture can show, gathered from the three step 5b notes and this
 
 ## Acceptance
 
-To be filled in after the final run.
+Final run at commit `9bf17b3`, the last commit that changes anything but this section, after `rm -rf .build`, so that every module and test target compiled again and "no warning" covers every file. The snapshot runs wrote their pictures to a scratch folder outside the repository (`--out`). This section was committed after the run; no code changed.
+
+| Command | Result | Final line |
+| --- | --- | --- |
+| `scripts/build.sh` | exit 0; every module compiled; no line with "warning:" or "error:" | `Build complete! (43.82s)` |
+| `scripts/test.sh` | exit 0; no warning (every test target compiled); 1,112 tests in 145 suites (1,086 after the merge, 26 new); skipped visibly, as before: the real Keychain, the live reference services, the delivery experiment, the CLI smoke prompt; `LLMKitLiveOllamaTests` ran, with its one 16-token prompt to the local Ollama server, and passed, its stream naming the model it asked for; the flaky test passed | `test.sh: OK (1112 tests)` |
+| `scripts/snapshots.sh` | exit 0; 57 scenes, each `"nonBlank":true,"failures":[]` | `…/welcome.png` (the script lists the PNGs) |
+| `scripts/snapshots.sh --dark` | exit 0; 57 scenes, each clean | `…/welcome.png` |
+| `scripts/snapshots.sh --size 1000x640` | exit 0; 57 scenes, each clean; no window grew | `…/welcome.png` |
+| `scripts/e2e-ollama.sh` | exit 0; `PLAN sendsPDF=false requests=1 estimatedInputTokens=901 destination=127.0.0.1:11434 local=true model=gemma4:e4b contextWindow=131072`; `SUMMARY comments=11 anchored=11 pageOnly=0 unanchored=0 similar=0 requests=1 status=completed seconds=85.8 model=gemma4:e4b`; the question about the abstract answered | `e2e-ollama.sh: OK (gemma4:e4b on ay_round_nolinks.pdf: 11 comments, 11 anchored, 1 requests, 91 s, reported model gemma4:e4b)` |
+| `scripts/bundle.sh && codesign --verify build/Referee.app` | exit 0; no warning in the release build; "valid on disk", "satisfies its Designated Requirement"; `Contents/Resources` holds `AppIcon.icns` and the new `README.md` | `Built build/Referee.app` |
+| `git status --porcelain \| wc -l` | after the last commit | `0` |
+
+Pictures opened at this step: every scene in light (half size, after the merge and again where step 5c changed it), and in `--dark` and at 1,000 × 640 the scenes whose look step 5c changed or which carry the most at a small size (`design-citation-states`, `design-review-custom-menu`, `design-review-split-destinations`, `design-two-models`, `consent`, `design-triage-25`, `sidebar-report`, `review-empty`). Nothing was wrong; nothing was fixed after the merge but what the decisions changed.
+
+On the way: the full suite passed after the merge (`test.sh: OK (1086 tests)`, load 18) and again with no other build going, for the flaky test (`test.sh: OK (1112 tests)`, load 19–25); each decision's commit ran its own suites and scenes. No network request went anywhere but the local Ollama server: the live test's one 16-token prompt, five times (in the three full runs, and twice in filtered runs while (d) was checked), and the end-to-end run's review and question. No AI command-line tool was run, nothing was installed, no screen was driven, and no Referee process was started outside `--ui-snapshot` or signalled.
