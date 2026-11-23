@@ -133,4 +133,13 @@ What a designer should look at first, in this order:
 
 ## Acceptance
 
-Final run, after `rm -rf .build build`: see the table below (filled after the run).
+Final run, at commit `9fe765c`, after `rm -rf .build build` (this notes file was committed after it; no code changed). The same five commands had passed from clean one commit earlier, at `6e8d4c2`, before six sentences of the README were corrected; the only difference between the runs is the local model's output.
+
+| Command | Result | Final line |
+| --- | --- | --- |
+| `scripts/build.sh` | exit 0; no line with "warning:" or "error:" | `Build complete! (41.98s)` |
+| `scripts/test.sh` | exit 0; no warning; four tests skipped visibly (real Keychain, live reference services, delivery experiment, CLI smoke prompt); the real-papers test ran on the three arXiv papers of `Fixtures/private` | `test.sh: OK (984 tests)` |
+| `scripts/snapshots.sh` | exit 0; 30 scenes, each `"nonBlank":true,"failures":[]`, the three `check-` scenes included | `build/snapshots/welcome.png` (the script lists the PNGs) |
+| `scripts/e2e-ollama.sh` | exit 0; plan: text, 1 request, about 900 tokens, `127.0.0.1:11434`, gemma4:e4b; `SUMMARY comments=21 anchored=21 pageOnly=0 unanchored=0 similar=6 requests=2 status=completed seconds=141.0`; the question answered (at `6e8d4c2`: 11 comments, 10 anchored, 2 requests, 118 s) | `e2e-ollama.sh: OK (gemma4:e4b on ay_round_nolinks.pdf: 21 comments, 21 anchored, 2 requests, 143 s)` |
+| `scripts/bundle.sh && codesign --verify build/Referee.app` | exit 0; no warning in the release build; "valid on disk", "satisfies its Designated Requirement" | `Built build/Referee.app` (`codesign --verify` prints nothing) |
+| `git status --porcelain \| wc -l` | after the last commit | `0` |
