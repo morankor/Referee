@@ -119,4 +119,38 @@ The other 55 scenes look as before.
 
 ### Acceptance
 
-(filled in after the final runs)
+The runs were made at commit `350fde2` (the rename and the brand), after `rm -rf .build`, so that "no warning" covers every file. The snapshot pictures went to a scratch folder outside the repository (`--out`). This section was committed after the runs; no code changed.
+
+| Command | Result | Final line |
+| --- | --- | --- |
+| `scripts/build.sh` | exit 0; every module compiled; no line with "warning:" or "error:" | `Build complete! (45.85s)` |
+| `scripts/test.sh` | exit 0; no warning. 1200 tests in 154 suites: the 1191 after the merge, plus 9 new (two in `ShellAppTests`, seven in `AppPathsTests`). Four were skipped visibly, as before: the real Keychain, the CLI smoke prompt, the delivery experiment and the live reference services. `LLMKitLiveOllamaTests` ran with its one 16-token prompt to the local Ollama server, and passed | `test.sh: OK (1200 tests)` |
+| `scripts/snapshots.sh` (every scene) | exit 0; 61 scenes, each `"nonBlank":true,"failures":[]` | `…/welcome.png` (the script lists the PNGs) |
+| `scripts/snapshots.sh --dark` | exit 0; 61 scenes, each clean | `…/welcome.png` |
+| `scripts/snapshots.sh --size 1000x640` | exit 0; 61 scenes, each clean; no window grew | `…/welcome.png` |
+| `scripts/e2e-ollama.sh` | exit 0. `PLAN sendsPDF=false requests=1 estimatedInputTokens=901 destination=127.0.0.1:11434 local=true model=gemma4:e4b contextWindow=131072`; `SUMMARY comments=16 anchored=15 pageOnly=1 unanchored=0 similar=1 requests=2 status=completed seconds=158.0 model=gemma4:e4b` (the model's answer was cut off once and continued, §6.5) | `e2e-ollama.sh: OK (gemma4:e4b on ay_round_nolinks.pdf: 16 comments, 15 anchored, 2 requests, 163 s, reported model gemma4:e4b)` |
+| `scripts/bundle.sh` | exit 0; no warning in the release build. `Built build/AppIcon.icns`: the old "R" icon of this checkout (03:31) was older than `make-icon.sh` (08:14), so the icon was drawn again. `Info.plist: OK`, "valid on disk", "satisfies its Designated Requirement". The bundle holds `Contents/MacOS/Human in the Loop`, the new `AppIcon.icns` (identical to `build/AppIcon.icns`, ten sizes) and `README.md`. `CFBundleName`, `CFBundleDisplayName` and `CFBundleExecutable` are "Human in the Loop", and `CFBundleIdentifier` is `local.referee.app`. `build/Referee.app` was untouched, its time unchanged | `Built build/Human in the Loop.app` |
+| `codesign --verify "build/Human in the Loop.app"` | exit 0, nothing printed | — |
+| `"build/Human in the Loop.app/Contents/MacOS/Human in the Loop" --ui-snapshot build/snapshots-bundle --scene welcome` | exit 0; the welcome window with the tile, the wordmark and the tagline | `{"scene":"welcome","file":"build/snapshots-bundle/welcome.png","width":1360,"height":904,"nonBlank":true,"failures":[]}` |
+| The launch check | See the list below | `shell.review.ready document=bool(true) pages=int(4)` |
+| `git status --porcelain \| wc -l` | after the last commit | `0` |
+
+The launch check:
+
+1. `open -n --env REFEREE_HOME=<a new temporary folder> --env REFEREE_NO_KEYCHAIN=1 "build/Human in the Loop.app" --args <the absolute path of Fixtures/pdf/ay_round_nolinks.pdf>`.
+2. `pgrep -f "Human in the Loop.app/Contents/MacOS"` found one process, whose command is the bundle's executable.
+3. `/usr/bin/log show --info --last 2m --predicate 'subsystem == "local.referee.app"'` showed that process's line: `Human in the Loop: [local.referee.app:app] shell.review.ready document=bool(true) pages=int(4)`. The log names the process "Human in the Loop", in full.
+4. `kill <that pid>` ended it.
+5. The temporary folder was removed.
+
+The user's `build/Referee.app`, running throughout, was never signalled or touched. With `REFEREE_HOME` set nothing migrated: `~/Library/Application Support/Referee` is where it was, and no "Human in the Loop" folder exists yet. The move happens on the first launch of the new app while the old one is not running.
+
+Pictures looked at:
+
+- in light and dark: `welcome`, `design-welcome-first-run`, `design-welcome-many` and `help`;
+- in light: `settings-privacy`, `settings-providers` and `review-empty`, which is unchanged;
+- the bundled binary's `welcome`, and the bundled icon.
+
+At 1,000 × 640 the welcome and Help windows have their own size (`--size` applies to review and viewer windows), and each scene passed there too.
+
+Nothing left the Mac except requests to the local Ollama server: the 16-token prompt of `scripts/test.sh`, the end-to-end review and its question, and the launched app's own checks of Ollama on loopback. No AI command-line tool or paid API was used, nothing was installed, and the screen was never driven. The app ran outside `--ui-snapshot` once, for the launch check above. No tracked file holds a home-directory path, a login name or an email address, and `Sources/` has no `#file`, `#filePath`, `fatalError` or any of the `precondition` family; `IntegrationTreeTests` checked both in the full run.
