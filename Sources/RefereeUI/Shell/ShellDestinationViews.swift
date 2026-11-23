@@ -40,7 +40,7 @@ struct ShellDestinationIndicator: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
-                            .truncationMode(.middle)
+                            .truncationMode(state.detailTruncatesAtEnd ? .tail : .middle)
                     }
                 }
                 if state.debugDump {
@@ -511,16 +511,17 @@ struct ShellDestinationMenu: View {
         .padding(.horizontal, 14)
     }
 
-    /// D4: "Chat questions go to Claude Code (subscription) (claude)." and "The report is written by …", for a job whose
-    /// provider is not the review's.
+    /// D4: "Chat questions go to Claude Code (subscription)." and "The report is written by Anthropic API
+    /// (api.anthropic.com).", for a job whose provider is not the review's: the display name, with the destination in
+    /// brackets only when the name has none of its own (step 5c).
     @MainActor static func otherJobLines(_ model: ReviewSessionModel) -> [String] {
         otherJobLines(review: model.activeProvider, chat: model.chatProvider, report: model.reportProvider)
     }
 
     static func otherJobLines(review: ProviderDescriptor?, chat: ProviderDescriptor?, report: ProviderDescriptor?) -> [String] {
         var lines: [String] = []
-        if let chat, chat.id != review?.id { lines.append("Chat questions go to \(chat.displayName) (\(chat.destination)).") }
-        if let report, report.id != review?.id { lines.append("The report is written by \(report.displayName) (\(report.destination)).") }
+        if let chat, chat.id != review?.id { lines.append("Chat questions go to \(ShellDestination.nameWithPlace(chat)).") }
+        if let report, report.id != review?.id { lines.append("The report is written by \(ShellDestination.nameWithPlace(report)).") }
         return lines
     }
 

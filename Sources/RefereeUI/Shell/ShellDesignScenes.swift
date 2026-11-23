@@ -19,7 +19,8 @@ import TestSupport
 // - design-settings-first-run: Settings ▸ Providers with nothing switched on and no default provider.
 //
 // Added in step 5, as the review asks:
-// - design-review-split-destinations (D4): chat goes to Claude Code while the review stays on this Mac.
+// - design-review-split-destinations (D4, step 5c): chat goes to Claude Code while the review stays on this Mac:
+//   "Custom" over the three jobs.
 // - design-review-provider-offline (D13): the chosen local provider reports that it is not running.
 // And for the user's requests of step 5b (a model wherever a provider is chosen; "Custom" for a job-by-job choice):
 // - design-review-choose-model: a provider and model chosen for the paper, in the title; its models listed, one checked.
@@ -256,8 +257,8 @@ import TestSupport
     }
 
     /// D4, in Custom (the paper has no provider of its own, as every new paper): the review stays with "mock" on this
-    /// Mac while chat goes to Claude Code (`defaults.chat`). The indicator, menu closed: "Local" over "mock · chat:
-    /// Claude Code", orange. Claude Code is never asked for its status.
+    /// Mac while chat goes to Claude Code (`defaults.chat`). The indicator, menu closed (step 5c): "Custom" over
+    /// "Review: this Mac · Chat: Claude Code · Report: this Mac", orange. Claude Code is never asked for its status.
     static var reviewSplitDestinations: SnapshotScene {
         SnapshotScene(name: "design-review-split-destinations", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -268,12 +269,13 @@ import TestSupport
             await ShellSceneSupport.wait { model.chatProvider?.id == "claude-cli" && model.sendPlan != nil }
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
-            var failures = ShellSceneSupport.indicator(of: model, text: "Local · mock · chat: Claude Code", tint: .orange)
-            failures += ShellSceneSupport.indicatorLines(of: model, title: "Local", detail: "mock · chat: Claude Code")
+            let line = "Review: this Mac · Chat: Claude Code · Report: this Mac"
+            var failures = ShellSceneSupport.indicator(of: model, text: "Custom · " + line, tint: .orange)
+            failures += ShellSceneSupport.indicatorLines(of: model, title: "Custom", detail: line)
             if !model.usesCustomProviders { failures.append("the paper has a provider of its own") }
             if model.activeProvider?.id != "mock" { failures.append("the review goes to \(model.activeProvider?.id ?? "nothing")") }
             if model.reportProvider?.id != "mock" { failures.append("the report goes to \(model.reportProvider?.id ?? "nothing")") }
-            if ShellDestinationMenu.otherJobLines(model) != ["Chat questions go to Claude Code (subscription) (claude)."] {
+            if ShellDestinationMenu.otherJobLines(model) != ["Chat questions go to Claude Code (subscription)."] {
                 failures.append("the menu says \(ShellDestinationMenu.otherJobLines(model))")
             }
             return failures
@@ -298,7 +300,8 @@ import TestSupport
             ShellSceneSupport.openDestinationMenu(context, expanding: "anthropic-api")
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
-            var failures = ShellSceneSupport.indicatorLines(of: model, title: "Local", detail: "mock · chat: Claude Code · report: Anthropic API")
+            var failures = ShellSceneSupport.indicatorLines(of: model, title: "Custom",
+                                                            detail: "Review: this Mac · Chat: Claude Code · Report: Anthropic")
             if !model.usesCustomProviders || ShellDestinationMenu.chosenRef(model) != nil { failures.append("the paper is not in Custom") }
             let custom = ShellCustomDestinations.lines(settings: model.settings,
                                                        providers: ShellDestinationMenu.knownProviders(model, services: ShellWindowServices()))

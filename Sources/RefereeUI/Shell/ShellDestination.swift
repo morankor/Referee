@@ -13,6 +13,7 @@ struct ShellDestinationState: Equatable {
     var opensSettings: Bool     // "No AI provider": a click opens Settings instead of the menu
     var debugDump: Bool         // REFEREE_DEBUG_DUMP is set: the red "debug dump on" tag (section 10.5)
     var help: String            // the tooltip, in which a truncated detail can be read in full
+    var detailTruncatesAtEnd = false    // Custom's list of the three jobs is cut at its end, never in the middle (step 5c)
 
     /// The title, then " · " and the detail when there is one: "Local · gemma4:e4b". The welcome line, the
     /// accessibility label and the tests read this.
@@ -27,6 +28,10 @@ enum ShellDestination {
     static let remoteBlocked = "Remote blocked"
     static let localOnlyIsOn = "Local only is on"
     static let debugDumpTag = "debug dump on"
+    static let custom = "Custom"
+    static let thisMac = "this Mac"
+    static let notSetUp = "not set up"
+    static let blocked = "blocked"
 
     /// - nothing usable: slashed circle, "No AI provider", grey; a click opens Settings. With providers switched on but
     ///   none chosen for this document (D5): question mark, "Choose AI provider", grey; a click opens the menu.
@@ -36,10 +41,17 @@ enum ShellDestination {
     /// - a subscription CLI: terminal, its short name; any other remote provider: cloud, its display name; both orange,
     ///   over "<model or default>", " · text only" when its plan sends extracted text (unknown until the plan is
     ///   there), and " · experimental" for an experimental provider without a successful test prompt.
-    /// - D4: when chat or the report goes to another provider than the review, the detail ends with " · chat: <name>",
-    ///   " · report: <name>" or " · chat and report: <name>", the name being "Local" for a local provider, else its
-    ///   short name; the tint is green only when every one of them is local. A job whose provider is not set up (nil)
-    ///   sends nothing, so it is not named.
+    /// - Step 5c: when the review, chat questions and the report go to different places (in Custom, each job takes its
+    ///   own default of Settings), the title is "Custom", over "Review: this Mac · Chat: Claude Code · Report: Anthropic"
+    ///   cut at its end (`place(of:localOnly:)`), orange when any of them is not this Mac, else green. Jobs that all go
+    ///   to one place read as that one destination, whatever the provider of each. A job without a provider (nil: none
+    ///   given, or its default names a provider that is off) is no place of its own; when the others differ, the line
+    ///   lists it as "not set up".
+    /// - D4, in the states above that one (no review provider, Remote blocked, a local provider that cannot run): when
+    ///   chat or the report goes to another provider than the review, the detail ends with " · chat: <name>", " ·
+    ///   report: <name>" or " · chat and report: <name>", the name being "Local" for a local provider, else its short
+    ///   name; the tint is green only when every one of them is local. A job whose provider is not set up (nil) sends
+    ///   nothing, so it is not named there.
     /// - `availability` is used for a local provider only: a remote one is never checked from the window (D13).
     static func state(provider: ProviderDescriptor?, model: String?, plan: SendPlan?, verifiedAt: Date?, localOnly: Bool,
                       debugDump: Bool, chatProvider: ProviderDescriptor? = nil, reportProvider: ProviderDescriptor? = nil,
@@ -51,9 +63,9 @@ enum ShellDestination {
             return all.isEmpty ? nil : all.joined(separator: " · ")
         }
         func made(symbol: String, title: String, detail: String?, tint: ShellDestinationState.Tint, opensSettings: Bool,
-                  help: String? = nil) -> ShellDestinationState {
+                  help: String? = nil, truncatesAtEnd: Bool = false) -> ShellDestinationState {
             var state = ShellDestinationState(symbol: symbol, title: title, detail: detail, tint: tint, opensSettings: opensSettings,
-                                              debugDump: debugDump, help: "")
+                                              debugDump: debugDump, help: "", detailTruncatesAtEnd: truncatesAtEnd)
             state.help = help ?? "Where this document is sent: \(state.text)"
             return state
         }
@@ -72,17 +84,44 @@ enum ShellDestination {
             return made(symbol: "exclamationmark.triangle.fill", title: "Local", detail: detail([problem.reason]),
                         tint: problem.unavailable ? .red : .orange, opensSettings: false, help: problem.tooltip)
         }
+        // A job without a provider sends nothing, so it is no place of its own; it is listed as "not set up" when the others
+        // differ.
+        let threeJobs = [provider, chatProvider, reportProvider]
+        if Set(threeJobs.compactMap { $0 }.map { place(of: $0, localOnly: localOnly) }).count > 1 {
+            let sends = threeJobs.contains { job in job.map { !$0.isLocal && !localOnly } ?? false }
+            let line = zip(["Review", "Chat", "Report"], threeJobs).map { "\($0): \(place(of: $1, localOnly: localOnly))" }
+                .joined(separator: " · ")
+            return made(symbol: "arrow.triangle.branch", title: custom, detail: line, tint: sends ? .orange : .green, opensSettings: false,
+                        truncatesAtEnd: true)
+        }
+        // One place for every job: that destination, the review's provider and model, and nothing more.
         var parts = [model.flatMap { $0.isEmpty ? nil : $0 } ?? "default"]
         if !provider.isLocal, let plan, !plan.sendsPDF { parts.append("text only") }
         if provider.isExperimental && verifiedAt == nil { parts.append("experimental") }
+        let detail = parts.joined(separator: " · ")
         if provider.isLocal {
-            return made(symbol: "laptopcomputer", title: "Local", detail: detail(parts), tint: othersAreRemote ? .orange : .green,
-                        opensSettings: false)
+            return made(symbol: "laptopcomputer", title: "Local", detail: detail, tint: .green, opensSettings: false)
         }
         if provider.authMode == .subscriptionCLI {
-            return made(symbol: "terminal", title: shortName(provider), detail: detail(parts), tint: .orange, opensSettings: false)
+            return made(symbol: "terminal", title: shortName(provider), detail: detail, tint: .orange, opensSettings: false)
         }
-        return made(symbol: "cloud", title: provider.displayName, detail: detail(parts), tint: .orange, opensSettings: false)
+        return made(symbol: "cloud", title: provider.displayName, detail: detail, tint: .orange, opensSettings: false)
+    }
+
+    /// Where a job's text goes, in a word or two, for Custom's second line (step 5c): "this Mac" for a local provider, a
+    /// subscription CLI's short name ("Claude Code"), any other remote provider's vendor ("Anthropic"); "blocked" for a
+    /// remote one while Local only is on (it sends nothing); "not set up" for a job without a provider.
+    static func place(of provider: ProviderDescriptor?, localOnly: Bool) -> String {
+        guard let provider else { return notSetUp }
+        if provider.isLocal { return thisMac }
+        if localOnly { return blocked }
+        return provider.authMode == .subscriptionCLI ? shortName(provider) : provider.vendor
+    }
+
+    /// A provider's name with at most one bracket (step 5c): the display name when it has its own ("Claude Code
+    /// (subscription)", "Ollama (local)"), else the display name and the destination ("Anthropic API (api.anthropic.com)").
+    static func nameWithPlace(_ provider: ProviderDescriptor) -> String {
+        provider.displayName.hasSuffix(")") || provider.destination.isEmpty ? provider.displayName : "\(provider.displayName) (\(provider.destination))"
     }
 
     /// The indicator of a review window, from its model.

@@ -107,33 +107,68 @@ import TestSupport
         #expect(state.text == "Local · phi4")
     }
 
-    // ---- D4: chat and report elsewhere ----
+    // ---- D4 and step 5c: chat and report elsewhere, "Custom" ----
 
-    @Test func chatElsewhereIsNamedAndTurnsTheIndicatorOrange() {
+    /// Step 5c: the jobs go to different places (Custom with per-job defaults): "Custom" over the three jobs in short form,
+    /// cut at its end; orange when any of them leaves this Mac.
+    @Test func jobsThatGoToDifferentPlacesReadCustom() {
         let state = ShellDestination.state(provider: Sample.ollama, model: "gemma4:e4b", plan: nil, verifiedAt: nil, localOnly: false,
                                            debugDump: false, chatProvider: Sample.claude, reportProvider: Sample.ollama)
-        #expect(state.text == "Local · gemma4:e4b · chat: Claude Code")
-        #expect(state.title == "Local")
-        #expect(state.detail == "gemma4:e4b · chat: Claude Code")
+        #expect(state.title == "Custom")
+        #expect(state.detail == "Review: this Mac · Chat: Claude Code · Report: this Mac")
+        #expect(state.text == "Custom · Review: this Mac · Chat: Claude Code · Report: this Mac")
         #expect(state.tint == .orange)
-        #expect(state.symbol == "laptopcomputer")
-    }
+        #expect(state.symbol == "arrow.triangle.branch")
+        #expect(state.detailTruncatesAtEnd)
+        #expect(!state.opensSettings)
+        #expect(state.help == "Where this document is sent: Custom · Review: this Mac · Chat: Claude Code · Report: this Mac")
 
-    @Test func theReportAndBothJobsAreNamedTheSameWay() {
+        // The coordinator's example: a CLI by its short name, an API provider by its vendor.
+        let each = ShellDestination.state(provider: Sample.ollama, model: "phi4", plan: nil, verifiedAt: nil, localOnly: false, debugDump: false,
+                                          chatProvider: Sample.claude, reportProvider: Sample.anthropic)
+        #expect(each.detail == "Review: this Mac · Chat: Claude Code · Report: Anthropic")
         let report = ShellDestination.state(provider: Sample.anthropic, model: "example-large", plan: nil, verifiedAt: nil, localOnly: false,
                                             debugDump: false, chatProvider: Sample.anthropic, reportProvider: Sample.ollama)
-        #expect(report.detail == "example-large · report: Local")
-        let both = ShellDestination.state(provider: Sample.ollama, model: "phi4", plan: nil, verifiedAt: nil, localOnly: false, debugDump: false,
-                                          chatProvider: Sample.codex, reportProvider: Sample.codex)
-        #expect(both.detail == "phi4 · chat and report: Codex")
-        let each = ShellDestination.state(provider: Sample.ollama, model: "phi4", plan: nil, verifiedAt: nil, localOnly: false, debugDump: false,
-                                          chatProvider: Sample.codex, reportProvider: Sample.anthropic)
-        #expect(each.detail == "phi4 · chat: Codex · report: Anthropic API")
-        // The same provider for every job, or a job without a provider (it sends nothing): nothing more is said.
+        #expect(report.detail == "Review: Anthropic · Chat: Anthropic · Report: this Mac")
+        #expect(report.tint == .orange)
+    }
+
+    /// Jobs that all go to one place read as that one destination, also when their providers differ; a job without a
+    /// provider sends nothing and is no place of its own.
+    @Test func jobsThatGoToOnePlaceReadAsThatDestination() {
         let same = ShellDestination.state(provider: Sample.ollama, model: "phi4", plan: nil, verifiedAt: nil, localOnly: false, debugDump: false,
                                           chatProvider: Sample.ollama, reportProvider: nil)
         #expect(same.text == "Local · phi4")
         #expect(same.tint == .green)
+        #expect(!same.detailTruncatesAtEnd)
+        let mock = ProviderDescriptor(id: "mock", displayName: "Mock", vendor: "Mock", authMode: .none, isLocal: true, destination: "this Mac",
+                                      supportsNativePDF: false, streaming: .token, retentionNote: "", isExperimental: false)
+        let local = ShellDestination.state(provider: Sample.ollama, model: "gemma4:e4b", plan: nil, verifiedAt: nil, localOnly: false,
+                                           debugDump: false, chatProvider: mock, reportProvider: mock)
+        #expect(local.text == "Local · gemma4:e4b")                       // two providers, one place: this Mac
+        #expect(local.tint == .green)
+        let codex = ShellDestination.state(provider: Sample.codex, model: "gpt-x", plan: nil, verifiedAt: nil, localOnly: false, debugDump: false,
+                                           chatProvider: Sample.codex, reportProvider: Sample.codex)
+        #expect(codex.text == "Codex · gpt-x")
+        // A job without a provider is listed as "not set up" once the others differ.
+        let missing = ShellDestination.state(provider: Sample.ollama, model: "phi4", plan: nil, verifiedAt: nil, localOnly: false, debugDump: false,
+                                             chatProvider: nil, reportProvider: Sample.codex)
+        #expect(missing.detail == "Review: this Mac · Chat: not set up · Report: Codex")
+    }
+
+    /// With Local only on, a remote job sends nothing: "blocked", and the indicator stays green when the rest is local.
+    @Test func aRemoteJobBlockedByLocalOnlyReadsBlocked() {
+        let state = ShellDestination.state(provider: Sample.ollama, model: "phi4", plan: nil, verifiedAt: nil, localOnly: true, debugDump: false,
+                                           chatProvider: Sample.claude, reportProvider: Sample.ollama)
+        #expect(state.title == "Custom")
+        #expect(state.detail == "Review: this Mac · Chat: blocked · Report: this Mac")
+        #expect(state.tint == .green)
+    }
+
+    @Test func aNameCarriesOneBracketAtMost() {
+        #expect(ShellDestination.nameWithPlace(Sample.claude) == "Claude Code (subscription)")
+        #expect(ShellDestination.nameWithPlace(Sample.ollama) == "Ollama (local)")
+        #expect(ShellDestination.nameWithPlace(Sample.anthropic) == "Anthropic API (api.anthropic.com)")
     }
 
     @Test func chatElsewhereIsNamedWithoutAReviewProviderToo() {
@@ -220,17 +255,21 @@ import TestSupport
         #expect(!state.debugDump)
     }
 
-    /// D4 on a model (scene design-review-split-destinations): `defaults.chat` names Claude Code while the review stays on
-    /// "mock"; Claude Code is never asked for its status (O2 asks local providers only).
+    /// D4 and step 5c on a model (scene design-review-split-destinations): `defaults.chat` names Claude Code while the
+    /// review stays on "mock": "Custom"; Claude Code is never asked for its status (O2 asks local providers only).
     @Test @MainActor func aModelWithAChatDefaultElsewhereNamesIt() async throws {
         var settings = SnapshotSupport.settings()
         settings.providers["claude-cli"] = ProviderSettings(enabled: true, inputMode: .auto)
         settings.defaults.chat = ProviderRef(providerID: "claude-cli", model: nil)
         let model = try await ShellTestModels.openedOnTheSnapshotRegistry(settings: settings)
         let state = ShellDestination.state(of: model, environment: [:])
-        #expect(state.text == "Local · mock · chat: Claude Code")
+        #expect(state.text == "Custom · Review: this Mac · Chat: Claude Code · Report: this Mac")
         #expect(state.tint == .orange)
-        #expect(ShellDestinationMenu.otherJobLines(model) == ["Chat questions go to Claude Code (subscription) (claude)."])
+        #expect(ShellDestinationMenu.otherJobLines(model) == ["Chat questions go to Claude Code (subscription)."])
+
+        // The paper's own provider takes every job: one destination again.
+        model.setActiveProvider(ProviderRef(providerID: "mock", model: "mock"))
+        #expect(ShellDestination.state(of: model, environment: [:]).text == "Local · mock")
     }
 
     /// D13 on a model (scene design-review-provider-offline): O3's `mock-offline` chosen, its status arrives.
@@ -248,7 +287,7 @@ import TestSupport
 
     @Test func otherJobsAreNamedInTheMenu() {
         #expect(ShellDestinationMenu.otherJobLines(review: Sample.ollama, chat: Sample.claude, report: Sample.anthropic)
-                == ["Chat questions go to Claude Code (subscription) (claude).", "The report is written by Anthropic API (api.anthropic.com)."])
+                == ["Chat questions go to Claude Code (subscription).", "The report is written by Anthropic API (api.anthropic.com)."])
         #expect(ShellDestinationMenu.otherJobLines(review: Sample.ollama, chat: Sample.ollama, report: nil).isEmpty)
     }
 }
