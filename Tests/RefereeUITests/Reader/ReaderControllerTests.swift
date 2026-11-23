@@ -59,6 +59,51 @@ import TestSupport
         #expect(reader.pdfView.document?.documentURL == nil)       // in memory only: nothing can write them to the file
     }
 
+    /// Design review D29: while the find bar is shown the highlights are drawn at 40% of their alpha; they return when it
+    /// closes.
+    @Test @MainActor func theFindBarDimsTheHighlightsUntilItCloses() async throws {
+        let pending = ReaderTestSupport.comment(status: .pending, rects: [Self.upper])
+        let fuzzy = ReaderTestSupport.comment(status: .approved, rects: [Self.middle], confidence: .fuzzy(score: 0.9))
+        let model = try await ReaderTestSupport.openModel(comments: [pending, fuzzy])
+        let (reader, window) = try await ReaderTestSupport.attachedReader(model)
+        defer { window.close() }
+        let page = try #require(reader.pdfView.document?.page(at: 0))
+        func frameAlpha() -> CGFloat? { ours(on: page).first { $0.type == "Square" }?.color.alphaComponent }
+        await ReaderTestSupport.wait { fill(of: pending.id, on: page) != nil }
+        #expect(abs((fill(of: pending.id, on: page)?.color.alphaComponent ?? 0) - 0.35) < 0.01)
+
+        reader.showFind()
+        await ReaderTestSupport.wait { (fill(of: pending.id, on: page)?.color.alphaComponent ?? 1) < 0.2 }
+        #expect(abs((fill(of: pending.id, on: page)?.color.alphaComponent ?? 0) - 0.14) < 0.01)
+        #expect(abs((fill(of: fuzzy.id, on: page)?.color.alphaComponent ?? 0) - 0.12) < 0.01)
+        #expect(abs((frameAlpha() ?? 0) - 0.4) < 0.01)
+        #expect(ours(on: page).count == 3)                           // replaced, not added
+        #expect(reader.highlights.shown.allSatisfy { $0.isDimmed })
+
+        #expect(reader.dismissFind())
+        await ReaderTestSupport.wait { (fill(of: pending.id, on: page)?.color.alphaComponent ?? 0) > 0.3 }
+        #expect(abs((fill(of: pending.id, on: page)?.color.alphaComponent ?? 0) - 0.35) < 0.01)
+        #expect(abs((frameAlpha() ?? 0) - 1) < 0.01)
+        #expect(!reader.highlights.shown.contains { $0.isDimmed })
+    }
+
+    /// Design review D23: "Show in References" clears a filter that hides the entry, and keeps one that shows it.
+    @Test @MainActor func showInReferencesClearsAFilterThatHidesTheEntry() async throws {
+        let acemoglu = BibEntry(id: 0, rawText: "Acemoglu, D. and Ozdaglar, A. (2011). Bayesian learning in social networks.",
+                                parsed: ParsedReference(authorSurnames: ["Acemoglu", "Ozdaglar"], year: 2011))
+        let index = CitationIndex(style: .authorYear, entries: [acemoglu, ReaderTestSupport.entry(1)], mentions: [])
+        let model = try await ReaderTestSupport.openModel(index: index)
+        let reader = ReaderController(model: model)
+        reader.navigator.referenceFilter = "herd"
+        reader.showInReferences(entryID: 1)                         // Banerjee's "herd behavior": in sight
+        #expect(reader.navigator.referenceFilter == "herd")
+        #expect(reader.navigator.tab == .references)
+        #expect(reader.navigator.shownEntryID == 1)
+        reader.showInReferences(entryID: 0)                         // hidden by "herd": the filter goes
+        #expect(reader.navigator.referenceFilter == "")
+        #expect(reader.navigator.shownEntryID == 0)
+    }
+
     @Test @MainActor func aNewDocumentGetsItsHighlightsAgain() async throws {
         let pending = ReaderTestSupport.comment(status: .pending, rects: [Self.upper])
         let model = try await ReaderTestSupport.openModel(comments: [pending])

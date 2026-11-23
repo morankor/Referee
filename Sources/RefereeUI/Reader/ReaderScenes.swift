@@ -11,6 +11,10 @@ import AppCore
 // `reader-citation` opens its card the way Wave 3's `check-citation-click` will: the centre of the first rectangle of
 // "Acemoglu et al. [2011]" in window coordinates, the view `window.contentView.hitTest` finds there, a mouse-up posted
 // with `NSApp.postEvent`, and `mouseDown(with:)` called on the hit view.
+//
+// Step 5 (docs/design-review.md) added to four `verify`s what its changes made checkable: the selection bar is up for
+// a passage nothing was done with (`reader-selection`, D14), the card's buttons (`reader-citation`, D15), the count and
+// the headings of the References list (`reader-references`, D23), the viewer's toolbar (`reference-viewer`, D27).
 
 @MainActor public enum ReaderScenes {
     public static var all: [SnapshotScene] {
@@ -65,6 +69,8 @@ import AppCore
             if selection.text != expected { failures.append("model.selection.text is \"\(selection.text)\", expected \"\(expected)\"") }
             if selection.rects.count != 2 { failures.append("the selection has \(selection.rects.count) rectangles, expected 2") }
             for rect in selection.rects where rect.x < 100 { failures.append("a selection rectangle starts at x \(rect.x)") }
+            // Nothing has been done with the passage yet, so the bar is up (design review D14).
+            if context.reader?.selectionBarSelection?.spans != selection.spans { failures.append("the selection bar is not shown for the selection") }
             return failures
         })
     }
@@ -85,9 +91,18 @@ import AppCore
             guard let mention = ReaderSceneSupport.acemogluMention(in: model) else { return ["no mention \"Acemoglu et al. [2011\" in the index"] }
             var failures: [String] = []
             switch model.citationLookup {
-            case .resolved(let target, _, let references):
+            case .resolved(let target, let entries, let references):
                 if target != .mention(mention.id) { failures.append("the card is for \(target), expected mention \(mention.id)") }
                 if references.first?.status != .resolved { failures.append("the reference is not resolved") }
+                // Design review D15: the record has an open-access PDF and no DOI, so Open PDF is the one prominent
+                // button and Copy DOI is not shown.
+                if let entry = entries.first {
+                    let actions = ReaderCardActions.make(reference: references.first, entry: entry)
+                    if actions.prominent != .openPDF { failures.append("the prominent button is \(actions.prominent), expected Open PDF") }
+                    if actions.shown != [.openPDF, .openInBrowser, .searchScholar, .showInReferences] {
+                        failures.append("the card shows \(actions.shown), expected Open PDF, Open in Browser, Search Google Scholar, Show in References")
+                    }
+                }
             case .resolving: failures.append("the lookup is still resolving")
             case .idle: failures.append("the click did not open the card")
             }
@@ -128,9 +143,17 @@ import AppCore
             guard let model = context.model, let reader = context.reader else { return ["no review model"] }
             var failures: [String] = []
             if reader.navigator.tab != .references { failures.append("the navigator is not on References") }
-            if (model.citations?.entries.count ?? 0) < 9 { failures.append("the reference list has \(model.citations?.entries.count ?? 0) entries, expected 9") }
+            let entries = model.citations?.entries ?? []
+            if entries.count < 9 { failures.append("the reference list has \(entries.count) entries, expected 9") }
             if model.references.count != 3 { failures.append("\(model.references.count) entries were looked up, expected 3") }
             if case .resolved(.entry(2), _, _) = model.citationLookup {} else { failures.append("the card of the third entry is not open") }
+            // Design review D23: no filter, the count above the list, rows headed by authors and year.
+            if ReaderCitationText.isFiltering(reader.navigator.referenceFilter) { failures.append("a filter is typed") }
+            let count = ReaderCitationText.referenceCount(shown: entries.count, total: entries.count, isFiltering: false)
+            if count != "9 references" { failures.append("the count reads \"\(count)\", expected \"9 references\"") }
+            if let first = entries.first, ReaderCitationText.entryHeading(first) != "Acemoglu et al. (2011)" {
+                failures.append("the first row is headed \"\(ReaderCitationText.entryHeading(first))\", expected \"Acemoglu et al. (2011)\"")
+            }
             return failures
         })
     }
@@ -157,14 +180,26 @@ import AppCore
         })
     }
 
-    /// The reference viewer on `num_twocol_links.pdf`. After the capture, `verify` also presses ⌘+ and ⌘0 in the viewer's
-    /// window: its own zoom keys must work there (Wave 3: the main menu no longer takes them while a viewer is key).
+    /// The reference viewer on `num_twocol_links.pdf`, its controls in the toolbar (D27). After the capture, `verify` also
+    /// presses ⌘+ and ⌘0 in the viewer's window: its own zoom keys must work there (Wave 3: the main menu no longer takes
+    /// them while a viewer is key).
     static var referenceViewer: SnapshotScene {
         SnapshotScene(name: "reference-viewer", kind: .referenceViewer, fixturePDF: "num_twocol_links.pdf", verify: { context in
             let views = ReaderSceneSupport.views(of: PDFView.self, in: context.window.contentView).filter { $0.document != nil }
             guard let pdfView = views.first, let document = pdfView.document else { return ["the viewer shows no document"] }
             var failures: [String] = []
             if document.pageCount != 2 { failures.append("the viewer shows \(document.pageCount) pages, expected 2") }
+            // Design review D27: the controls are in the window's toolbar (zoom, Fit Width, the page count, Find, Open in
+            // Preview), and nothing lies between the toolbar and the PDF.
+            if let toolbar = context.window.toolbar {
+                let labels = toolbar.items.map(\.label)
+                for label in ["Find", "Open in Preview"] where !labels.contains(label) { failures.append("the toolbar has no \"\(label)\"") }
+                if toolbar.items.count < 5 { failures.append("the toolbar has \(toolbar.items.count) items, expected at least 5") }
+            } else {
+                failures.append("the viewer's window has no toolbar")
+            }
+            let gap = context.window.contentLayoutRect.maxY - pdfView.convert(pdfView.bounds, to: nil).maxY
+            if abs(gap) > 1 { failures.append("the PDF starts \(Int(gap)) points below the toolbar: something lies between") }
             guard let zoomIn = ReaderSceneSupport.commandKey("+", keyCode: 24), let fitWidth = ReaderSceneSupport.commandKey("0", keyCode: 29) else {
                 return failures + ["the key events could not be made"]
             }
@@ -190,6 +225,22 @@ import AppCore
     /// The mention "Acemoglu et al. [2011]" of `ay_links.pdf` (its text runs to the end of the year, section 8.4).
     static func acemogluMention(in model: ReviewSessionModel) -> CitationMention? {
         model.citations?.mentions.first { $0.text.hasPrefix("Acemoglu et al.") }
+    }
+
+    /// Selects `passage` on a page of the PDF view, as a drag would (PDFKit's own selection), and waits until the model
+    /// has the normalised selection with its rectangles. False when the passage is not on the page.
+    static func select(_ passage: String, onPage pageIndex: Int, reader: ReaderController, model: ReviewSessionModel) async -> Bool {
+        guard let page = reader.pdfView.document?.page(at: pageIndex), let string = page.string else { return false }
+        let range = (string as NSString).range(of: passage)
+        guard range.location != NSNotFound, let selection = page.selection(for: range) else { return false }
+        reader.pdfView.setCurrentSelection(selection, animate: false)
+        await wait { model.selection?.rects.isEmpty == false }
+        return model.selection?.rects.isEmpty == false
+    }
+
+    /// The alpha of every highlight fill the reader put on `page`.
+    static func fillAlphas(on page: PDFPage) -> [CGFloat] {
+        page.annotations.filter { ReaderHighlightController.ownerID(of: $0) != nil && $0.type == "Highlight" }.map(\.color.alphaComponent)
     }
 
     /// A click at the centre of `rect` as `check-citation-click` makes it (section 10.1): converted to window

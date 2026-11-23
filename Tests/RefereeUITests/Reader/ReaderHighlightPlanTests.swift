@@ -12,9 +12,29 @@ import AppCore
     }
 
     private func plan(_ comments: [ReviewComment], conversations: [Conversation] = [], filter: CommentFilter = .all, selected: UUID? = nil,
-                      showRejected: Bool = false) -> [ReaderHighlight] {
+                      showRejected: Bool = false, dimmed: Bool = false) -> [ReaderHighlight] {
         ReaderHighlightPlan.highlights(comments: comments, conversations: conversations, filter: filter, selectedCommentID: selected,
-                                       showRejected: showRejected)
+                                       showRejected: showRejected, dimmed: dimmed)
+    }
+
+    /// Design review D29: while the find bar is shown every highlight keeps 40% of its alpha, the fuzzy frame included.
+    @Test @MainActor func findDimsEveryHighlightToFortyPercent() throws {
+        let pending = ReaderTestSupport.comment(status: .pending, rects: [rect(y: 600)])
+        let selected = ReaderTestSupport.comment(status: .approved, rects: [rect(y: 560)], confidence: .fuzzy(score: 0.9))
+        let question = ReaderTestSupport.conversation(rects: [rect(y: 520)])
+        let normal = plan([pending, selected], conversations: [question], selected: selected.id)
+        let dimmed = plan([pending, selected], conversations: [question], selected: selected.id, dimmed: true)
+        #expect(normal.allSatisfy { !$0.isDimmed })
+        #expect(dimmed.allSatisfy { $0.isDimmed })
+        #expect(dimmed.map(\.ownerID) == normal.map(\.ownerID))                     // the same highlights, only fainter
+        for (plain, faint) in zip(normal, dimmed) {
+            #expect(abs(faint.alpha - plain.alpha * 0.4) < 0.0001)
+            #expect(abs(faint.color.alphaComponent - plain.alpha * 0.4) < 0.0001)
+        }
+        let frame = try #require(dimmed.first { $0.isFuzzy })
+        #expect(abs(frame.frameColor.alphaComponent - 0.4) < 0.0001)
+        #expect(try #require(normal.first { $0.isFuzzy }).frameColor.alphaComponent == 1)
+        #expect(abs((dimmed.first { $0.ownerID == pending.id }?.alpha ?? 0) - 0.14) < 0.0001)   // pending 0.35 → 0.14
     }
 
     @Test @MainActor func eachStateHasTheColourAndAlphaOfSection73() throws {

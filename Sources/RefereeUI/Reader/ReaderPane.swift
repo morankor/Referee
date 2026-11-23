@@ -31,24 +31,19 @@ public struct ReaderPane: View {          // PDF, find bar, selection bar, citat
 
 /// The overlays, placed from page rectangles: `pdfView.convert(_:from: page)` gives AppKit coordinates (origin at the
 /// bottom left), which ReaderOverlayPlacement turns into SwiftUI's. The layer has no background, so where no overlay
-/// is, clicks reach the PDF view below.
+/// is, clicks reach the PDF view below. Whether the selection bar shows, and for which selection, is the controller's
+/// (`selectionBarSelection`: 200 ms after the selection settles, unless the bar steps aside, D14).
 private struct ReaderOverlayLayer: View {
     let controller: ReaderController
-    @State private var settledSelection: SelectionInfo?        // the selection, 200 ms after it last changed
     @State private var barSize = CGSize(width: 300, height: 30)
     @State private var cardSize = CGSize(width: ReaderCitationCard.width, height: 220)
-
-    /// The selection bar appears this long after the selection settles (section 9.5).
-    static let barDelay: Duration = .milliseconds(200)
-    /// A selection shorter than this has no bar (section 9.5).
-    static let barMinimumLength = 3
 
     var body: some View {
         let model = controller.model
         GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
-                if let selection = settledSelection, let origin = barOrigin(for: selection, in: proxy.size) {
-                    ReaderSelectionBar(model: model, selection: selection)
+                if let selection = controller.selectionBarSelection, let origin = barOrigin(for: selection, in: proxy.size) {
+                    ReaderSelectionBar(controller: controller, selection: selection)
                         .onGeometryChange(for: CGSize.self) { $0.size } action: { barSize = $0 }
                         .offset(x: origin.x, y: origin.y)
                 }
@@ -69,13 +64,6 @@ private struct ReaderOverlayLayer: View {
                         .frame(width: proxy.size.width, alignment: .top)
                 }
             }
-        }
-        .task(id: model.selection) {
-            settledSelection = nil
-            guard let selection = model.selection, selection.text.count >= Self.barMinimumLength, !selection.rects.isEmpty else { return }
-            try? await Task.sleep(for: Self.barDelay)
-            guard !Task.isCancelled else { return }
-            settledSelection = model.selection
         }
     }
 

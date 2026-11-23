@@ -67,8 +67,12 @@ import AppCore
     }
 
     @Test @MainActor func recordLinesAndFailures() {
-        #expect(ReaderCitationText.recordDetails(reference(venue: "Quarterly Journal of Economics")) == "1992 · Quarterly Journal of Economics")
-        #expect(ReaderCitationText.recordDetails(reference(year: nil)) == nil)
+        // The one line under the record's title (design review D15): authors · year · venue.
+        #expect(ReaderCitationText.recordLine(reference(venue: "Quarterly Journal of Economics")) == "Banerjee · 1992 · Quarterly Journal of Economics")
+        #expect(ReaderCitationText.recordLine(reference(year: nil)) == "Banerjee")
+        var anonymous = reference(year: nil, venue: "  ")
+        anonymous.authors = []
+        #expect(ReaderCitationText.recordLine(anonymous) == nil)
         #expect(ReaderCitationText.authorsLine(["Acemoglu", " ", "Ozdaglar"]) == "Acemoglu, Ozdaglar")
         #expect(ReaderCitationText.authorsLine([]) == nil)
         #expect(ReaderCitationText.failureLine(reference(status: .failed, failureReason: "Crossref is busy; try again in a minute."))
@@ -81,12 +85,76 @@ import AppCore
         #expect(ReaderCitationText.searchEntry(forMention: "Kogan [2020").rawText == "Kogan [2020]")
     }
 
+    @Test func aReferenceNobodyKnowsIsSaidPlainly() {
+        #expect(ReaderCitationText.notFoundLine == "No match in Crossref or OpenAlex.")
+        #expect(ReaderCitationText.notFoundNote == "Common for working papers and books.")
+    }
+
+    /// Design review D15: Open PDF, Open in Browser and Copy DOI are hidden when they cannot act; the first of Open PDF,
+    /// Open in Browser and Search Google Scholar is the prominent button; Show in References comes last.
+    @Test @MainActor func theCardShowsOnlyTheButtonsThatCanActAndOneIsProminent() {
+        let bare = ReaderTestSupport.entry(2)
+        let everything = ReaderCardActions.make(reference: reference(doi: "10.1000/record", landing: "https://example.org/landing",
+                                                                     pdf: "https://example.org/a.pdf"), entry: bare)
+        #expect(everything.shown == [.openPDF, .openInBrowser, .copyDOI, .searchScholar, .showInReferences])
+        #expect(everything.prominent == .openPDF)
+
+        let noPDF = ReaderCardActions.make(reference: reference(landing: "https://example.org/landing"), entry: bare)
+        #expect(noPDF.shown == [.openInBrowser, .searchScholar, .showInReferences])
+        #expect(noPDF.prominent == .openInBrowser)
+        #expect(noPDF.linkActions == [.openInBrowser])
+
+        // A failed lookup and a reference nobody knows: the search, prominent, and Show in References only.
+        for status in [ResolutionStatus.failed, .notFound] {
+            let actions = ReaderCardActions.make(reference: reference(status: status), entry: bare)
+            #expect(actions == ReaderCardActions(shown: [.searchScholar, .showInReferences], prominent: .searchScholar))
+            #expect(actions.linkActions.isEmpty)
+        }
+        // The entry's own DOI still leads somewhere when the lookup failed.
+        let printedDOI = ReaderCardActions.make(reference: reference(status: .failed), entry: ReaderTestSupport.entry(2, doi: "10.2307/2118364"))
+        #expect(printedDOI.shown == [.openInBrowser, .copyDOI, .searchScholar, .showInReferences])
+        #expect(printedDOI.prominent == .openInBrowser)
+        // Before the lookup returns, only what the entry itself gives.
+        let waiting = ReaderCardActions.make(reference: nil, entry: ReaderTestSupport.entry(2, url: "https://example.org/entry"))
+        #expect(waiting.shown == [.openInBrowser, .searchScholar, .showInReferences])
+        // A blank PDF address is no PDF.
+        #expect(!ReaderCardActions.make(reference: reference(pdf: "  "), entry: bare).shows(.openPDF))
+        #expect(ReaderCardActions.noEntry == ReaderCardActions(shown: [.searchScholar], prominent: .searchScholar))
+    }
+
+    @Test func theReferencesCountSaysHowManyAreShown() {
+        #expect(ReaderCitationText.referenceCount(shown: 9, total: 9, isFiltering: false) == "9 references")
+        #expect(ReaderCitationText.referenceCount(shown: 3, total: 9, isFiltering: true) == "3 of 9 references")
+        #expect(ReaderCitationText.referenceCount(shown: 0, total: 9, isFiltering: true) == "0 of 9 references")
+        #expect(ReaderCitationText.referenceCount(shown: 1, total: 1, isFiltering: false) == "1 reference")
+        #expect(ReaderCitationText.referenceCount(shown: 1, total: 1, isFiltering: true) == "1 of 1 reference")
+        #expect(!ReaderCitationText.isFiltering(""))
+        #expect(!ReaderCitationText.isFiltering("  \n"))
+        #expect(ReaderCitationText.isFiltering(" learning "))
+    }
+
+    /// Design review D23: the filter ignores case and diacritics, needs every word, and also reads the row's heading.
+    @Test func theReferencesFilterFindsWhatIsPrintedHoweverItIsTyped() {
+        let smith = BibEntry(id: 8, rawText: "Smith, L. and Sørensen, P. (2000). Pathological outcomes of observational learning. Économétrica.",
+                             parsed: ParsedReference(authorSurnames: ["Smith", "Sørensen"], year: 2000))
+        for filter in ["sorensen", "SØRENSEN", "Sørensen 2000", "smith learning", "econometrica", "Économétrica", "", "   ", "Smith and"] {
+            #expect(ReaderCitationText.entry(smith, matches: filter), "\(filter) should keep the entry")
+        }
+        for filter in ["smith banerjee", "1999", "herd"] {
+            #expect(!ReaderCitationText.entry(smith, matches: filter), "\(filter) should hide the entry")
+        }
+        let acemoglu = BibEntry(id: 0, rawText: "Acemoglu, D., Dahleh, M. A., Lobel, I., and Ozdaglar, A. (2011). Bayesian learning in social networks.",
+                                parsed: ParsedReference(authorSurnames: ["Acemoglu", "Dahleh", "Lobel", "Ozdaglar"], year: 2011))
+        #expect(ReaderCitationText.entry(acemoglu, matches: "Acemoglu et al. (2011)"))     // as its heading reads
+        #expect(ReaderCitationText.folded("Ærø, Łódź and Straße") == "aero, lodz and strasse")
+    }
+
     @Test func theReferencesListShowsAnIconOnlyOnceAnEntryWasLookedUp() {
         #expect(ReaderReferenceStatus.of(nil) == nil)
         #expect(ReaderReferenceStatus.of(reference())?.systemImage == "checkmark.circle")
         #expect(ReaderReferenceStatus.of(reference(pdf: "https://example.org/a.pdf"))?.systemImage == "checkmark.circle.fill")
         #expect(ReaderReferenceStatus.of(reference())?.tint == .green)
-        #expect(ReaderReferenceStatus.of(reference(status: .notFound))?.help == "No match found")
+        #expect(ReaderReferenceStatus.of(reference(status: .notFound))?.help == "No match in Crossref or OpenAlex.")
         let failed = ReaderReferenceStatus.of(reference(status: .failed, failureReason: "OpenAlex did not answer."))
         #expect(failed?.systemImage == "exclamationmark.triangle.fill")
         #expect(failed?.tint == .orange)

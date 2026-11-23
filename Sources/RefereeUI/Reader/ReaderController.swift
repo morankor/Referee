@@ -24,6 +24,10 @@ import PDFBridge
 //   it also closes on a click anywhere in the PDF, on Esc (the model's `dismissTransientUI`) and on its own close button.
 //   A scroll notification cannot tell a referee's scroll from a layout pass (a window resized, the sidebar shown), so
 //   "dismissed on scroll" (section 7.4) is read as "never left floating away from what it belongs to".
+// - The selection bar follows the model's selection through `ReaderSelectionBarState`; `selectionBarSelection` is the
+//   selection it is drawn for, nil while it steps aside (design review D14).
+// - While the find bar is shown, every comment and question highlight is drawn at 40% of its alpha, so that find's
+//   yellow matches do not mix with pending yellow; they return when the bar closes (D29).
 
 public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
 
@@ -33,6 +37,7 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
     let finder: ReaderFinder
     let overlay = ReaderOverlayState()
     let navigator = ReaderNavigatorState()
+    let selectionBar = ReaderSelectionBarState()
     let highlights: ReaderHighlightController
 
     /// How long a selection must stay unchanged before the model hears of it (section 7.4).
@@ -43,6 +48,7 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
     private var lastCommandSerial: Int?
     private var waitingCommand: ReaderCommand?            // arrived before the document was shown
     private var selectionTask: Task<Void, Never>?
+    private var barSelection: SelectionInfo?              // the model's selection as the selection bar last heard of it
     private let notifications = ReaderNotificationTokens()
     private weak var watchedClipView: NSClipView?
 
@@ -71,6 +77,7 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
         showPaperAndKeepWatching()
         performCommandsAndKeepWatching()
         showHighlightsAndKeepWatching()
+        followTheSelectionForTheBar()
     }
 
     public var isDocumentLoaded: Bool { pdfView.document != nil }    // pdfView.document != nil
@@ -110,11 +117,30 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
         pdfView.go(to: page)
     }
 
-    /// "Show in References": the navigator switches to References and marks the entry.
+    /// "Show in References": the navigator switches to References and marks the entry; a filter that hides the entry is
+    /// cleared (D23).
     func showInReferences(entryID: Int) {
         navigator.tab = .references
+        if let entry = model.citations?.entries.first(where: { $0.id == entryID }),
+           !ReaderCitationText.entry(entry, matches: navigator.referenceFilter) {
+            navigator.referenceFilter = ""
+        }
         navigator.shownEntryID = entryID
         navigator.scrollRequest &+= 1
+    }
+
+    /// The selection the bar is drawn for: the settled selection, unless the bar steps aside for it (section 9.5; D14).
+    var selectionBarSelection: SelectionInfo? {
+        guard let selection = selectionBar.settled, selection.spans != selectionBar.steppedAsideSpans else { return nil }
+        guard !ReaderSelectionBarState.stepsAside(for: selection, composing: model.composing, session: model.session) else { return nil }
+        return selection
+    }
+
+    /// Copy in the selection bar: the normalised text on `pasteboard`, then "Copied" and the bar stepping aside (D14).
+    /// Tests and scenes pass a pasteboard of their own, so that the referee's clipboard is left alone.
+    func copySelection(_ selection: SelectionInfo, to pasteboard: NSPasteboard = .general) {
+        ReaderPasteboard.copy(selection.text, to: pasteboard)
+        selectionBar.didCopy(selection)
     }
 
     /// Closes the citation card, if one is open, and nothing else (`dismissCitationLookup`, Appendix A.9).
@@ -231,11 +257,24 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
         highlights.show(desired)
     }
 
+    /// The highlights for the model as it is now, dimmed while the find bar is shown (D29).
     private func desiredHighlights() -> [ReaderHighlight] {
         guard let session = model.session else { return [] }
         return ReaderHighlightPlan.highlights(comments: session.comments, conversations: session.conversations, filter: model.filter,
                                               selectedCommentID: model.selectedCommentID,
-                                              showRejected: model.settings.ui.showRejectedHighlights)
+                                              showRejected: model.settings.ui.showRejectedHighlights, dimmed: finder.isVisible)
+    }
+
+    /// Tells the selection bar of every change of the model's selection (section 9.5).
+    private func followTheSelectionForTheBar() {
+        let selection = withObservationTracking {
+            model.selection
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.followTheSelectionForTheBar() }
+        }
+        guard selection != barSelection else { return }
+        barSelection = selection
+        selectionBar.selectionDidChange(to: selection)
     }
 
     func perform(_ command: ReaderCommand) {
@@ -340,6 +379,7 @@ final class ReaderNavigatorState {
     var tab: ReaderNavigatorTab = .pages
     var shownEntryID: Int?               // marked in the References list
     var scrollRequest = 0                // bumped to scroll the list to `shownEntryID`
+    var referenceFilter = ""             // the References list's filter field (D23); kept while the tab changes
 }
 
 /// Notification observers, removed when their owner goes away.
