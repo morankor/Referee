@@ -8,11 +8,15 @@ public enum SnapshotSupport {
     static let mockIDs: [ProviderID] = ["mock", "mock-remote", "mock-fail", "mock-stall"]
 
     /// "mock" (local), "mock-remote" (non-local, destination "mock.example.org"), "mock-fail" (.failsAfterTwoComments),
-    /// "mock-stall" (.stallsAfterTwoComments), then one StaticProvider per provider id of section 5.2 in mixed states.
+    /// "mock-stall" (.stallsAfterTwoComments), then one StaticProvider per provider id of section 5.2 in mixed states,
+    /// then two stand-ins that `settings()` leaves off (step 5, design review O3): "mock-slow" (.sample with 40 ms
+    /// between deltas, every purpose) and "mock-offline" (a local StaticProvider whose status is .needsSetup, "Ollama
+    /// is not running").
     ///
     /// "mock-fail" and "mock-stall" are local, so a scene can start a review through them without the consent card.
     /// The nine static providers carry the descriptors of the real ones and, between them, every status the settings
-    /// pane shows: ready with models, needs setup, unavailable.
+    /// pane shows: ready with models, needs setup, unavailable. The two stand-ins are local and built in (`.none`),
+    /// as the mocks are; a scene that wants one enables it and chooses it.
     public static func providers() -> [any LLMProvider] {
         let mocks: [any LLMProvider] = [
             MockLLMProvider(id: "mock"),
@@ -20,12 +24,13 @@ public enum SnapshotSupport {
             MockLLMProvider(id: "mock-fail", script: .failsAfterTwoComments),
             MockLLMProvider(id: "mock-stall", script: .stallsAfterTwoComments),
         ]
-        return mocks + staticProviders()
+        return mocks + staticProviders() + standIns()
     }
 
     /// DefaultSettings.make() with the four mocks enabled and "mock" as the review default.
     ///
-    /// Each mock has its one model, "mock", chosen, and the review default names that model too.
+    /// Each mock has its one model, "mock", chosen, and the review default names that model too. "mock-slow" and
+    /// "mock-offline" have no entry, so they are off.
     public static func settings() -> AppSettings {
         var settings = DefaultSettings.make()
         for id in mockIDs {
@@ -93,5 +98,37 @@ public enum SnapshotSupport {
                                                       streaming: streaming, maxPromptBytes: maxPromptBytes, retentionNote: note,
                                                       isExperimental: experimental),
                        availability: availability, models: models)
+    }
+
+    // ---- two stand-ins for the design scenes of step 5 (O3), off in `settings()` ----
+
+    /// Between two deltas of "mock-slow": at 7 characters a delta, report_sample takes about 6.5 s and review_clean
+    /// about 15 s, so a scene captures a report or a review half written.
+    static let slowDelayPerChunk: Duration = .milliseconds(40)
+
+    /// "mock-slow" for the report mid-generation (`design-report-streaming`), "mock-offline" for a local provider that
+    /// is not running (`design-review-provider-offline`). Neither can reach anything: one plays a script in-process,
+    /// the other only reports its status.
+    private static func standIns() -> [any LLMProvider] {
+        let offline = ProviderDescriptor(id: "mock-offline", displayName: "Mock (offline)", vendor: "Mock", authMode: .none, isLocal: true,
+                                         destination: "this Mac", supportsNativePDF: false, streaming: .token,
+                                         retentionNote: "A stand-in for tests and snapshots; nothing leaves this Mac.", isExperimental: false)
+        return [
+            MockLLMProvider(id: "mock-slow", script: slowed(.sample)),
+            StaticProvider(descriptor: offline,
+                           availability: .needsSetup(reason: "Ollama is not running", hint: "Start the Ollama app or run `ollama serve`."),
+                           models: [ModelInfo(id: "mock", displayName: "mock", contextWindow: 1_000_000, supportsPDFInput: false)]),
+        ]
+    }
+
+    /// `script` with `slowDelayPerChunk` between the deltas of every response.
+    private static func slowed(_ script: MockScript) -> MockScript {
+        MockScript(responses: script.responses.mapValues { responses in
+            responses.map { response in
+                var slow = response
+                slow.delayPerChunk = slowDelayPerChunk
+                return slow
+            }
+        })
     }
 }

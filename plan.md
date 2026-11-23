@@ -1007,7 +1007,7 @@ Implemented once, in `LLMKit`, as a wrapper every HTTP provider's `stream` goes 
 - A `MockLLMProvider` answers each request with the next `MockResponse` scripted for the request's `purpose` (the last one repeats), cut into deltas of `chunkSize` characters, `delayPerChunk` apart. Same script, same deltas, same order. `recordedRequests` keeps every request it received.
 - `failAfterChunks: n` with a `failure`: after n deltas the stream throws that error. `stallAfterChunks: n`: after n deltas it emits nothing and never finishes until the consuming task is cancelled.
 - `MockScript.sample` is built from `Fixtures/llm` (Appendix D.9). `.failsAfterTwoComments` and `.stallsAfterTwoComments` answer a review with the first two blocks of `review_clean.txt` and the third block up to its quote line, then throw `.overloaded` or fall silent. The cut is counted in lines: the first half of the third block's lines (five of nine: `@@COMMENT`, kind, category, page and quote), so the third block has neither title nor body. The parser drops such a block when the stream ends (§6.5, rule 5), so a review through either script keeps exactly two comments; while `mock-stall` is silent, the third block is a draft that shows its kind, category, page and quote.
-- `SnapshotSupport.providers()` returns four mocks, `mock` (local), `mock-remote` (not local, destination `mock.example.org`), `mock-fail`, `mock-stall`, followed by one `StaticProvider` per real provider id with a scripted status and model list for the settings scenes.
+- `SnapshotSupport.providers()` returns four mocks, `mock` (local), `mock-remote` (not local, destination `mock.example.org`), `mock-fail`, `mock-stall`, followed by one `StaticProvider` per real provider id with a scripted status and model list for the settings scenes, and then two stand-ins added in step 5 (design review O3), which `SnapshotSupport.settings()` leaves off: `mock-slow`, a `MockLLMProvider` playing `MockScript.sample` with 40 ms between deltas for every purpose (a report of `report_sample.txt` takes about 6.5 s), and `mock-offline`, a local `StaticProvider` whose status is ``.needsSetup(reason: "Ollama is not running", hint: "Start the Ollama app or run `ollama serve`.")``. Both are built in (`AuthMode.none`), like the mocks; a scene that wants one enables it and chooses it.
 - `Composition` registers `MockLLMProvider()` under the id `mock` when `REFEREE_ENABLE_MOCK=1` and for `referee-cli --provider mock`, and uses `SnapshotSupport.providers()` as the whole registry when `REFEREE_SNAPSHOT=1` (§10.1).
 
 ---
@@ -1762,9 +1762,9 @@ Top: Target venue field (`meta.targetVenue`), "Notes for the report" field (`met
 
 The banner (`BannerView`, Shell) sits above the PDF in the detail column, one at a time, dismissible; errors stay until dismissed, notices fade after 6 s.
 
-### 9.10 Shared theme (`RefereeUI/Common/CommonTheme.swift`, written in Wave 0, frozen)
+### 9.10 Shared theme (`RefereeUI/Common/CommonTheme.swift`, written in Wave 0, frozen; with `CommonTag.swift`, amended in step 5)
 
-Kind colours: major red, minor grey, question purple, strength teal. Status colours: pending yellow, approved green, rejected grey, own blue. Highlight colours and alphas as in §7.3. Card corner radius 8, card padding 10, list spacing 10, sidebar padding 10. Fonts: system; card title `.headline`, body `.callout`, quote `.callout.italic()`, metadata `.caption`. Light and dark appearance both supported through semantic colours. The public surface of `Theme` is printed in §11.3.
+Kind colours: major red, minor brown, question purple, strength teal (minor was grey until step 5, design review D16: a minor comment is a live concern, and its grey badge looked like the muted badge of a rejected comment). Status colours: pending yellow, approved green, rejected grey, own blue. Highlight colours and alphas as in §7.3. Card corner radius 8, card padding 10, list spacing 10, sidebar padding 10. Fonts: system; card title `.headline`, body `.callout`, quote `.callout.italic()`, metadata `.caption`, tag `.caption2.weight(.semibold)`. Feedback time 1.5 s: how long a control shows that it acted ("Copied" after Copy) before its label returns. Small tags ("You", "verify", "Revision proposed", "Open access", "Experimental") are one view in every pane, `CommonTag(text, color:)`: the text in the tag font and the colour, 6 points of padding either side and 1 above and below, on a capsule of the colour at 15% opacity, at its own size (it neither wraps nor truncates). Light and dark appearance both supported through semantic colours. The public surface of `Theme` and `CommonTag` is printed in §11.3.
 
 ---
 
@@ -2015,9 +2015,11 @@ public struct StaticProvider: LLMProvider {
 }
 public enum SnapshotSupport {
     /// "mock" (local), "mock-remote" (non-local, destination "mock.example.org"), "mock-fail" (.failsAfterTwoComments),
-    /// "mock-stall" (.stallsAfterTwoComments), then one StaticProvider per provider id of section 5.2 in mixed states.
+    /// "mock-stall" (.stallsAfterTwoComments), then one StaticProvider per provider id of section 5.2 in mixed states, then two
+    /// stand-ins of step 5 (O3), built in and local: "mock-slow" (.sample, 40 ms between deltas, every purpose) and "mock-offline"
+    /// (a StaticProvider, .needsSetup(reason: "Ollama is not running", hint: "Start the Ollama app or run `ollama serve`.")).
     public static func providers() -> [any LLMProvider]
-    /// DefaultSettings.make() with the four mocks enabled and "mock" as the review default.
+    /// DefaultSettings.make() with the four mocks enabled and "mock" as the review default; "mock-slow" and "mock-offline" stay off.
     public static func settings() -> AppSettings
 }
 public final class StubURLProtocol: URLProtocol {
@@ -2169,7 +2171,7 @@ public enum SelectionNormalizer {
 @MainActor public enum IntegrationScenes { public static var all: [SnapshotScene] { get } }    // the three check- scenes of section 10.1 (Wave 3)
 /// The look the three panes share (section 9.10; highlights of section 7.3). Every colour is a system colour, so light and dark both work.
 public enum Theme {
-    public static func kindColor(_ kind: CommentKind) -> Color             // major red, minor grey, question purple, strength teal
+    public static func kindColor(_ kind: CommentKind) -> Color             // major red, minor brown (grey until step 5, D16), question purple, strength teal
     public static func statusColor(_ status: CommentStatus) -> Color       // pending yellow, approved green, rejected grey
     public static let ownColor: Color                                      // blue: the reviewer's own comments, whatever their status
     /// own: a comment the reviewer wrote, whatever its status; question: the passage a conversation of the Chat tab started from.
@@ -2188,7 +2190,12 @@ public enum Theme {
     public static let bodyFont: Font                                       // .callout
     public static let quoteFont: Font                                      // .callout.italic()
     public static let metadataFont: Font                                   // .caption
+    public static let tagFont: Font                                        // .caption2.weight(.semibold): the text of a CommonTag (step 5, D16)
+    public static let feedbackDuration: Duration                           // .milliseconds(1_500): "Copied" and the like, then the label returns (step 5, D16)
 }
+/// One small tag (step 5, D16): the text in Theme.tagFont and `color`, padding 6 either side and 1 above and below, on a capsule of
+/// `color` at 15%, at its own size (fixedSize). "You", "verify", "Revision proposed", "Open access", "Experimental".
+public struct CommonTag: View { public init(_ text: String, color: Color) }
 
 // ====== RefereeUI/Reader (WP9) ========================================================================================
 public final class RefereePDFView: PDFView {}             // overrides mouseDown(with:) and areaOfInterest(for:) (section 7.4)
@@ -4087,6 +4094,7 @@ public final class ReviewSessionModel {
     public private(set) var consentRequest: ConsentRequest?
     public private(set) var activeProvider: ProviderDescriptor?   // nil = nothing usable is configured
     public private(set) var activeModel: String?                  // nil = the provider's own default
+    public private(set) var activeAvailability: ProviderAvailability?   // the active provider's status when it is local; nil for a remote one or none (step 5, O2)
     public private(set) var sendPlan: SendPlan?                   // what a review would send now; refreshed when paper, provider, model list or settings change
     public private(set) var lintFindings: [LintFinding] = []
     public private(set) var citationLookup: CitationLookup = .idle
@@ -4109,6 +4117,11 @@ public final class ReviewSessionModel {
     public var triage: (decided: Int, total: Int)
     public var canStartReview: Bool             // paper ready, review lane idle, a provider is active, and sendPlan?.blockingReason == nil
     public var selectableProviders: [ProviderDescriptor]   // enabled providers; non-local ones are left out when Local only is on
+    /// Where a discussion reply or a chat answer would go now, as `activeProvider` is where a review would: the job's provider,
+    /// session.preferredProvider ?? settings.defaults.chat ?? settings.defaults.review, if registered and enabled, else nil. Read-only,
+    /// observable through `session` and `settings` (step 5, O1).
+    public var chatProvider: ProviderDescriptor?
+    public var reportProvider: ProviderDescriptor?   // the same for the report and its voice revision (settings.defaults.report)
 
     public init(dependencies: AppDependencies, settings: AppSettings)
 
@@ -4122,6 +4135,11 @@ public final class ReviewSessionModel {
     public func setActiveProvider(_ ref: ProviderRef)
     public func answerConsent(granted: Bool, askAgain: Bool = false)   // askAgain ("Ask again next time"): send now, record no consent
     public func reloadSettings(_ settings: AppSettings)   // called by WindowManager on .refereeSettingsDidChange
+    /// Fills `activeAvailability` (step 5, O2): a local active provider is asked for its availability() (Ollama: /api/version on
+    /// loopback, 2 s, no key read); a remote provider or none is never asked and gives nil at once. Called by the model whenever
+    /// the active provider changes; the window calls it when the app becomes active and when the destination menu opens (D13).
+    /// While an answer is on its way the last answer of the same provider stays; a provider not asked before has nil.
+    public func refreshActiveAvailability()
 
     // ---- review run ----
     public func startReview()                   // asks consent first when required
@@ -5260,3 +5278,14 @@ Wave 3 merged the three UI branches, read their notes (`docs/contract-notes/wp9-
 | WP2 and WP9: a highlight that ends before glued margin digits stopped one glyph short | `rects(for:in:)` adds the missing glyph, as wide as the mean of the last eight plausible glyphs; the line bounds the cleaning reads are unchanged; §4.3's sample remeasured (first rectangle 82.7 → 88.6 wide) | §6.7, §4.3 |
 | The integration scenes | `check-document-loaded`, `check-citation-click`, `check-triage-keys` in `CommonIntegrationScenes.swift`, as §10.1 prints them | §10.1, §11.3 |
 | Coordinator, after Wave 3: Grok Build's install hint (shown in Settings and the README) named the npm package that WP5 did not install because it names no repository or homepage | The hint and the README give xAI's own installer, `curl -fsSL https://x.ai/cli/install.sh \| bash`; the README says why the npm package is not offered | §5.6.1 table, `GrokBuildAdapter`, README |
+
+### G.8 Amendments in step 5 (design review)
+
+Step 5 implements `docs/design-review.md`: 35 changes to the UI, `D1`–`D35`, and three additions outside it, `O1`–`O3`; the review has the reasons. Step 5a, one agent alone on `main`, laid the foundation that the Reader, Sidebar and Shell agents then build on in parallel (`docs/contract-notes/step5a-foundation.md`: the signatures, the commands, and what the area agents need to know). Every change below is additive with defaults, and is in the code and in the sections named, in the same commit. A line in **bold** differs from what the review asked for, and says why.
+
+| Item | What changed | Where |
+|---|---|---|
+| D16 (`docs/design-review.md`, change list): shared tokens | `Theme.kindColor(.minor)` is brown instead of grey; new `Theme.tagFont` (`.caption2.weight(.semibold)`) and `Theme.feedbackDuration` (1.5 s); new `CommonTag(_:color:)`, the one look of small tags. The areas adopt the tag and the tokens in their own files (D1, D8, D14, D15, D21); until they do, the pictures change only where a minor badge is shown | §9.10, §11.3 |
+| O1 (`docs/design-review.md`, "Outside `Sources/RefereeUI`"): where chat and report go | `ReviewSessionModel.chatProvider` and `reportProvider`: the provider of that job as `resolveTarget` finds it, read-only, observable through `session` and `settings`; nil when the job's provider is not registered or not enabled. For D4 | A.9 |
+| O2 (the same table): the status of a local provider | `ReviewSessionModel.activeAvailability` and `refreshActiveAvailability()`: only a local active provider is asked for its `availability()` (Ollama: `/api/version` on loopback, 2 s, no key read), whenever the active provider changes and when the window asks; a remote provider, or none, is never asked (an API check reads the Keychain, a CLI check starts a process) and gives nil at once. A check of the same provider keeps the last answer until the new one arrives, so the indicator does not flicker; an answer that arrives after the provider changed is dropped. For D13; §9.7's sentence on "nothing ready" follows in the docs pass of step 5 | A.9 |
+| O3 (the same table): two snapshot stand-ins | `SnapshotSupport.providers()` ends with `mock-slow` (`MockScript.sample` with 40 ms between deltas, every purpose) and `mock-offline` (a local `StaticProvider`, `.needsSetup`, "Ollama is not running"), both built in (`AuthMode.none`) and left off by `settings()`; for the scenes `design-report-streaming` and `design-review-provider-offline`. Settings ▸ Providers lists them under "Built in" in the snapshot mode, so the settings pictures show one or two more rows at the end of the list. A snapshot run still starts no process and makes no request: one plays a script in-process, the other only reports its status. **Six lines in four tests pinned the list, not the three the review names: also `SnapshotSupportTests` line 16 (the static rows' type), `IntegrationSmokeTests` line 38 (the snapshot graph) and `ShellProviderRowsTests` line 53 (the "Built in" group; a Shell file, changed by step 5a because the stand-ins are built in)** | §5.9, §11.3 |

@@ -31,16 +31,18 @@ import Composition
     }
 
     /// Snapshot mode (plan section 10.1): the whole graph stands on mock and static providers and the fake resolver.
+    /// The two stand-ins of step 5 (design review O3) come last: "mock-slow" is a mock, "mock-offline" a static row.
     @Test func theSnapshotGraphHasTheFourMocksAndNoRealProvider() async throws {
         let home = temporaryHome()
         defer { try? FileManager.default.removeItem(at: home) }
         let dependencies = await LiveDependencies.make(environment: ["REFEREE_HOME": home.path, "REFEREE_SNAPSHOT": "1", "REFEREE_NO_KEYCHAIN": "1"])
-        #expect(dependencies.providers.all.map(\.descriptor.id) == ["mock", "mock-remote", "mock-fail", "mock-stall"] + Self.realProviderIDs)
+        #expect(dependencies.providers.all.map(\.descriptor.id)
+                    == ["mock", "mock-remote", "mock-fail", "mock-stall"] + Self.realProviderIDs + ["mock-slow", "mock-offline"])
         #expect(dependencies.providers.provider(id: "mock-remote")?.descriptor.destination == "mock.example.org")
 
-        // The real provider ids are rows with a status: none of them can send anything.
+        // The real provider ids are rows with a status: none of them can send anything, nor can "mock-offline".
         let request = LLMRequest(system: "s", parts: [.text("t")], purpose: .ping)
-        for id in Self.realProviderIDs {
+        for id in Self.realProviderIDs + ["mock-offline"] {
             let provider = try #require(dependencies.providers.provider(id: id))
             do {
                 for try await _ in provider.stream(request) {}

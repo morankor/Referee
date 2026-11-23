@@ -14,7 +14,7 @@ import CLIProviders
         let environment = ProviderEnvironment(settings: { defaults.providers[$0] ?? ProviderSettings(enabled: false, inputMode: .auto) },
                                               secrets: InMemorySecretStore(), urlSession: StubURLProtocol.session(), processEnvironment: [:])
         let real = (LLMKitFactory.makeProviders(environment: environment) + CLIProviderFactory.makeProviders(environment: environment)).map(\.descriptor)
-        let rows = SnapshotSupport.providers().dropFirst(4).map(\.descriptor)
+        let rows = SnapshotSupport.providers().dropFirst(4).prefix(9).map(\.descriptor)     // the two stand-ins of step 5 follow
         #expect(rows.map(\.id) == real.map(\.id))
         for (row, descriptor) in zip(rows, real) {
             #expect(row == descriptor, "\(descriptor.id): the snapshot row differs from the real descriptor")

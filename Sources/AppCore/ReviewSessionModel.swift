@@ -22,6 +22,9 @@ import RefereeCore
 // - Every run that started is recorded in `session.runs`, also when it was cancelled or its stream threw. A stream that
 //   ends without `.finished` was cancelled (Appendix A.6): recorded as cancelled, no banner.
 // - unload is called once per successful load: by close, and by open when the document it loaded is no longer wanted.
+// - Provider status (step 5, O2; docs/contract-notes/step5a-foundation.md): only a local active provider is asked for
+//   its `availability()`, whenever the active provider changes and when the window asks. A check of the same provider
+//   keeps the last answer until the new one arrives, so the indicator does not flicker; a new provider starts at nil.
 
 @MainActor @Observable
 public final class ReviewSessionModel {
@@ -44,6 +47,7 @@ public final class ReviewSessionModel {
     public private(set) var consentRequest: ConsentRequest?
     public private(set) var activeProvider: ProviderDescriptor?   // nil = nothing usable is configured
     public private(set) var activeModel: String?                  // nil = the provider's own default
+    public private(set) var activeAvailability: ProviderAvailability?   // the active provider's status when it is local; nil for a remote one or none (step 5, O2)
     public private(set) var sendPlan: SendPlan?                   // what a review would send now; refreshed when paper, provider, model list or settings change
     public private(set) var lintFindings: [LintFinding] = []
     public private(set) var citationLookup: CitationLookup = .idle
@@ -75,6 +79,8 @@ public final class ReviewSessionModel {
     @ObservationIgnored private var modelListRequested: Set<ProviderID> = []           // once per provider per window
     @ObservationIgnored private var planGeneration = 0
     @ObservationIgnored private var sendPlanContext: EngineContext?                    // the context `sendPlan` was computed for
+    @ObservationIgnored private var availabilityGeneration = 0
+    @ObservationIgnored private var availabilityProviderID: ProviderID?                // whose status `activeAvailability` holds
 
     // ---- persistence (section 4.5) ----
     @ObservationIgnored private var persistenceEnabled = false
@@ -127,6 +133,13 @@ public final class ReviewSessionModel {
             settings.providers[descriptor.id]?.enabled == true && (!settings.privacy.localOnly || descriptor.isLocal)
         }
     }
+    /// Where a discussion reply or a chat answer would go now, as `activeProvider` is where a review would: the job's
+    /// provider, `session.preferredProvider ?? settings.defaults.chat ?? settings.defaults.review`, if it is registered
+    /// and enabled; nil when it is not (the job would then fail with "Set up an AI provider"). Read-only, observable
+    /// through `session` and `settings` (step 5, O1: the indicator names it when it differs, design review D4).
+    public var chatProvider: ProviderDescriptor? { resolveTarget(for: .chat)?.descriptor }
+    /// The same for the report and its voice revision (`settings.defaults.report`).
+    public var reportProvider: ProviderDescriptor? { resolveTarget(for: .report)?.descriptor }
 
     public init(dependencies: AppDependencies, settings: AppSettings) {
         self.dependencies = dependencies
@@ -319,6 +332,31 @@ public final class ReviewSessionModel {
         guard settings != self.settings else { return }
         self.settings = settings
         refreshPlan()
+    }
+
+    /// Fills `activeAvailability` (step 5, O2). A local active provider is asked for its `availability()`, which costs
+    /// nothing (Ollama: `/api/version` on loopback, 2 s, no key read). A remote provider, or none, is never asked (an
+    /// API provider's check reads the Keychain, a CLI's starts a process): `activeAvailability` becomes nil at once.
+    /// The model calls this whenever the active provider changes; the window calls it when the app becomes active and
+    /// when the destination menu opens (D13). While the answer is on its way, the last answer of the same provider
+    /// stays; a provider not asked before has nil.
+    public func refreshActiveAvailability() {
+        availabilityGeneration += 1
+        let generation = availabilityGeneration
+        guard let descriptor = activeProvider, descriptor.isLocal, let provider = dependencies.providers.provider(id: descriptor.id) else {
+            availabilityProviderID = nil
+            if activeAvailability != nil { activeAvailability = nil }
+            return
+        }
+        if availabilityProviderID != descriptor.id {
+            availabilityProviderID = descriptor.id
+            if activeAvailability != nil { activeAvailability = nil }
+        }
+        track { [weak self] in
+            let status = await Self.availability(of: provider)
+            guard let self, generation == self.availabilityGeneration, self.activeProvider?.id == descriptor.id else { return }
+            if self.activeAvailability != status { self.activeAvailability = status }
+        }
     }
 
     // ---- review run ----
@@ -881,13 +919,17 @@ public final class ReviewSessionModel {
     }
 
     /// The review provider and model shown by the destination indicator, and `sendPlan` for them. A plan computed for
-    /// another provider or model is dropped at once; the new one follows.
+    /// another provider or model is dropped at once; the new one follows. A new provider is asked for its status
+    /// (`refreshActiveAvailability()`, local providers only).
     @discardableResult
     private func refreshPlan() -> Task<Void, Never>? {
         planGeneration += 1
         let generation = planGeneration
         let target = resolveTarget(for: .review)
-        if activeProvider != target?.descriptor { activeProvider = target?.descriptor }
+        if activeProvider != target?.descriptor {
+            activeProvider = target?.descriptor
+            refreshActiveAvailability()
+        }
         if activeModel != target?.ref.model { activeModel = target?.ref.model }
         guard let target, let paper else {
             if sendPlan != nil { sendPlan = nil }
@@ -1312,6 +1354,11 @@ public final class ReviewSessionModel {
 
     @concurrent nonisolated private static func buildIndex(_ indexer: any CitationIndexing, for paper: LoadedPaper) async -> CitationIndex {
         indexer.buildIndex(paper: paper.text, links: paper.links)
+    }
+
+    /// A provider's status, off the main actor (`refreshActiveAvailability()` asks local providers only).
+    @concurrent nonisolated private static func availability(of provider: any LLMProvider) async -> ProviderAvailability {
+        await provider.availability()
     }
 
     // ---- citations ----

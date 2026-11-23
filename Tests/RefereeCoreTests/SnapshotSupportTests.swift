@@ -8,13 +8,52 @@ import TestSupport
     private static let mockIDs = ["mock", "mock-remote", "mock-fail", "mock-stall"]
     private static let realIDs = ["anthropic-api", "openai-api", "gemini-api", "xai-api", "ollama",
                                   "claude-cli", "codex-cli", "antigravity-cli", "grok-cli"]
+    private static let standInIDs = ["mock-slow", "mock-offline"]                      // step 5 (design review O3)
 
-    @Test func theRegistryIsTheFourMocksThenTheNineRealIds() {
+    @Test func theRegistryIsTheFourMocksThenTheNineRealIdsThenTheTwoStandIns() {
         let providers = SnapshotSupport.providers()
-        #expect(providers.map(\.descriptor.id) == Self.mockIDs + Self.realIDs)
+        #expect(providers.map(\.descriptor.id) == Self.mockIDs + Self.realIDs + Self.standInIDs)
         #expect(providers.prefix(4).allSatisfy { $0 is MockLLMProvider })
-        #expect(providers.dropFirst(4).allSatisfy { $0 is StaticProvider })
+        #expect(providers.dropFirst(4).prefix(9).allSatisfy { $0 is StaticProvider })
         #expect(Set(providers.map(\.descriptor.displayName)).count == providers.count)      // a menu can tell them apart
+    }
+
+    /// Step 5 (O3): "mock-slow" plays the sample script with 40 ms between deltas, for the report mid-generation;
+    /// "mock-offline" is a local provider that reports Ollama's "not running" and can send nothing. Both are built in,
+    /// local, and off in the snapshot settings.
+    @Test func theTwoStandInsAreASlowMockAndALocalProviderThatIsNotRunning() async throws {
+        let registry = ProviderRegistry(SnapshotSupport.providers())
+        let slow = try #require(registry.provider(id: "mock-slow") as? MockLLMProvider)
+        let offline = try #require(registry.provider(id: "mock-offline") as? StaticProvider)
+        for descriptor in [slow.descriptor, offline.descriptor] {
+            #expect(descriptor.isLocal)
+            #expect(descriptor.authMode == .none)
+            #expect(descriptor.vendor == "Mock")
+        }
+        #expect(slow.descriptor.displayName == "Mock (slow)")
+        #expect(offline.descriptor.displayName == "Mock (offline)")
+
+        // The sample's answer to a test prompt is one delta, which comes no sooner than 40 ms (a sleep never ends early).
+        let clock = ContinuousClock()
+        let started = clock.now
+        var answer = ""
+        for try await event in slow.stream(LLMRequest(system: "", parts: [.text("Reply with exactly: OK")], purpose: .ping)) {
+            if case .textDelta(let delta) = event { answer += delta }
+        }
+        #expect(answer == "OK")
+        #expect(clock.now - started >= .milliseconds(40))
+
+        #expect(await offline.availability() == .needsSetup(reason: "Ollama is not running", hint: "Start the Ollama app or run `ollama serve`."))
+        #expect(try await offline.listModels().map(\.id) == ["mock"])
+        do {
+            for try await _ in offline.stream(LLMRequest(system: "s", parts: [.text("t")], purpose: .review)) {}
+            Issue.record("mock-offline should not stream")
+        } catch {
+            #expect(error is LLMError)
+        }
+
+        let settings = SnapshotSupport.settings()
+        for id in Self.standInIDs { #expect(settings.providers[id] == nil, "\(id) has an entry in the snapshot settings") }
     }
 
     @Test func onlyMockRemoteIsNotLocalAmongTheMocks() {
@@ -69,7 +108,7 @@ import TestSupport
     }
 
     @Test func theStaticRowsCarryTheRosterAndShowEveryStatus() async throws {
-        let rows = SnapshotSupport.providers().dropFirst(4)
+        let rows = SnapshotSupport.providers().dropFirst(4).prefix(9)
         var ready = 0, needsSetup = 0, unavailable = 0
         for row in rows {
             switch await row.availability() {

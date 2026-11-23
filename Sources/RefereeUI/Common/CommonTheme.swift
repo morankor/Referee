@@ -3,17 +3,19 @@ import AppKit
 import RefereeCore
 
 /// The look the three panes share (plan.md section 9.10; highlight colours from section 7.3). Written in Wave 0 and
-/// frozen, so that Reader, Sidebar and Shell agree without talking to each other.
+/// frozen, so that Reader, Sidebar and Shell agree without talking to each other. Step 5 (design review D16) made the
+/// minor colour brown and added the tag font, the feedback time and `CommonTag`.
 ///
 /// Every colour is a system colour, which follows the light or dark appearance of its window.
 public enum Theme {
     // ---- comment kinds and statuses ----
 
-    /// major red, minor grey, question purple, strength teal.
+    /// major red, minor brown, question purple, strength teal. Minor was grey until step 5 (D16): a minor comment is a
+    /// live concern, and its grey badge looked like the muted badge of a rejected comment.
     public static func kindColor(_ kind: CommentKind) -> Color {
         switch kind {
         case .major: return .red
-        case .minor: return .gray
+        case .minor: return .brown
         case .question: return .purple
         case .strength: return .teal
         }
@@ -88,4 +90,11 @@ public enum Theme {
     public static let bodyFont: Font = .callout
     public static let quoteFont: Font = .callout.italic()
     public static let metadataFont: Font = .caption
+    /// The text of a small tag, `CommonTag` (step 5, D16).
+    public static let tagFont: Font = .caption2.weight(.semibold)
+
+    // ---- timing ----
+
+    /// How long a control shows that it acted ("Copied" after Copy) before its label returns (step 5, D16).
+    public static let feedbackDuration: Duration = .milliseconds(1_500)
 }

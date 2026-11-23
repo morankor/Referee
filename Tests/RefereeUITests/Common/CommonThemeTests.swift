@@ -2,19 +2,22 @@ import AppKit
 import SwiftUI
 import Testing
 import RefereeCore
-import RefereeUI
+@testable import RefereeUI
 
-/// The shared theme and the actions panes get from the shell (plan.md sections 7.3, 9.1 and 9.10).
+/// The shared theme and the actions panes get from the shell (plan.md sections 7.3, 9.1 and 9.10), with the tokens and
+/// the tag of step 5 (design review D16).
 @Suite struct CommonThemeTests {
     @Test func kindAndStatusColoursAreTheOnesOfSection910() {
         #expect(Theme.kindColor(.major) == .red)
-        #expect(Theme.kindColor(.minor) == .gray)
+        #expect(Theme.kindColor(.minor) == .brown)                          // grey until step 5 (D16)
         #expect(Theme.kindColor(.question) == .purple)
         #expect(Theme.kindColor(.strength) == .teal)
         #expect(Theme.statusColor(.pending) == .yellow)
         #expect(Theme.statusColor(.approved) == .green)
         #expect(Theme.statusColor(.rejected) == .gray)
         #expect(Theme.ownColor == .blue)
+        // A minor comment is a live concern: its badge must not look like the grey of a rejected one (D16).
+        #expect(Theme.kindColor(.minor) != Theme.statusColor(.rejected))
     }
 
     @Test func highlightsHaveTheHuesAndAlphasOfSection73() {
@@ -46,6 +49,29 @@ import RefereeUI
         #expect(Theme.bodyFont == .callout)
         #expect(Theme.quoteFont == .callout.italic())
         #expect(Theme.metadataFont == .caption)
+        #expect(Theme.tagFont == .caption2.weight(.semibold))               // step 5 (D16)
+    }
+
+    /// D16: how long "Copied" and the like stay before the label returns.
+    @Test func theFeedbackTimeIsOneAndAHalfSeconds() {
+        #expect(Theme.feedbackDuration == .milliseconds(1_500))
+    }
+
+    /// D16: one look for every small tag. The text in the tag font, 6 points either side and 1 above and below, at its
+    /// own size whatever it is offered: a tag never wraps and is never cut.
+    @Test @MainActor func aTagIsItsTextInTheTagFontWithItsPaddingAtItsOwnSize() {
+        let tag = CommonTag("Open access", color: .green)
+        #expect(tag.text == "Open access")
+        #expect(tag.color == .green)
+        let roomy = CGSize(width: 1_000, height: 1_000)
+        for text in ["You", "verify", "Revision proposed", "Open access", "Experimental"] {
+            let label = NSHostingController(rootView: Text(text).font(Theme.tagFont).fixedSize()).sizeThatFits(in: roomy)
+            let hosted = NSHostingController(rootView: CommonTag(text, color: .orange))
+            let size = hosted.sizeThatFits(in: roomy)
+            #expect(abs(size.width - (label.width + 12)) < 0.5, "\(text): the tag is \(size.width) wide, its text \(label.width)")
+            #expect(abs(size.height - (label.height + 2)) < 0.5, "\(text): the tag is \(size.height) high, its text \(label.height)")
+            #expect(hosted.sizeThatFits(in: CGSize(width: 4, height: 4)) == size, "\(text): offered 4 points, the tag changed its size")
+        }
     }
 
     /// The defaults do nothing, which is what the snapshot mode relies on; the shell replaces them.

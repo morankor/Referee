@@ -10,7 +10,7 @@ import RefereeUI
 
 // Gate 0, step 2 (plan.md section 11.4): the public surface of section 11.3, named with its printed argument labels and
 // types. This half covers TestSupport, PDFBridge, AppCore (section 11.3 and every member of Appendix A.9) and RefereeUI
-// (with `Theme` and the `UIActions` block of section 9.1); the other half is Tests/IntegrationTests/SurfaceCheck.swift.
+// (with `Theme`, `CommonTag` and the `UIActions` block of section 9.1); the other half is Tests/IntegrationTests/SurfaceCheck.swift.
 // Switches over enums are exhaustive on purpose: a public case added without a contract note stops the build here.
 //
 // Nothing here is ever called: the file only has to compile. If it stops compiling, a declaration of section 11.3 or
@@ -212,6 +212,10 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: (decided: Int, total: Int) = model.triage
     let _: Bool = model.canStartReview
     let _: [ProviderDescriptor] = model.selectableProviders
+    let _: ProviderDescriptor? = model.chatProvider                     // step 5 (O1)
+    let _: ProviderDescriptor? = model.reportProvider
+    let _: ProviderAvailability? = model.activeAvailability             // step 5 (O2)
+    model.refreshActiveAvailability()
     await model.open(url: file)
     await model.close()
     await model.deleteReviewData()
@@ -332,6 +336,9 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: NSColor = Theme.pdfBackground
     let _: [CGFloat] = [Theme.cardCornerRadius, Theme.cardPadding, Theme.listSpacing, Theme.sidebarPadding]
     let _: [Font] = [Theme.cardTitleFont, Theme.bodyFont, Theme.quoteFont, Theme.metadataFont]
+    let _: Font = Theme.tagFont                                         // step 5 (D16)
+    let _: Duration = Theme.feedbackDuration
+    let _: any View = CommonTag("Open access", color: .green)
 
     var actions = UIActions()
     actions.openReferenceViewer = { (_: URL, _: String) in }

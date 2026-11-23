@@ -45,12 +45,12 @@ import TestSupport
         #expect(groups.map(\.group.title) == ["API key", "Subscription through an installed CLI", "Local"])
     }
 
-    /// In the snapshot graph the four mocks come last, under "Built in".
+    /// In the snapshot graph the four mocks come last, under "Built in", with the two stand-ins of step 5 (O3) after them.
     @Test func theSnapshotRegistryHasEveryStatusAndTheBuiltInsLast() async {
         let providers = SnapshotSupport.providers()
         let groups = ShellProviderRows.grouped(providers.map(\.descriptor))
         #expect(groups.map(\.group) == [.apiKey, .subscription, .local, .builtIn])
-        #expect(groups.last?.providers.map(\.id) == ["mock", "mock-remote", "mock-fail", "mock-stall"])
+        #expect(groups.last?.providers.map(\.id) == ["mock", "mock-remote", "mock-fail", "mock-stall", "mock-slow", "mock-offline"])
         var lights: Set<ShellProviderStatus.Light> = []
         for provider in providers { lights.insert(ShellProviderRows.status(await provider.availability()).light) }
         #expect(lights == [.green, .yellow, .red])
