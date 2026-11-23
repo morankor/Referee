@@ -17,7 +17,7 @@ import AppCore
 
 @MainActor public enum SidebarScenes {
     public static var all: [SnapshotScene] {
-        [pending, streaming, states, discussion, editing, chat, report]
+        [pending, streaming, states, discussion, editing, chat, report] + SidebarDesignScenes.all
     }
 
     /// sample.json: the comment with a two-message thread and a proposed revision.

@@ -14,7 +14,7 @@ import AppCore
 
 @MainActor public enum ReaderScenes {
     public static var all: [SnapshotScene] {
-        [highlights, selection, citation, find, references, ruler, referenceViewer]
+        [highlights, selection, citation, find, references, ruler, referenceViewer] + ReaderDesignScenes.all
     }
 
     /// Comments of Fixtures/sessions/sample.json (docs/contract-notes/wp0b-testsupport.md, decision 5).

@@ -9,7 +9,7 @@ import TestSupport
 /// own `verify` in the snapshot run and by looking at the pictures.
 @Suite struct SidebarScenesTests {
     @Test @MainActor func theSevenScenesOfSection101() {
-        #expect(SidebarScenes.all.map(\.name) == ["sidebar-pending", "sidebar-streaming", "sidebar-states", "sidebar-discussion",
+        #expect(SidebarScenes.all.map(\.name).filter { !$0.hasPrefix("design-") } == ["sidebar-pending", "sidebar-streaming", "sidebar-states", "sidebar-discussion",
                                                   "sidebar-editing", "sidebar-chat", "sidebar-report"])
     }
 

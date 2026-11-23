@@ -34,7 +34,7 @@ import TestSupport
 
     @Test @MainActor func theSevenScenesOfSection101() {
         let scenes = ReaderScenes.all
-        #expect(scenes.map(\.name) == ["reader-highlights", "reader-selection", "reader-citation", "reader-find", "reader-references",
+        #expect(scenes.map(\.name).filter { !$0.hasPrefix("design-") } == ["reader-highlights", "reader-selection", "reader-citation", "reader-find", "reader-references",
                                        "reader-ruler", "reference-viewer"])
         let byName = Dictionary(uniqueKeysWithValues: scenes.map { ($0.name, $0) })
         #expect(byName["reader-highlights"]?.fixturePDF == "ay_nolinks.pdf")

@@ -1,0 +1,776 @@
+{
+  "comments": [
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 1",
+        "pageIndex": 0,
+        "quote": "The effect is statistically significant but economically small, and it fades in markets with many sellers.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The abstract calls the effect significant but small without a number. A reader will want the estimate against its baseline, and its interval.",
+      "category": "claims",
+      "createdAt": "2026-11-16T09:01:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000001",
+      "includeInReport": true,
+      "kind": "major",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "suggestion": "State the estimate and its interval in the abstract.",
+      "thread": [],
+      "title": "The abstract should give the size of the effect",
+      "updatedAt": "2026-11-16T10:01:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 1",
+        "pageIndex": 0,
+        "quote": "We interpret the evidence through a model of observational learning in which the display rule controls how much of the history each buyer can read.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The last sentence of the abstract promises a model whose role is only explained in Section 5.",
+      "category": "writing",
+      "createdAt": "2026-11-16T09:02:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000002",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "suggestion": "Say in one clause what the model predicts that the data test.",
+      "thread": [],
+      "title": "The model is announced before the reader knows why",
+      "updatedAt": "2026-11-16T10:02:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 2",
+        "pageIndex": 1,
+        "quote": "The staggered rollout gives us treated and not-yet-treated categories in every month of the sample.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The design rests on the claim that the order of categories was fixed for reasons unrelated to demand. The paper offers internal documents but no test that early and late categories had similar demand before the rollout.",
+      "category": "assumptions",
+      "createdAt": "2026-11-16T09:03:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000003",
+      "includeInReport": true,
+      "kind": "major",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "proposedRevision": {
+        "body": "The paper states that the order of categories was fixed in advance. It shows no test that early and late categories had similar demand before the rollout.",
+        "kind": "major",
+        "suggestion": "Report pre-rollout trends in visits and purchases by cohort.",
+        "title": "The rollout order needs a test, not only documents",
+        "withdraw": false
+      },
+      "status": "pending",
+      "suggestion": "Report pre-rollout trends in visits and purchases by cohort.",
+      "thread": [
+        {
+          "createdAt": "2026-11-16T10:40:00Z",
+          "id": "DE51A000-0000-4000-8000-0000000000B1",
+          "role": "user",
+          "text": "The paper does say the order was fixed in advance. Is the comment still fair?"
+        },
+        {
+          "createdAt": "2026-11-16T10:40:20Z",
+          "id": "DE51A000-0000-4000-8000-0000000000B2",
+          "provider": {
+            "model": "mock",
+            "providerID": "mock"
+          },
+          "role": "assistant",
+          "text": "It is fair in part: the paper asserts the order was fixed but tests nothing about it. The comment should ask for the pre-trends rather than imply the order was chosen on demand."
+        }
+      ],
+      "title": "Nothing shows that the rollout order was unrelated to demand",
+      "updatedAt": "2026-11-16T10:03:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 2",
+        "pageIndex": 1,
+        "quote": "First, the histogram raises the share of buyers who depart from the displayed majority by 2.4 percentage points, against a pre-rollout mean of 11.8 percent.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The headline estimate appears without its confidence interval here and again in the conclusion.",
+      "category": "data",
+      "createdAt": "2026-11-16T09:04:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000004",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "suggestion": "Add the interval each time the estimate is quoted.",
+      "thread": [],
+      "title": "Report the interval next to the headline estimate",
+      "updatedAt": "2026-11-16T10:04:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 2",
+        "pageIndex": 1,
+        "quote": "Second, the effect is concentrated in categories with few sellers; in categories with more than forty active sellers it is indistinguishable from zero.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "Was the threshold of forty sellers chosen before the data were seen? A continuous interaction would show whether the effect fades gradually.",
+      "category": "generality",
+      "createdAt": "2026-11-16T09:05:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000005",
+      "includeInReport": true,
+      "kind": "question",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "thread": [],
+      "title": "Why forty sellers?",
+      "updatedAt": "2026-11-16T10:05:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 3",
+        "pageIndex": 2,
+        "quote": "Our display rule can be read as a change in the observation structure that these papers study.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The mapping from display rules to observation structures is stated, not derived.",
+      "category": "positioning",
+      "createdAt": "2026-11-16T09:06:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000006",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "rejected",
+      "thread": [],
+      "title": "The link to the learning literature is asserted",
+      "updatedAt": "2026-11-16T10:06:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 3",
+        "pageIndex": 2,
+        "quote": "The platform charges a commission on each sale and earns nothing from visits that end without a purchase.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The account of the platform's incentives makes the source of variation easy to judge.",
+      "category": "other",
+      "createdAt": "2026-11-16T09:07:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000007",
+      "includeInReport": true,
+      "kind": "strength",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "thread": [],
+      "title": "The institutional detail is unusually clear",
+      "updatedAt": "2026-11-16T10:07:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 4",
+        "pageIndex": 3,
+        "quote": "After purchasing she leaves a rating that is informative about quality but noisy.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The distribution of ratings given quality is never written down, yet Proposition 1 depends on it.",
+      "category": "math",
+      "createdAt": "2026-11-16T09:08:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000008",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "suggestion": "Give the rating distribution in the model section.",
+      "thread": [],
+      "title": "Define the rating noise formally",
+      "updatedAt": "2026-11-16T10:08:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 4",
+        "pageIndex": 3,
+        "quote": "Under the mean rule, dt is the average rating among earlier purchasers together with their number.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The mean is shown with the number of ratings. Does the model's buyer use that number, and does Proposition 1 depend on it?",
+      "category": "math",
+      "createdAt": "2026-11-16T09:09:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000009",
+      "includeInReport": true,
+      "kind": "question",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "thread": [],
+      "title": "Does the buyer use the number of ratings?",
+      "updatedAt": "2026-11-16T10:09:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 5",
+        "pageIndex": 4,
+        "quote": "First, private signals are bounded, so that there exist public histories after which no private signal can overturn the public belief.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "With unbounded signals cascades never form, and the display rule would matter only through speed. The empirical section does not ask which case the data resemble.",
+      "category": "assumptions",
+      "createdAt": "2026-11-16T09:10:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000010",
+      "includeInReport": true,
+      "kind": "major",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "suggestion": "Discuss what the data say about signal strength, for example the share of buyers who ever depart from a long majority.",
+      "thread": [],
+      "title": "Bounded signals drive every result, and the data never test them",
+      "updatedAt": "2026-11-16T10:10:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 5",
+        "pageIndex": 4,
+        "quote": "First, private signals are bounded, so that there exist public histories after which no private signal can overturn the public belief.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The assumption is presented as a convenience but carries the main prediction.",
+      "category": "assumptions",
+      "createdAt": "2026-11-16T09:11:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000011",
+      "includeInReport": true,
+      "kind": "major",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "similarTo": "DE51A000-0000-4000-8000-000000000010",
+      "status": "pending",
+      "thread": [],
+      "title": "Bounded signals are assumed without discussion",
+      "updatedAt": "2026-11-16T10:11:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 5",
+        "pageIndex": 4,
+        "quote": "The second assumption is restrictive, and we relax it in the empirical work by allowing prices to respond to ratings with a lag.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "Which lag length is used, and do the results change with it?",
+      "category": "generality",
+      "createdAt": "2026-11-16T09:12:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000012",
+      "includeInReport": true,
+      "kind": "question",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "rejected",
+      "thread": [],
+      "title": "How long is the lag?",
+      "updatedAt": "2026-11-16T10:12:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 6",
+        "pageIndex": 5,
+        "quote": "It is easy to see that the inequality is preserved when both sides are multiplied by the likelihood ratio of the display.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The step uses monotonicity of the likelihood ratio, which should be stated.",
+      "category": "writing",
+      "createdAt": "2026-11-16T09:13:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000013",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "suggestion": "Write out the one-line argument.",
+      "thread": [],
+      "title": "“It is easy to see” hides a step",
+      "updatedAt": "2026-11-16T10:13:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 6",
+        "pageIndex": 5,
+        "quote": "The set of histories that start a cascade is therefore smaller under the histogram rule.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "If buyers who see the histogram also rate differently, the two sets cannot be compared, and the proposition says less than the introduction claims.",
+      "category": "claims",
+      "createdAt": "2026-11-16T09:14:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000014",
+      "includeInReport": true,
+      "kind": "major",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "suggestion": "State the assumption on rating behaviour, or show that the result survives without it.",
+      "thread": [],
+      "title": "Proposition 1 compares the cascade sets of the two display rules, but the comparison needs the rating noise to be the same under both rules, which the model never states",
+      "updatedAt": "2026-11-16T10:14:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 7",
+        "pageIndex": 6,
+        "quote": "Sellers are small firms and individuals; buyers are firms, universities and hobbyists.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "A table with the share of each buyer type would help.",
+      "category": "data",
+      "createdAt": "2026-11-16T09:15:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000015",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "rejected",
+      "thread": [],
+      "title": "Describe the buyer types",
+      "updatedAt": "2026-11-16T10:15:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 7",
+        "pageIndex": 6,
+        "quote": "A buyer can message the seller before purchasing, and about a third of purchases follow such a message.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "Buyers who message the seller may learn about the item directly. Are they kept in the departure measure?",
+      "category": "data",
+      "createdAt": "2026-11-16T09:16:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000016",
+      "includeInReport": true,
+      "kind": "question",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "thread": [],
+      "title": "Do buyers who message the seller behave differently?",
+      "updatedAt": "2026-11-16T10:16:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 8",
+        "pageIndex": 7,
+        "quote": "Internal documents describe the schedule as a matter of software maintenance.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The exclusion argument relies on documents the reader cannot see.",
+      "category": "claims",
+      "createdAt": "2026-11-16T09:17:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000017",
+      "includeInReport": true,
+      "kind": "major",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "suggestion": "Quote the relevant passage, or describe when and by whom the documents were written.",
+      "thread": [],
+      "title": "Internal documents cannot carry the identification alone",
+      "updatedAt": "2026-11-16T10:17:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 8",
+        "pageIndex": 7,
+        "quote": "Standard errors are clustered by category.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "With a modest number of categories, clustered standard errors may be too small.",
+      "category": "data",
+      "createdAt": "2026-11-16T09:18:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000018",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "suggestion": "Report wild cluster bootstrap p-values.",
+      "thread": [],
+      "title": "Few clusters",
+      "updatedAt": "2026-11-16T10:18:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 9",
+        "pageIndex": 8,
+        "quote": "A test of equal post-rollout coefficients across cohorts does not reject at conventional levels.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The equality test supports pooling the cohorts.",
+      "category": "other",
+      "createdAt": "2026-11-16T09:19:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000019",
+      "includeInReport": true,
+      "kind": "strength",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "rejected",
+      "thread": [],
+      "title": "The cohort test is reassuring",
+      "updatedAt": "2026-11-16T10:19:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 10",
+        "pageIndex": 9,
+        "quote": "The response of prices is shown separately for each cohort in the figure below.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The cohorts share one colour scale, and the legend does not say which line is which.",
+      "category": "writing",
+      "createdAt": "2026-11-16T09:20:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000020",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "suggestion": "Use one panel per cohort, or label the lines directly.",
+      "thread": [],
+      "title": "The price figure is hard to read",
+      "updatedAt": "2026-11-16T10:20:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 11",
+        "pageIndex": 10,
+        "quote": "The finding cautions against extrapolating the average effect to markets with dense competition.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The paper's own heterogeneity results imply that the average effect describes few markets well.",
+      "category": "generality",
+      "createdAt": "2026-11-16T09:21:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000021",
+      "includeInReport": true,
+      "kind": "major",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "suggestion": "Lead with the thin-market estimate and present the average as secondary.",
+      "thread": [],
+      "title": "The average effect hides the thin-market result",
+      "updatedAt": "2026-11-16T10:21:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 12",
+        "pageIndex": 11,
+        "quote": "We control flexibly for the number of ratings and obtain the same estimates; the results also hold within bins of the rating count.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The robustness check is described but not shown.",
+      "category": "data",
+      "createdAt": "2026-11-16T09:22:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000022",
+      "includeInReport": false,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "thread": [],
+      "title": "Show the rating-count bins",
+      "updatedAt": "2026-11-16T10:22:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "none": {}
+        },
+        "locationLabel": "",
+        "quote": "Work on how platforms summarise ratings is reviewed in the related literature.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The literature section covers herding but not the work on how platforms summarise ratings for buyers.",
+      "category": "literature",
+      "createdAt": "2026-11-16T09:23:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000023",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "thread": [],
+      "title": "Work on rating displays is missing",
+      "updatedAt": "2026-11-16T10:23:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 13",
+        "pageIndex": 12,
+        "quote": "Because polarised records are more common among new sellers, the histogram may make entry harder.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "The entry claim is speculative. Do the platform's seller registrations show any change after the rollout?",
+      "category": "positioning",
+      "createdAt": "2026-11-16T09:24:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000024",
+      "includeInReport": true,
+      "kind": "question",
+      "origin": {
+        "ai": {
+          "runID": "DE51A000-0000-4000-8000-0000000000AA"
+        }
+      },
+      "previousVersions": [],
+      "status": "pending",
+      "thread": [],
+      "title": "Is there evidence on entry?",
+      "updatedAt": "2026-11-16T10:24:00Z"
+    },
+    {
+      "anchor": {
+        "confidence": {
+          "pageOnly": {}
+        },
+        "locationLabel": "p. 14",
+        "pageIndex": 13,
+        "quote": "Distinguishing between these interpretations would require data on beliefs, which we do not have.",
+        "rects": [],
+        "spans": []
+      },
+      "body": "A short survey of buyers would separate a naive from a sophisticated reading of the display.",
+      "category": "other",
+      "createdAt": "2026-11-16T11:00:00Z",
+      "id": "DE51A000-0000-4000-8000-000000000025",
+      "includeInReport": true,
+      "kind": "minor",
+      "origin": {
+        "user": {}
+      },
+      "previousVersions": [],
+      "status": "approved",
+      "thread": [],
+      "title": "Ask for a survey of buyers' beliefs",
+      "updatedAt": "2026-11-16T11:00:00Z"
+    }
+  ],
+  "consents": [],
+  "conversations": [],
+  "createdAt": "2026-11-16T09:00:00Z",
+  "document": {
+    "byteCount": 0,
+    "fileName": "ay_long.pdf",
+    "pageCount": 16,
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "id": "DE51A000-0000-4000-8000-0000000000FF",
+  "meta": {
+    "reviewerNotes": "",
+    "title": "Ratings, Herding and Price Discovery on a Sequential Platform: A Long Fixture"
+  },
+  "runs": [
+    {
+      "destination": "this Mac",
+      "finishedAt": "2026-11-16T09:09:40Z",
+      "id": "DE51A000-0000-4000-8000-0000000000AA",
+      "kind": "review",
+      "provider": {
+        "model": "mock",
+        "providerID": "mock"
+      },
+      "requestCount": 3,
+      "sentPDF": false,
+      "startedAt": "2026-11-16T09:00:00Z",
+      "status": {
+        "completed": {}
+      },
+      "usage": {
+        "inputTokens": 31200,
+        "outputTokens": 4100
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-16T11:00:00Z"
+}

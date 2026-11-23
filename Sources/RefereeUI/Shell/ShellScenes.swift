@@ -29,7 +29,7 @@ import TestSupport
             settingsAPIKey,
             reviewDestinationMenu,
             reviewRunning,
-        ]
+        ] + ShellDesignScenes.all
     }
 
     // ---- welcome ----
