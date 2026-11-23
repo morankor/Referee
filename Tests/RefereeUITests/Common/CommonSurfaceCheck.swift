@@ -228,6 +228,8 @@ private struct SurfaceBuilder: PaperTextBuilding {
     await model.close()
     await model.deleteReviewData()
     model.setActiveProvider(ProviderRef(providerID: "mock-remote", model: nil))
+    model.useCustomProviders()                                          // step 5b
+    let _: Bool = model.usesCustomProviders
     model.answerConsent(granted: true)
     model.answerConsent(granted: true, askAgain: true)
     model.reloadSettings(DefaultSettings.make())

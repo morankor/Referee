@@ -2250,7 +2250,9 @@ public enum AppMain {
 public struct ReviewWindowView: View { public init(model: ReviewSessionModel, reader: ReaderController) }
 public struct SettingsRootView: View { public init(model: SettingsModel) }
 public struct WelcomeView: View { public init(recent: [SessionSummary], open: @escaping (URL?) -> Void) }   // nil = show the open panel
-public enum TriageIntent: Equatable { case next, previous, approve, reject, resetStatus, discuss, edit, reveal, newComment, setKind(CommentKind), dismiss }
+public enum TriageIntent: Equatable {   // nextPending: P, the next pending comment, from the top again at the end (step 5, D25)
+    case next, previous, nextPending, approve, reject, resetStatus, discuss, edit, reveal, newComment, setKind(CommentKind), dismiss
+}
 public enum TriageKeymap {
     public static func intent(characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> TriageIntent?
     @MainActor public static func apply(_ intent: TriageIntent, to model: ReviewSessionModel)
@@ -4150,6 +4152,9 @@ public final class ReviewSessionModel {
     /// observable through `session` and `settings` (step 5, O1).
     public var chatProvider: ProviderDescriptor?
     public var reportProvider: ProviderDescriptor?   // the same for the report and its voice revision (settings.defaults.report)
+    /// True while the document has no provider of its own ("Custom" in the destination menu, what every new document starts
+    /// with): each job goes to its own default of Settings ▸ Providers, with that default's model (step 5b).
+    public var usesCustomProviders: Bool
 
     public init(dependencies: AppDependencies, settings: AppSettings)
 
@@ -4160,7 +4165,10 @@ public final class ReviewSessionModel {
     public func deleteReviewData() async
 
     // ---- provider & consent ----
-    public func setActiveProvider(_ ref: ProviderRef)
+    public func setActiveProvider(_ ref: ProviderRef)   // the toolbar's choice for this document, provider and model: every job uses it (step 5b)
+    /// "Custom" (step 5b): the document's own choice goes (`session.preferredProvider = nil`), so that the review, chat and
+    /// the report each go to their own default of Settings ▸ Providers again. Nothing else of the session changes.
+    public func useCustomProviders()
     public func answerConsent(granted: Bool, askAgain: Bool = false)   // askAgain ("Ask again next time"): send now, record no consent
     public func reloadSettings(_ settings: AppSettings)   // called by WindowManager on .refereeSettingsDidChange
     /// Fills `activeAvailability` (step 5, O2): a local active provider is asked for its availability() (Ollama: /api/version on
@@ -5328,6 +5336,7 @@ Step 5c merged the Reader, Sidebar and Shell branches of step 5b (`docs/contract
 
 | Problem | Decision | Where |
 |---|---|---|
+| Shell 1 and 3, the coordinator's leave of step 5b: D25's `TriageIntent.nextPending` (one `case` line of `CommonSurfaceCheck.swift` changed to keep its switch exhaustive), and "Custom" in AppCore | Recorded: `TriageIntent.nextPending` (P), and `ReviewSessionModel.useCustomProviders()` and `usesCustomProviders` (additive; tests in `ReviewSessionModelCustomProvidersTests`), which `CommonSurfaceCheck.swift` now names too | §11.3, A.9 |
 | Reader 2: no scene could put the model into a failed or not-found lookup (the snapshot graph's `FakeResolver` resolves every entry), so `design-citation-states` drew invented lookups | `FakeResolver(answers:)` answers chosen entries `.notFound` or `.failed(reason:)`, shaped as the real resolver's; `SnapshotSupport.resolver(lookups:)` builds the snapshot graph's resolver from `REFEREE_SNAPSHOT_LOOKUPS` ("failed=<text>;notFound=<text>", matched in the printed reference), which `LiveDependencies` reads under `REFEREE_SNAPSHOT=1` only; a scene sets it through the new `SnapshotScene.environment`, which the runner adds under its three keys. `design-citation-states` now has the model look up the working paper (failed) and the book (not found) as a References click does: the overlay shows the not-found card, and under it the scene draws the failed lookup's card from the model's own `CitationLookup` and the unmatched mention's. Still no request and no process | §10.1, §10.3, §10.6, §11.3 |
 | Sidebar 1: a provider switched off since its review has no public descriptor, so the sidebar kept its own map of the nine providers' names | `ReviewSessionModel.registeredProviders`: the descriptors of every registered provider, in the registry's order, switched on or not and whatever Local only says; nothing is asked for it. The sidebar's labels name a provider by it (`SidebarSourceNames.knownProviders` is gone), and so does the destination menu's "Sent so far" | A.9 |
 | Sidebar 2: the run of a review under way was not in the session, so its comments took the document's provider and model, wrong once the document moved to another provider during the run | The model records every run when it starts (its `.started` record, status `.running`) and replaces that record by how the run ended; the comments of a review under way name their own run. A session saved mid-run (a quit or a crash) reads as usual, and its run left `.running` becomes `.failed("The app quit before this run ended.")` when the document is opened again. "Sent so far" lists a run once it has ended | §6.6, A.4 |
