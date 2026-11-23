@@ -57,6 +57,7 @@ private struct ReaderOverlayLayer: View {
                     // Measured before the frame, which only caps the card: offered more, a frame with a maximum is as
                     // tall as its maximum, while the card itself is as tall as its content (or scrolls inside the cap).
                     ReaderCitationCard(controller: controller, content: content)
+                        .id(String(describing: content.target))      // a new card per target: no state of the last one carried over
                         .onGeometryChange(for: CGSize.self) { $0.size } action: { cardSize = $0 }
                         .frame(maxHeight: max(120, proxy.size.height - 2 * ReaderOverlayPlacement.margin), alignment: .top)
                         .offset(x: origin.x, y: origin.y)

@@ -58,9 +58,11 @@ Where the plan was silent or left a choice. Each source file lists its own at th
 17. Card header: the mention's text runs to the end of the year (§8.4, "Acemoglu et al. [2011"); the header shows it readable — a word broken at a line end joined, an opened bracket closed ("Acemoglu et al. [2011]"). A card from the References list is headed "Acemoglu et al. (2011)" (surnames and year; "[13]" or "Reference 5" without names). Per candidate entry: the reference as printed (up to four lines) with a spinner while resolving; then title, authors, "year · venue", "Open access", "year differs: …"; "No match found"; "Lookup failed: <failureReason>" with Retry (`lookUpCitation` / `lookUpEntry`). Buttons: Open PDF (disabled without an open-access address; downloads through `model.fetchReferencePDF`, then `uiActions.openReferenceViewer`; a download error is shown under the entry), Open in Browser (landing page, else `https://doi.org/<doi>`, else the entry's URL; http/https only), Copy DOI (disabled without one), Search Google Scholar (`model.searchURL(for:)` through `uiActions.openInBrowser`), Show in References. A mention with no candidate entry: its text, a line saying so, and Search Google Scholar for a stand-in entry made of the mention's text.
 18. Reference viewer: reads the file once off the main actor and shows it from its bytes (no URL: it can never write the file); thumbnails 150 pt; its own bar with zoom out, zoom in, Fit Width, the page count and Find, with ⌘−, ⌘+, ⌘0, ⌘F, ⌘G, ⇧⌘G as SwiftUI shortcuts; "This file could not be opened." / "This PDF is password-protected." otherwise.
 
+19. The card is keyed by its target: when a click on another mention replaces the card within one turn (closed, then opened again), the new card starts fresh, without a download error of the old one for an entry both cite.
+
 **Scenes**
 
-19. `reader-highlights` selects the approved fuzzy comment (so "the selected comment's highlight is stronger" can be seen next to the others); `reader-references` looks up the first three entries so that icons show, leaving the third one's card at the top; `reader-ruler` selects and reveals the Table 2 comment of the sample session on `s1_ruler.pdf`; `reader-find` searches "effect" in `ay_round_nolinks.pdf` (three matches, two on page 1).
+20. `reader-highlights` selects the approved fuzzy comment (so "the selected comment's highlight is stronger" can be seen next to the others); `reader-references` looks up the first three entries so that icons show, leaving the third one's card at the top; `reader-ruler` selects and reveals the Table 2 comment of the sample session on `s1_ruler.pdf`; `reader-find` searches "effect" in `ay_round_nolinks.pdf` (three matches, two on page 1).
 
 ## How `check-citation-click` was exercised
 
@@ -98,4 +100,15 @@ All at 1280 × 800 (2560 × 1600 pixels), light; also looked at with `--dark` an
 
 ## Acceptance
 
-Filled in at the last commit (below).
+Run on Command Line Tools 26.6 (Swift 6.3.3), on a machine shared with the two other Wave 2 builds.
+
+| Command | Result | Final line |
+| --- | --- | --- |
+| `scripts/build.sh` | exit 0; no line with "warning" or "error" | `Build complete! (6.90s)` |
+| `scripts/test.sh --filter RefereeUITests` | exit 0; no warning | `test.sh: OK (64 tests)` |
+| `scripts/snapshots.sh --scene reader-highlights --scene reader-selection --scene reader-citation --scene reader-find --scene reader-references --scene reader-ruler --scene reference-viewer` | exit 0; seven manifest lines, each `"nonBlank":true,"failures":[]` (review scenes 2560 × 1600 pixels, the viewer 1800 × 1400) | `build/snapshots/reference-viewer.png` (the script lists every PNG of the folder) |
+| `scripts/snapshots.sh --out build/snapshots --scene placeholder` | exit 0; `{"scene":"placeholder","file":"build/snapshots/placeholder.png","width":2560,"height":1600,"nonBlank":true,"failures":[]}` | `build/snapshots/reference-viewer.png` |
+| `scripts/test.sh` (everything, once, after `scripts/build.sh`, at commit `d0f0163`) | exit 0; no warning; visible skips only (delivery experiment, CLI smoke prompt, the two real-paper tests, real Keychain, live reference services); the known CoreGraphics notice of WP2's damaged-PDF tests once | `test.sh: OK (873 tests)` |
+| `git status --porcelain \| wc -l` | after the last commit | `0` |
+
+The last commit, after the full run, changes `ReaderPane.swift` by one line (the card keyed by its target, decision 19) and this file; nothing outside `RefereeUI` compiles against that file. The build, the UI tests and both snapshot commands above were run on that final state.
