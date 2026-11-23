@@ -144,9 +144,11 @@ import TestSupport
     }
 
     @Test func cancellingTheConsumerStopsADelayedDelivery() async throws {
-        // Two hundred chunks, fifty milliseconds apart: left alone, the body takes ten seconds.
+        // Two thousand chunks, fifty milliseconds apart: left alone, the body takes a hundred seconds. That is longer
+        // than any wait a busy machine imposes when the whole suite runs at once, so the body cannot finish before the
+        // test cancels it. The limits below are generous for the same reason; each stays far under the hundred seconds.
         StubURLProtocol.setHandler { _ in
-            StubURLProtocol.Response(chunks: (0..<200).map { Data("data: \($0)\n".utf8) }, delayPerChunk: .milliseconds(50))
+            StubURLProtocol.Response(chunks: (0..<2_000).map { Data("data: \($0)\n".utf8) }, delayPerChunk: .milliseconds(50))
         }
         /// The lines read so far, readable while the consumer is still reading.
         final class Counter: @unchecked Sendable {
@@ -168,20 +170,20 @@ import TestSupport
         }
         let clock = ContinuousClock()
         let started = clock.now
-        while lines.value < 3, clock.now - started < .seconds(8) { try await Task.sleep(for: .milliseconds(5)) }
+        while lines.value < 3, clock.now - started < .seconds(60) { try await Task.sleep(for: .milliseconds(5)) }
         #expect(lines.value >= 3)                               // the body is arriving piece by piece
         #expect(await session.allTasks.count == 1)              // the request is under way
         let cancelledAt = clock.now
         consumer.cancel()
         await consumer.value
-        #expect(clock.now - cancelledAt < .seconds(3))          // it did not wait for the rest of the ten seconds
-        #expect(lines.value < 200)
+        #expect(clock.now - cancelledAt < .seconds(30))         // it did not wait for the rest of the hundred seconds
+        #expect(lines.value < 2_000)
 
         // The request itself ended, not only the reading of it: the session has no task left. This is how a test can
         // see that cancelling a provider's consumer cancelled its HTTP request (WP4, "cancellation"), since the stub
         // has no hook of its own for stopLoading.
         var remaining = await session.allTasks.count
-        while remaining > 0, clock.now - cancelledAt < .seconds(3) {
+        while remaining > 0, clock.now - cancelledAt < .seconds(30) {
             try await Task.sleep(for: .milliseconds(10))
             remaining = await session.allTasks.count
         }

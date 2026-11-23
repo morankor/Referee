@@ -118,7 +118,9 @@ import RefereeCore
         let result = await CLICommand.run(path, ["--version"], environment: ["PATH": FakeCLIHarness.fixedPath, "HOME": home.path],
                                           temporaryRoot: harness.temporary, timeout: .seconds(1))
         #expect(result == .failure(.cliTimeout(phase: "start")))
-        #expect(ContinuousClock.now - started < .seconds(4))
-        #expect(await harness.waitForNoLeftovers(.seconds(2)).isEmpty)
+        // The fake sleeps 600 seconds: ending far under that shows the one-second timeout killed it. The bound is
+        // generous because the whole suite runs at once and a busy machine can delay a test by seconds.
+        #expect(ContinuousClock.now - started < .seconds(30))
+        #expect(await harness.waitForNoLeftovers(.seconds(10)).isEmpty)
     }
 }

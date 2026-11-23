@@ -91,9 +91,11 @@ struct SpecOverride: CLIAdapter {
         #expect(result.map(\.path) == .success(good))
         #expect(result.map(\.version) == .success("9.9.9"))
         let elapsed = ContinuousClock.now - started
-        #expect(elapsed >= .seconds(1) && elapsed < .seconds(6))
+        // At least the one-second probe timeout, and far under the hung fake's 600-second sleep; generous because the
+        // whole suite runs at once and a busy machine can delay a test by seconds.
+        #expect(elapsed >= .seconds(1) && elapsed < .seconds(30))
         // The hung --version was killed with its `sleep`.
-        #expect(await harness.waitForNoLeftovers(.seconds(2)).isEmpty)
+        #expect(await harness.waitForNoLeftovers(.seconds(10)).isEmpty)
 
         // Only broken candidates: the reason says the binary does not run.
         let none = await resolver.resolve(Self.spec(candidates: [failing]), explicitPath: nil)

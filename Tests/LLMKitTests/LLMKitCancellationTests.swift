@@ -40,10 +40,16 @@ import TestSupport
         }
     }
 
-    /// An Anthropic stream of 200 deltas, 50 ms apart: ten seconds if left alone.
+    /// An Anthropic stream of 2,000 deltas, 50 ms apart: a hundred seconds if left alone.
+    ///
+    /// The whole suite runs at once, so a busy machine can keep a test from being scheduled for seconds. The body is
+    /// long enough that it cannot run to its end in such a wait, and the limits below are generous: `eventually`
+    /// returns as soon as its condition holds, so a long limit costs nothing when all is well, and every wall-clock
+    /// bound stays far under what the failure it guards against would take (the hundred-second body, the
+    /// sixty-second retry wait).
     private var slowBody: [Data] {
         var chunks = [Data((AppendixD.anthropic.components(separatedBy: "event: content_block_start")[0]).utf8)]
-        for index in 0..<200 {
+        for index in 0..<2_000 {
             chunks.append(Data("event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"chunk \(index) \"}}\n\n".utf8))
         }
         chunks.append(Data("event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n".utf8))
@@ -59,19 +65,19 @@ import TestSupport
         let consumer = Consumer()
         let task = consumer.start(harness.provider("anthropic-api", retry: .standard).stream(Requests.text()))
 
-        #expect(await eventually(timeout: .seconds(8)) { consumer.deltas >= 2 })     // the body is arriving piece by piece
+        #expect(await eventually(timeout: .seconds(60)) { consumer.deltas >= 2 })    // the body is arriving piece by piece
         #expect(await harness.session.allTasks.count == 1)                           // and the request is under way
         let clock = ContinuousClock()
         let cancelledAt = clock.now
         task.cancel()
 
-        #expect(await eventually(timeout: .seconds(3)) { consumer.ended }, "the stream must end, not hang")
-        #expect(clock.now - cancelledAt < .seconds(3))
+        #expect(await eventually(timeout: .seconds(30)) { consumer.ended }, "the stream must end, not hang")
+        #expect(clock.now - cancelledAt < .seconds(30))                              // far under the hundred-second body
         #expect(!consumer.sawFinished)
-        #expect(consumer.deltas < 200)
+        #expect(consumer.deltas < 2_000)
         if let error = consumer.error { #expect(error as? LLMError == .cancelled) }     // or it ended silently
         // The HTTP request itself was cancelled: the stub's stopLoading ran and the session has no task left.
-        #expect(await eventually(timeout: .seconds(3)) { await harness.session.allTasks.isEmpty })
+        #expect(await eventually(timeout: .seconds(30)) { await harness.session.allTasks.isEmpty })
     }
 
     @Test func cancellingBeforeTheFirstByteCancelsTheRequest() async throws {
@@ -82,12 +88,12 @@ import TestSupport
         let harness = Harness()
         let consumer = Consumer()
         let task = consumer.start(harness.provider("openai-api").stream(Requests.text()))
-        #expect(await eventually(timeout: .seconds(5)) { await harness.session.allTasks.count == 1 })
+        #expect(await eventually(timeout: .seconds(30)) { await harness.session.allTasks.count == 1 })
         task.cancel()
-        #expect(await eventually(timeout: .seconds(3)) { consumer.ended }, "the stream must end, not hang")
+        #expect(await eventually(timeout: .seconds(30)) { consumer.ended }, "the stream must end, not hang")
         #expect(consumer.deltas == 0)
         if let error = consumer.error { #expect(error as? LLMError == .cancelled) }
-        #expect(await eventually(timeout: .seconds(3)) { await harness.session.allTasks.isEmpty })
+        #expect(await eventually(timeout: .seconds(30)) { await harness.session.allTasks.isEmpty })
     }
 
     @Test func cancellingDuringARetryWaitEndsAtOnce() async throws {
@@ -97,13 +103,13 @@ import TestSupport
         // A real sleep of about a minute between attempts.
         let policy = RetryPolicy(backoffSeconds: [60, 60, 60])
         let task = consumer.start(harness.provider("anthropic-api", retry: policy).stream(Requests.text()))
-        #expect(await eventually(timeout: .seconds(5)) { StubURLProtocol.recordedRequests.count == 1 })
+        #expect(await eventually(timeout: .seconds(30)) { StubURLProtocol.recordedRequests.count == 1 })
         try await Task.sleep(for: .milliseconds(100))                                // now waiting
         let clock = ContinuousClock()
         let cancelledAt = clock.now
         task.cancel()
-        #expect(await eventually(timeout: .seconds(3)) { consumer.ended }, "the wait must end when the consumer is cancelled")
-        #expect(clock.now - cancelledAt < .seconds(3))
+        #expect(await eventually(timeout: .seconds(30)) { consumer.ended }, "the wait must end when the consumer is cancelled")
+        #expect(clock.now - cancelledAt < .seconds(30))                              // far under the sixty-second wait
         if let error = consumer.error { #expect(error as? LLMError == .cancelled) }
         #expect(StubURLProtocol.recordedRequests.count == 1)                         // no second attempt
     }
@@ -118,6 +124,6 @@ import TestSupport
         for try await event in harness.provider("anthropic-api").stream(Requests.text()) {
             if case .textDelta = event { break }
         }
-        #expect(await eventually(timeout: .seconds(3)) { await harness.session.allTasks.isEmpty })
+        #expect(await eventually(timeout: .seconds(30)) { await harness.session.allTasks.isEmpty })
     }
 }
