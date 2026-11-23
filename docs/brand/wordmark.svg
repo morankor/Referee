@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 555 72" width="555" height="72" role="img" aria-labelledby="title">
+  <title id="title">Human in the Loop</title>
+  <style>
+    .ink { fill: #23285E; } .loop { fill: none; stroke: #23285E; } .soft { fill: #23285E; fill-opacity: 0.62; }
+    @media (prefers-color-scheme: dark) {
+      .ink { fill: #F4F1EA; } .loop { stroke: #F4F1EA; } .soft { fill: #F4F1EA; fill-opacity: 0.62; }
+    }
+  </style>
+  <g transform="scale(0.1125)">
+    <path class="loop" d="M564.12 266.08A250 250 0 1 1 373.92 75.88" stroke-width="92" stroke-linecap="round"/>
+    <circle class="ink" cx="496.78" cy="143.22" r="68"/>
+  </g>
+  <text x="92" y="56" font-size="56" xml:space="preserve"><tspan class="ink" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="600" letter-spacing="-0.56">Human </tspan><tspan class="soft" font-family="'New York', ui-serif, 'Iowan Old Style', Georgia, serif" font-style="italic" font-size="58.24">in the </tspan><tspan class="ink" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="600" letter-spacing="-0.56">Loop</tspan></text>
+</svg>

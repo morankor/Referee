@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-labelledby="title">
+  <title id="title">Human in the Loop app icon</title>
+  <defs>
+    <linearGradient id="indigo" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#454CC2"/>
+      <stop offset="1" stop-color="#1E2266"/>
+    </linearGradient>
+  </defs>
+  <path d="M396.64 100L627.36 100C731.19 100 783.11 100 822.77 120.21A185.40 185.40 0 0 1 903.79 201.23C924 240.89 924 292.81 924 396.64L924 627.36C924 731.19 924 783.11 903.79 822.77A185.40 185.40 0 0 1 822.77 903.79C783.11 924 731.19 924 627.36 924L396.64 924C292.81 924 240.89 924 201.23 903.79A185.40 185.40 0 0 1 120.21 822.77C100 783.11 100 731.19 100 627.36L100 396.64C100 292.81 100 240.89 120.21 201.23A185.40 185.40 0 0 1 201.23 120.21C240.89 100 292.81 100 396.64 100Z" fill="url(#indigo)"/>
+  <path d="M756.12 458.08A250 250 0 1 1 565.92 267.88" fill="none" stroke="#E8EBFF" stroke-opacity="0.92" stroke-width="92" stroke-linecap="round"/>
+  <circle cx="688.78" cy="335.22" r="68" fill="#FFF5E8"/>
+</svg>
