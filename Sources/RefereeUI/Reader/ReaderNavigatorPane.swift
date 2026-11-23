@@ -15,11 +15,13 @@ public struct NavigatorPane: View {       // Pages / Outline / References
     public init(controller: ReaderController) { self.controller = controller }
 
     public var body: some View {
-        @Bindable var navigator = controller.navigator
+        let navigator = controller.navigator
         let hasOutline = !(controller.model.paper?.outline.isEmpty ?? true)
         let tabs = ReaderNavigatorTab.allCases.filter { $0 != .outline || hasOutline }
+        let shown: ReaderNavigatorTab = navigator.tab == .outline && !hasOutline ? .pages : navigator.tab
         VStack(spacing: 0) {
-            Picker("Navigator", selection: $navigator.tab) {
+            // The picker shows the tab on screen, which is Pages when Outline was chosen for a paper that has none.
+            Picker("Navigator", selection: Binding(get: { shown }, set: { navigator.tab = $0 })) {
                 ForEach(tabs) { tab in Text(tab.title).tag(tab) }
             }
             .pickerStyle(.segmented)
@@ -28,7 +30,6 @@ public struct NavigatorPane: View {       // Pages / Outline / References
             .padding(.horizontal, Theme.sidebarPadding)
             .padding(.vertical, 8)
             Divider()
-            let shown: ReaderNavigatorTab = navigator.tab == .outline && !hasOutline ? .pages : navigator.tab
             Group {
                 switch shown {
                 case .pages:

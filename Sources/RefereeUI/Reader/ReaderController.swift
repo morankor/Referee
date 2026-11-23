@@ -92,8 +92,7 @@ public enum ZoomStep { case zoomIn, zoomOut, fitWidth }
     /// Shows the find bar with `query` and searches at once (the scene `reader-find`; a scene cannot type).
     func find(_ query: String) {
         finder.query = query
-        finder.show()
-        finder.search()
+        finder.show()                                       // searches a query it has no results for
     }
 
     /// The Outline list's click: the top of that page.

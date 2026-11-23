@@ -31,7 +31,9 @@ struct ReaderReferencesList: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 6)
                 }
-                .onChange(of: controller.navigator.scrollRequest) {
+                // Also when the list first appears: "Show in References" may have switched to this tab a moment ago.
+                .task(id: controller.navigator.scrollRequest) {
+                    await Task.yield()
                     guard let id = controller.navigator.shownEntryID else { return }
                     withAnimation { proxy.scrollTo(id, anchor: .center) }
                 }
