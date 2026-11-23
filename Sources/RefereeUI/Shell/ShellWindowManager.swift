@@ -86,6 +86,7 @@ import AppCore
     /// same path asked for twice while it is being read (Finder and the command line can both hand a file over at
     /// launch) is opened once. A file that cannot be read still gets a window, which says why (section 9.9).
     func openReview(url: URL) async {
+        adoptReadyLocalProvider()
         let file = url.standardizedFileURL
         guard !openingFiles.contains(file.path) else { return }
         openingFiles.insert(file.path)
@@ -211,7 +212,17 @@ import AppCore
 
     /// The welcome window (section 9.1), with the recent reviews as they are now: the files that are gone are found
     /// off the main actor (D26).
+    /// Step 5c: with no review default, an enabled local provider that is ready (Ollama started after the first launch)
+    /// becomes the default, once per run (`SettingsModel.adoptReadyLocalProviderIfNeeded`, which asks local providers
+    /// only). Called when a window opens and when the app becomes active; the windows follow through the settings
+    /// notification.
+    func adoptReadyLocalProvider() {
+        let settingsModel = settingsModel
+        Task { @MainActor in await settingsModel.adoptReadyLocalProviderIfNeeded() }
+    }
+
     func showWelcome() {
+        adoptReadyLocalProvider()
         welcomeGeneration += 1
         let generation = welcomeGeneration
         Task { @MainActor in

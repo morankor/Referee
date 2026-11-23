@@ -90,9 +90,11 @@ import AppCore
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     /// The Dock's count of new comments, or its "✓" after a report, set when a long job ended in the background
-    /// (design review D32), goes once the referee is back.
+    /// (design review D32), goes once the referee is back. With no review default, a local provider that has become
+    /// ready meanwhile (Ollama started after the first launch) becomes it (step 5c).
     func applicationDidBecomeActive(_ notification: Notification) {
         NSApp.dockTile.badgeLabel = nil
+        windowManager?.adoptReadyLocalProvider()
     }
 
     /// A click on the Dock icon with no window open shows the welcome window.

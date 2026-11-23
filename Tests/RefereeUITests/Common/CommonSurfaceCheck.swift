@@ -295,6 +295,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: Result<String, LLMError> = await settings.sendTestPrompt(to: "ollama")
     settings.resetPromptsToDefaults()
     await settings.applyFirstRunDefaultsIfNeeded()
+    await settings.adoptReadyLocalProviderIfNeeded()                    // step 5c
     await settings.flushPendingSave()                                   // public since Wave 3
 
     // ==== RefereeUI/Common ====

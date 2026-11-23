@@ -16,6 +16,9 @@ import RefereeCore
 //   calls run off the main actor: macOS may show its access dialog meanwhile, and the window must not freeze (WP4).
 // - With Local only on, `refreshModels` and `sendTestPrompt` do not contact a non-local provider.
 // - The test prompt is one user part "Reply with exactly: OK" with an empty system prompt, purpose `.ping`.
+// - A ready local provider becomes the review default (step 5c, `adoptReadyLocalProviderIfNeeded`) at most once per run
+//   of the app, and not after the review default was cleared during this run (None chosen, or its provider switched
+//   off): from then on the referee's choice stands until the next launch.
 
 public extension Notification.Name {
     static let refereeSettingsDidChange = Notification.Name("local.referee.app.settingsDidChange")
@@ -40,6 +43,8 @@ public final class SettingsModel {
     @ObservationIgnored private(set) var saveTask: Task<Void, Never>?
     @ObservationIgnored private var saveChain: Task<Void, Never>?
     @ObservationIgnored private var hasUnsavedChanges = false
+    /// A local provider was made the review default in this run, or the referee cleared the review default (step 5c).
+    @ObservationIgnored private var localDefaultSettled = false
 
     static let saveDelay: TimeInterval = 0.5
     static let testPrompt = "Reply with exactly: OK"
@@ -64,6 +69,7 @@ public final class SettingsModel {
         var changed = settings
         mutate(&changed)
         guard changed != settings else { return }
+        if settings.defaults.review != nil && changed.defaults.review == nil { localDefaultSettled = true }   // the referee's own None
         settings = changed
         scheduleSave()
         NotificationCenter.default.post(name: .refereeSettingsDidChange, object: self)
@@ -187,6 +193,49 @@ public final class SettingsModel {
             entry.cachedModelsAt = now
             settings.providers[id] = entry
             settings.defaults.review = ProviderRef(providerID: id, model: model)
+        }
+    }
+
+    /// Step 5c: while no review default is set, the first provider of the registry that is switched on, local and ready
+    /// becomes the review default, with its chosen model, or else the first model it lists. Asking a local provider costs
+    /// nothing (Ollama: `/api/version` and `/api/tags` on this Mac, no key read); a remote provider is never asked and
+    /// never chosen. At most once per run of the app, and not after the referee cleared the review default during this
+    /// run. The Shell calls it when a window opens and when the app becomes active, so that an Ollama started after the
+    /// first launch becomes the default without a visit to Settings (the Shell's contract problem 3 of step 5b).
+    public func adoptReadyLocalProviderIfNeeded() async {
+        guard !localDefaultSettled, settings.defaults.review == nil else { return }
+        let candidates = dependencies.providers.all.filter { provider in
+            provider.descriptor.isLocal && settings.providers[provider.descriptor.id]?.enabled == true
+        }
+        for provider in candidates {
+            let id = provider.descriptor.id
+            let status = await Self.availability(of: [provider]).first?.1 ?? .unavailable(reason: "")
+            availability[id] = status
+            guard !localDefaultSettled, settings.defaults.review == nil else { return }          // chosen meanwhile
+            guard case .ready = status else { continue }
+            var model = settings.providers[id]?.model
+            var listed: [ModelInfo]?
+            if model == nil {
+                guard let list = try? await provider.listModels(), let first = list.first else { continue }
+                listed = list
+                model = first.id
+                models[id] = list
+            }
+            guard !localDefaultSettled, settings.defaults.review == nil else { return }
+            localDefaultSettled = true
+            let now = clock.now()
+            update { settings in
+                var entry = settings.providers[id] ?? ProviderSettings(enabled: true, inputMode: .auto)
+                entry.model = model
+                if let listed {
+                    entry.cachedModels = listed
+                    entry.cachedModelsAt = now
+                }
+                settings.providers[id] = entry
+                settings.defaults.review = ProviderRef(providerID: id, model: model)
+            }
+            Log.event("settings.localDefault.adopted", ["provider": .id(id)])
+            return
         }
     }
 
