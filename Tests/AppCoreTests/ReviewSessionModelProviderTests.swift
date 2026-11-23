@@ -197,4 +197,29 @@ private final class ModelObservedFlag: @unchecked Sendable {
         #expect(local.availabilityCalls == 2)
         #expect(api.availabilityCalls == 0)
     }
+
+    // ---- step 5c: registeredProviders ----
+
+    /// Every registered provider, in the registry's order, whether it is switched on, switched off or left out by Local
+    /// only: what names the provider of an earlier run once it is off. Nobody is asked anything for it.
+    @Test @MainActor func everyRegisteredProviderIsListedWhetherItIsOnOrNot() async throws {
+        let local = StatusModelProvider(id: "local", isLocal: true, authMode: .local, status: .ready(detail: "Ready"))
+        let api = StatusModelProvider(id: "api", isLocal: false, authMode: .apiKey, status: .ready(detail: "Key set"))
+        let cli = StatusModelProvider(id: "cli", isLocal: false, authMode: .subscriptionCLI, status: .ready(detail: "Logged in"))
+        var settings = Self.settings(["local", "api"], review: "local")
+        settings.providers["cli"] = ProviderSettings(enabled: false, model: "m", inputMode: .auto)
+        let harness = try await makeModelHarness(settings: settings, providers: [local, api, cli])
+        await harness.open()
+        #expect(harness.model.registeredProviders.map(\.id) == ["local", "api", "cli"])
+        #expect(harness.model.selectableProviders.map(\.id) == ["local", "api"])
+
+        var localOnly = harness.model.settings
+        localOnly.privacy.localOnly = true
+        harness.model.reloadSettings(localOnly)
+        #expect(harness.model.selectableProviders.map(\.id) == ["local"])
+        #expect(harness.model.registeredProviders.map(\.id) == ["local", "api", "cli"])
+        #expect(harness.model.registeredProviders == [local.descriptor, api.descriptor, cli.descriptor])
+        #expect(api.availabilityCalls == 0)
+        #expect(cli.availabilityCalls == 0)
+    }
 }

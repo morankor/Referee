@@ -8,10 +8,9 @@ import AppCore
 // be told apart in one list.
 //
 // Where the names come from, in this order:
-// - The provider: a descriptor the model has now (the enabled providers, the active one, chat's and the report's),
-//   shortened like the destination indicator ("Claude Code (subscription)" → "Claude Code"); else the name of one of
-//   the nine providers of plan.md section 5.2 from `knownProviders` (a provider switched off since its review has no
-//   public descriptor: docs/contract-notes/step5-sidebar.md, "Contract problems"); else its id.
+// - The provider: its descriptor among every provider the app registers, switched on or not
+//   (`ReviewSessionModel.registeredProviders`, step 5c), shortened like the destination indicator ("Claude Code
+//   (subscription)" → "Claude Code"); else its id (a provider no longer registered).
 // - The model: the id the run asked for (`RunRecord.provider.model`, `ThreadMessage.provider.model`), shown by its
 //   display name when the provider's cached model list has it; nil reads "default model" (a CLI's own default).
 //
@@ -64,20 +63,6 @@ struct SidebarSourceNames: Equatable {
     var runs: [RunRecord]
     var running: Running?
 
-    /// The nine providers of plan.md section 5.2, by the name their descriptors give, shortened: the name of a provider
-    /// whose descriptor the window no longer has (switched off since its review, or left out by Local only).
-    static let knownProviders: [ProviderID: String] = [
-        "anthropic-api": "Anthropic API",
-        "openai-api": "OpenAI API",
-        "gemini-api": "Gemini API",
-        "xai-api": "xAI API",
-        "ollama": "Ollama",
-        "claude-cli": "Claude Code",
-        "codex-cli": "Codex",
-        "antigravity-cli": "Antigravity",
-        "grok-cli": "Grok Build",
-    ]
-
     init(descriptors: [ProviderDescriptor] = [], cachedModels: [ProviderID: [ModelInfo]] = [:], runs: [RunRecord] = [], running: Running? = nil) {
         self.descriptors = descriptors
         self.cachedModels = cachedModels
@@ -85,24 +70,19 @@ struct SidebarSourceNames: Equatable {
         self.running = running
     }
 
-    /// What the model knows now.
+    /// What the model knows now: every registered provider (step 5c), switched on or not.
     @MainActor init(model: ReviewSessionModel) {
-        var descriptors = model.selectableProviders
-        for extra in [model.activeProvider, model.chatProvider, model.reportProvider].compactMap({ $0 })
-        where !descriptors.contains(where: { $0.id == extra.id }) {
-            descriptors.append(extra)
-        }
         var running: Running?
         if case .running(.review, _, let since) = model.runState, let provider = model.activeProvider {
             running = Running(since: since, ref: ProviderRef(providerID: provider.id, model: model.activeModel))
         }
-        self.init(descriptors: descriptors, cachedModels: model.settings.providers.mapValues(\.cachedModels),
+        self.init(descriptors: model.registeredProviders, cachedModels: model.settings.providers.mapValues(\.cachedModels),
                   runs: model.session?.runs ?? [], running: running)
     }
 
     /// The label of a provider and the model asked of it.
     func source(of ref: ProviderRef) -> SidebarSource {
-        let name = descriptors.first { $0.id == ref.providerID }.map(Self.shortName) ?? Self.knownProviders[ref.providerID] ?? ref.providerID
+        let name = descriptors.first { $0.id == ref.providerID }.map(Self.shortName) ?? ref.providerID
         let modelName = ref.model.flatMap { id in cachedModels[ref.providerID]?.first { $0.id == id }?.displayName }
         return SidebarSource(providerID: ref.providerID, providerName: name, model: ref.model,
                              modelName: modelName == ref.model ? nil : modelName)

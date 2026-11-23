@@ -10,6 +10,7 @@ import TestSupport
     typealias Sample = SidebarTestData
 
     static let claude = Sample.descriptor("claude-cli", "Claude Code (subscription)", .subscriptionCLI)
+    static let codex = Sample.descriptor("codex-cli", "Codex (ChatGPT plan)", .subscriptionCLI)
     static let openAI = Sample.descriptor("openai-api", "OpenAI API", .apiKey)
     static let claudeModels = [ModelInfo(id: "sonnet", displayName: "Sonnet"), ModelInfo(id: "opus", displayName: "Opus")]
 
@@ -24,18 +25,28 @@ import TestSupport
     }
 
     @Test func noModelIsTheProvidersDefault() {
-        let codex = SidebarSourceNames().source(of: ProviderRef(providerID: "codex-cli", model: nil))
+        let codex = SidebarSourceNames(descriptors: [Self.codex]).source(of: ProviderRef(providerID: "codex-cli", model: nil))
         #expect(codex.text == "Codex · default model")
         #expect(codex.help == "Written by codex-cli, model not named (the provider's default)")
     }
 
-    /// A provider switched off since its review has no descriptor in the window: the nine known ones keep their names,
-    /// anything else shows its id.
-    @Test func aProviderThatIsNoLongerOnIsStillNamed() {
-        let names = SidebarSourceNames()
+    /// A provider switched off since its review is still named by its descriptor: the window has every registered
+    /// provider (`registeredProviders`, step 5c). One that is not registered at all shows its id.
+    @Test @MainActor func aProviderThatIsNoLongerOnIsStillNamed() async throws {
+        let paper = try makeSamplePaper()
+        let dependencies = AppDependencies(paperService: FakePaperService(paper: paper), matcherFactory: { FakeQuoteMatcher(paper: $0) },
+                                           citationIndexer: FakeCitationIndexer(), engine: ScriptedReviewEngine(plan: Sample.plan),
+                                           resolver: FakeResolver(), sessions: InMemorySessionStore(), settings: InMemorySettingsStore(),
+                                           providers: ProviderRegistry(SnapshotSupport.providers()), secrets: InMemorySecretStore())
+        let settings = SnapshotSupport.settings()               // the four mocks on, the nine real providers off
+        #expect(settings.providers["claude-cli"]?.enabled != true)
+        let model = ReviewSessionModel(dependencies: dependencies, settings: settings)
+        #expect(!model.selectableProviders.contains { $0.id == "claude-cli" })
+        let names = SidebarSourceNames(model: model)
         #expect(names.source(of: ProviderRef(providerID: "claude-cli", model: "sonnet")).text == "Claude Code · sonnet")
         #expect(names.source(of: ProviderRef(providerID: "ollama", model: "gemma4:e4b")).text == "Ollama · gemma4:e4b")
         #expect(names.source(of: ProviderRef(providerID: "grok-cli", model: nil)).text == "Grok Build · default model")
+        #expect(names.source(of: ProviderRef(providerID: "anthropic-api", model: "m")).text == "Anthropic API · m")
         #expect(names.source(of: ProviderRef(providerID: "some-future-provider", model: "m")).text == "some-future-provider · m")
     }
 
@@ -47,21 +58,11 @@ import TestSupport
         #expect(SidebarSourceNames.shortName(Sample.descriptor("mock-remote", "Mock (remote)", .none)) == "Mock (remote)")
     }
 
-    /// The sidebar's own list names the nine providers of section 5.2 as their descriptors do: the snapshot registry
-    /// carries the real descriptors (a test in IntegrationTests compares them with the adapters').
-    @Test func theKnownNamesAreTheDescriptorsNames() {
-        #expect(Set(SidebarSourceNames.knownProviders.keys) == Set(DefaultSettings.make().providers.keys))
-        let registry = SnapshotSupport.providers().map(\.descriptor)
-        for (id, name) in SidebarSourceNames.knownProviders {
-            let descriptor = registry.first { $0.id == id }
-            #expect(descriptor.map(SidebarSourceNames.shortName) == name, "\(id)")
-        }
-    }
-
     @Test func aCommentNamesItsRunAndTheRefereesOwnNamesNothing() {
         let claudeRun = Sample.run("claude-cli", model: "sonnet")
         let codexRun = Sample.run("codex-cli", model: nil)
-        let names = SidebarSourceNames(descriptors: [Self.claude], cachedModels: ["claude-cli": Self.claudeModels], runs: [claudeRun, codexRun])
+        let names = SidebarSourceNames(descriptors: [Self.claude, Self.codex], cachedModels: ["claude-cli": Self.claudeModels],
+                                       runs: [claudeRun, codexRun])
         #expect(names.source(of: Sample.comment(origin: .ai(runID: claudeRun.id)))?.text == "Claude Code · Sonnet")
         #expect(names.source(of: Sample.comment(origin: .ai(runID: codexRun.id)))?.text == "Codex · default model")
         #expect(names.source(of: Sample.comment(origin: .user)) == nil)
@@ -98,7 +99,7 @@ import TestSupport
 
     /// Room for the model a provider reports it used, once that is recorded: it wins over the one asked for.
     @Test func aReportedModelWinsOverTheRequestedOne() {
-        var source = SidebarSourceNames().source(of: ProviderRef(providerID: "codex-cli", model: nil))
+        var source = SidebarSourceNames(descriptors: [Self.codex]).source(of: ProviderRef(providerID: "codex-cli", model: nil))
         source.reportedModel = "gpt-5.1-codex"
         #expect(source.text == "Codex · gpt-5.1-codex")
         #expect(source.help == "Written by codex-cli, model gpt-5.1-codex")

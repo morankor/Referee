@@ -129,10 +129,14 @@ public final class ReviewSessionModel {
             && sendPlan != nil && sendPlan?.blockingReason == nil
     }
     public var selectableProviders: [ProviderDescriptor] {   // enabled providers; non-local ones are left out when Local only is on
-        dependencies.providers.all.map(\.descriptor).filter { descriptor in
+        registeredProviders.filter { descriptor in
             settings.providers[descriptor.id]?.enabled == true && (!settings.privacy.localOnly || descriptor.isLocal)
         }
     }
+    /// The descriptors of every registered provider, in the registry's order, switched on or not and whatever Local only
+    /// says (step 5c): what names the provider of an earlier run once it has been switched off (the sidebar's labels of
+    /// who wrote a comment, "Sent so far" in the destination menu).
+    public var registeredProviders: [ProviderDescriptor] { dependencies.providers.all.map(\.descriptor) }
     /// Where a discussion reply or a chat answer would go now, as `activeProvider` is where a review would: the job's
     /// provider, `session.preferredProvider ?? settings.defaults.chat ?? settings.defaults.review`, if it is registered
     /// and enabled; nil when it is not (the job would then fail with "Set up an AI provider"). Read-only, observable

@@ -271,11 +271,10 @@ struct ShellDestinationMenu: View {
         windowState.destinationMenuOpen = false
     }
 
-    /// The providers the window knows by name: the app's whole registry when it has one (not in the snapshot mode),
-    /// those that can be chosen, and the providers of the three jobs.
+    /// The providers the window knows by name: every registered provider, switched on or not
+    /// (`ReviewSessionModel.registeredProviders`, step 5c), in the snapshot mode as in the app.
     @MainActor static func knownProviders(_ model: ReviewSessionModel, services: ShellWindowServices) -> [ProviderDescriptor] {
-        (services.settings?.providers ?? []) + model.selectableProviders
-            + [model.activeProvider, model.chatProvider, model.reportProvider].compactMap { $0 }
+        model.registeredProviders
     }
 
     // ---- providers and their models ----

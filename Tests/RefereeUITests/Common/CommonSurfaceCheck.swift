@@ -216,6 +216,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: ProviderDescriptor? = model.reportProvider
     let _: ProviderAvailability? = model.activeAvailability             // step 5 (O2)
     model.refreshActiveAvailability()
+    let _: [ProviderDescriptor] = model.registeredProviders             // step 5c
     await model.open(url: file)
     await model.close()
     await model.deleteReviewData()

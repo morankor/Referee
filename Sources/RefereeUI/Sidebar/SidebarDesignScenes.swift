@@ -211,7 +211,8 @@ import AppCore
     /// The labels design-sidebar-two-models.json's runs must give their comments.
     static let twoModelsLabels: [ProviderID: String] = ["claude-cli": "Claude Code · Sonnet", "codex-cli": "Codex · default model"]
 
-    /// Both CLIs stay switched off, as after a review with each: their names come from the sidebar's own list. Claude
+    /// Both CLIs stay switched off, as after a review with each: their names come from their descriptors among the
+    /// registered providers (`registeredProviders`, step 5c). Claude
     /// Code's model list is what Settings ▸ Providers keeps once it has listed the CLI's models (its documented aliases),
     /// so "sonnet" reads "Sonnet"; Codex's review asked for no model.
     static var twoModels: SnapshotScene {

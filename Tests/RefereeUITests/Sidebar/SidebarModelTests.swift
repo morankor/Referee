@@ -119,14 +119,18 @@ import TestSupport
         let byMock = Sample.comment(origin: .ai(runID: mockRun.id), title: "By the mock")
         let byClaude = Sample.comment(origin: .ai(runID: claudeRun.id), title: "By Claude Code", createdAt: Sample.created.addingTimeInterval(1))
         let own = Sample.comment(origin: .user, title: "Mine", createdAt: Sample.created.addingTimeInterval(2))
-        let harness = try await SidebarTestHarness.open(comments: [byMock, byClaude, own], runs: [mockRun, claudeRun])
+        // The snapshot registry: Claude Code is registered with its real descriptor and switched off by the settings.
+        let harness = try await SidebarTestHarness.open(comments: [byMock, byClaude, own], runs: [mockRun, claudeRun],
+                                                        providers: SnapshotSupport.providers())
+        #expect(!harness.model.selectableProviders.contains { $0.id == "claude-cli" })
         #expect(harness.state(of: byMock.id)?.source?.text == "Mock · mock")
         #expect(harness.state(of: byClaude.id)?.source?.text == "Claude Code · sonnet")       // no cached list here: the id
         #expect(harness.state(of: byClaude.id)?.source?.help == "Written by claude-cli, model sonnet")
         #expect(harness.state(of: own.id)?.source == nil)
-        // The window's names: the enabled mock has its descriptor, nothing runs.
+        // The window's names: every registered provider has its descriptor, on or off (step 5c); nothing runs.
         let names = SidebarSourceNames(model: harness.model)
         #expect(names.descriptors.contains { $0.id == "mock" })
+        #expect(names.descriptors.contains { $0.id == "claude-cli" })
         #expect(names.running == nil)
     }
 
