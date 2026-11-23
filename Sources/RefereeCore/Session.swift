@@ -105,16 +105,17 @@ public struct ReportVersion: Codable, Sendable, Equatable {
 
 public struct ReportDraft: Codable, Sendable, Equatable {
     public var markdown: String
-    public var recommendation: Recommendation?
+    public var recommendation: Recommendation?   // a journal's; nil for a report written for a conference
+    public var recommendationLabel: String?      // a conference's: one label of its VenueProfile.scale; nil for a journal's report
     public var generatedAt: Date?
     public var provider: ProviderRef?
     public var basedOnCommentIDs: [UUID]
     public var userEdited: Bool
     public var versions: [ReportVersion]     // newest last, max 10
-    public init(markdown: String, recommendation: Recommendation? = nil, generatedAt: Date? = nil, provider: ProviderRef? = nil,
-                basedOnCommentIDs: [UUID] = [], userEdited: Bool, versions: [ReportVersion] = []) {
-        self.markdown = markdown; self.recommendation = recommendation; self.generatedAt = generatedAt; self.provider = provider
-        self.basedOnCommentIDs = basedOnCommentIDs; self.userEdited = userEdited; self.versions = versions
+    public init(markdown: String, recommendation: Recommendation? = nil, recommendationLabel: String? = nil, generatedAt: Date? = nil,
+                provider: ProviderRef? = nil, basedOnCommentIDs: [UUID] = [], userEdited: Bool, versions: [ReportVersion] = []) {
+        self.markdown = markdown; self.recommendation = recommendation; self.recommendationLabel = recommendationLabel; self.generatedAt = generatedAt
+        self.provider = provider; self.basedOnCommentIDs = basedOnCommentIDs; self.userEdited = userEdited; self.versions = versions
     }
 }
 
@@ -148,11 +149,12 @@ public struct ConsentRecord: Codable, Sendable, Equatable {
 
 public struct ManuscriptMeta: Codable, Sendable, Equatable {
     public var title: String?
-    public var targetVenue: String?
+    public var targetVenue: String?          // the venue's displayName; free text in a session saved before venues, which the prompts still name
     public var manuscriptID: String?
     public var reviewerNotes: String         // free text passed to review and report prompts
-    public init(title: String? = nil, targetVenue: String? = nil, manuscriptID: String? = nil, reviewerNotes: String) {
-        self.title = title; self.targetVenue = targetVenue; self.manuscriptID = manuscriptID; self.reviewerNotes = reviewerNotes
+    public var venueID: String?              // VenueProfile.id of the venue the paper is reviewed for; nil = Journal (unspecified)
+    public init(title: String? = nil, targetVenue: String? = nil, manuscriptID: String? = nil, reviewerNotes: String, venueID: String? = nil) {
+        self.title = title; self.targetVenue = targetVenue; self.manuscriptID = manuscriptID; self.reviewerNotes = reviewerNotes; self.venueID = venueID
     }
 }
 

@@ -10,6 +10,14 @@ struct ReportStructure {
     /// The six headings of the default template (Appendix B.4), lower-cased.
     static let templateSections = ["summary assessment", "recommendation", "publication probability", "major concerns", "minor concerns",
                                    "questions for the authors"]
+    /// The six headings of the conference template (Appendix B.4): "chance of acceptance" for "publication probability".
+    static let conferenceSections = ["summary assessment", "recommendation", "chance of acceptance", "major concerns", "minor concerns",
+                                     "questions for the authors"]
+
+    /// The template headings of a report written for a venue of this kind.
+    static func sections(for kind: VenueKind) -> [String] {
+        kind == .conference ? conferenceSections : templateSections
+    }
 
     struct Line {
         let range: NSRange           // without the line break
@@ -28,7 +36,8 @@ struct ReportStructure {
     private static let atxHeading = try! NSRegularExpression(pattern: #"^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$"#)
     private static let boldLine = try! NSRegularExpression(pattern: #"^\s*(?:\*\*|__)(.+?)(?:\*\*|__)\s*:?\s*$"#)
 
-    init(_ markdown: String) {
+    /// `sections`: the template headings a line of bold text may name (those of the report's venue kind).
+    init(_ markdown: String, sections: [String] = templateSections) {
         text = markdown as NSString
         var lines: [Line] = []
         var start = 0
@@ -46,12 +55,12 @@ struct ReportStructure {
         self.lines = lines
         var headings: [Heading] = []
         for (position, line) in lines.enumerated() {
-            if let name = Self.headingName(line.text) { headings.append(Heading(line: position, name: name)) }
+            if let name = Self.headingName(line.text, sections: sections) { headings.append(Heading(line: position, name: name)) }
         }
         self.headings = headings
     }
 
-    static func headingName(_ line: String) -> String? {
+    static func headingName(_ line: String, sections: [String] = templateSections) -> String? {
         let ns = line as NSString
         let whole = NSRange(location: 0, length: ns.length)
         if let match = atxHeading.firstMatch(in: line, range: whole) {
@@ -59,7 +68,7 @@ struct ReportStructure {
         }
         if let match = boldLine.firstMatch(in: line, range: whole) {
             let name = normalised(ns.substring(with: match.range(at: 1)))
-            if templateSections.contains(where: { name == $0 || name.hasPrefix($0 + ":") }) { return name }
+            if sections.contains(where: { name == $0 || name.hasPrefix($0 + ":") }) { return name }
         }
         return nil
     }
@@ -130,6 +139,22 @@ struct ReportStructure {
         let order: [(String, Recommendation)] = [("reject", .reject), ("major revision", .majorRevision), ("minor revision", .minorRevision),
                                                  ("accept", .accept)]
         return order.first { lowered.contains($0.0) }?.1
+    }
+
+    /// A conference's recommendation (Appendix G.9), parsed the same way: the label of the venue's scale named in the
+    /// first sentence under the "Recommendation" heading, else in the whole section (`VenueProfile.scaleLabel(in:)`).
+    /// Nil without the heading, or when the text names no label of the scale.
+    static func recommendationLabel(in markdown: String, venue: VenueProfile) -> String? {
+        ReportStructure(markdown, sections: sections(for: venue.kind)).recommendationLabel(on: venue)
+    }
+
+    func recommendationLabel(on venue: VenueProfile) -> String? {
+        guard let (heading, body) = section(named: "recommendation") else { return nil }
+        let inHeading = String(heading.name.dropFirst("recommendation".count))
+        let sectionText = inHeading + "\n" + string(of: body)
+        let firstLine = sectionText.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.first { !$0.isEmpty } ?? ""
+        let firstSentence = firstLine.split(whereSeparator: { ".?!".contains($0) }).first.map(String.init) ?? firstLine
+        return venue.scaleLabel(in: firstSentence) ?? venue.scaleLabel(in: sectionText)
     }
 
     /// List items (numbered or bulleted) under the "Major concerns" heading.

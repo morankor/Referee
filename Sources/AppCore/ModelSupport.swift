@@ -47,6 +47,47 @@ enum ModelSupport {
         return found.min { $0.position < $1.position }?.value
     }
 
+    /// A conference's recommendation (plan.md Appendix G.9): the label of the venue's scale named under the
+    /// "Recommendation" heading, the heading's own text included, found as `recommendation(in:)` finds its section; of
+    /// the labels named there the one that comes first (`VenueProfile.scaleLabel(in:)`). nil when it names none.
+    static func recommendationLabel(in markdown: String, venue: VenueProfile) -> String? {
+        let lines = markdown.components(separatedBy: .newlines)
+        guard let start = lines.firstIndex(where: { headingLevel($0) != nil && headingTitle($0).lowercased().hasPrefix("recommendation") }),
+              let level = headingLevel(lines[start]) else { return nil }
+        var section = [String(headingTitle(lines[start]).dropFirst("recommendation".count))]
+        for line in lines[(start + 1)...] {
+            if let other = headingLevel(line), other <= level { break }
+            section.append(line)
+        }
+        return venue.scaleLabel(in: section.joined(separator: "\n"))
+    }
+
+    /// A report the engine wrote for `venue` (generated, or revised from `old`): for a journal, `recommendation` stays the
+    /// engine's, else it is read from the text, else `old`'s; for a conference the same holds for `recommendationLabel`,
+    /// and `recommendation` is nil (plan.md Appendix G.9).
+    static func completeRecommendation(of report: inout ReportDraft, venue: VenueProfile, keeping old: ReportDraft? = nil) {
+        switch venue.kind {
+        case .journal:
+            report.recommendation = report.recommendation ?? recommendation(in: report.markdown) ?? old?.recommendation
+        case .conference:
+            report.recommendation = nil
+            report.recommendationLabel = report.recommendationLabel ?? recommendationLabel(in: report.markdown, venue: venue)
+                ?? old?.recommendationLabel
+        }
+    }
+
+    /// A text restored from the versions: for a journal `recommendation`, for a conference `recommendationLabel` (and no
+    /// `recommendation`), is what the text names, nil when it names none.
+    static func readRecommendation(of report: inout ReportDraft, venue: VenueProfile) {
+        switch venue.kind {
+        case .journal:
+            report.recommendation = recommendation(in: report.markdown)
+        case .conference:
+            report.recommendation = nil
+            report.recommendationLabel = recommendationLabel(in: report.markdown, venue: venue)
+        }
+    }
+
     private static func headingLevel(_ line: String) -> Int? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         let hashes = trimmed.prefix { $0 == "#" }.count

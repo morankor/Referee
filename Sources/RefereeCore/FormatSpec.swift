@@ -5,19 +5,33 @@ import Foundation
 /// cannot break parsing.
 ///
 /// Every value is the text printed in Appendix B.2, character for character, with no final line break. Two things
-/// printed there are not prompt text and are not here: the "← only when …" notes beside the optional lines, and the
-/// shorthand `{same optional lines}`, which is written out. Text in braces is a placeholder for ReviewEngine's
-/// PromptBuilder. Three kinds occur:
+/// printed there are not prompt text and are not here: the "← only when …" notes beside the optional lines and the
+/// venue line, and the shorthand `{same optional lines}`, which is written out. Text in braces is a placeholder for
+/// ReviewEngine's PromptBuilder. Four kinds occur:
 ///
 /// - **Values.** `{paper text}`, `{text of the part}`, `{i}`, `{n}`, `{a}`, `{b}`, `{notes}` and `{titles}` are
-///   replaced by the value they name.
-/// - **Optional lines.** `{Reviewer's notes: …}`, `{Target journal: …}` and
-///   `{Comments already made, do not repeat them: title; title; …}` each stand alone on a line, at the end of the two
-///   `taskReview…` texts. Such a line becomes the text between the braces, with the real value in place of what
-///   follows the first colon; when its condition does not hold (no reviewer notes, no target venue, no existing
-///   comments) the whole line is removed together with its line break.
+///   replaced by the value they name; so are the placeholders of `venue` (below).
+/// - **Optional lines.** `{Reviewer's notes: …}` and `{Comments already made, do not repeat them: title; title; …}` each
+///   stand alone on a line, at the end of the two `taskReview…` texts. Such a line becomes the text between the braces,
+///   with the real value in place of what follows the first colon; when its condition does not hold (no reviewer
+///   notes, no existing comments) the whole line is removed together with its line break.
+/// - **The venue line `{venue}`** stands alone on a line of the two `taskReview…` texts (where `{Target journal: …}`
+///   stood before venues), of `taskPart` and of `taskWhole`. It becomes the venue lines, one after the other, or is
+///   removed together with its line break when there are none. The venue lines are the lines of `venue` whose every
+///   placeholder has a value, filled in: `{kind}` is "journal" or "conference" (`VenueProfile.kind`); `{name}` is the
+///   venue's `displayName`, or for an unspecified venue the paper's `ManuscriptMeta.targetVenue`, and "not specified"
+///   when that is empty; `{guidance}` is `VenueProfile.guidance` when it is not empty; `{scale}`, for a conference in
+///   the report's request only, is `VenueProfile.scale` joined by "; "; `{report instructions}`, in the report's request
+///   only, is `VenueProfile.reportInstructions` when it is not empty. Journal (unspecified) keeps every prompt as it was
+///   before venues: its `{name}` has a value only in the two `taskReview…` texts, when the paper has a target venue,
+///   and in the report's request, where it is "not specified" when the paper has none. PromptBuilder puts the same
+///   lines first in the discussion and question tasks, with a blank line after them, and at the head of the report's
+///   request, before the reviewer's notes.
 /// - **The marker `{if i > 1:}`** in `taskPart` is always removed together with its line break. For the first part
 ///   (i == 1) the two lines after it and the empty line that follows them are removed too.
+///
+/// `conferenceWording` holds no placeholder: for a conference, PromptBuilder replaces the first occurrence of each
+/// journal phrase in the review system prompt with its conference phrase, and leaves a phrase the referee edited away.
 ///
 /// `review` and `revision` contain no placeholders (the two "…" lines in `revision` are part of the text).
 public enum FormatSpec {                                  // Appendix B.2: constants in code, never settings
@@ -33,6 +47,13 @@ public enum FormatSpec {                                  // Appendix B.2: const
     public static var taskPart: String { taskPartText }                // TASK_PART
     public static var taskWhole: String { taskWholeText }              // TASK_WHOLE
     public static var taskContinue: String { taskContinueText }        // TASK_CONTINUE
+    /// The venue lines that `{venue}` stands for, and that open the discussion, question and report tasks.
+    public static var venue: String { venueLinesText }                 // VENUE
+    /// The phrases of the review system prompt that speak of a journal, each with what it becomes for a conference.
+    public static var conferenceWording: [(journal: String, conference: String)] {
+        [(journal: "for a serious academic journal", conference: "for the program committee of a selective academic conference"),
+         (journal: "to help the editor decide", conference: "to help the program committee decide")]
+    }
 
     // ---- The texts of Appendix B.2. Do not reflow them: every line break is part of the prompt. ----
 
@@ -83,7 +104,7 @@ public enum FormatSpec {                                  // Appendix B.2: const
         {paper text}
         Write your referee comments on this manuscript in the required format.
         {Reviewer's notes: …}
-        {Target journal: …}
+        {venue}
         {Comments already made, do not repeat them: title; title; …}
         """
 
@@ -91,12 +112,13 @@ public enum FormatSpec {                                  // Appendix B.2: const
         The manuscript is the attached PDF. Use PDF page numbers: the first page of the file is page 1.
         Write your referee comments on this manuscript in the required format.
         {Reviewer's notes: …}
-        {Target journal: …}
+        {venue}
         {Comments already made, do not repeat them: title; title; …}
         """
 
     private static let taskPartText = """
         The manuscript is long, so you are reading it in parts, as text extracted from a PDF. This is part {i} of {n}: PDF pages {a} to {b}. Lines of the form [[page N]] mark where PDF page N begins. Words run together, odd hyphenation and broken equations or tables are artefacts of extraction; do not comment on them.
+        {venue}
 
         {if i > 1:}
         Your notes on the earlier parts:
@@ -114,6 +136,7 @@ public enum FormatSpec {                                  // Appendix B.2: const
         {notes}
 
         Comments you already made: {titles}
+        {venue}
 
         Write any further comments that only make sense for the paper as a whole: conclusions against evidence, hidden assumptions, how far the results travel, position in the debate, missing work. Use the required format. For each quote use one of the passages copied in your notes. If you have nothing to add, write only @@DONE
         """
@@ -121,5 +144,12 @@ public enum FormatSpec {                                  // Appendix B.2: const
     private static let taskContinueText = """
         Your previous answer was cut off. Comments already written (do not repeat them): {titles}
         Continue with the remaining comments in the same format and end with a line containing only @@DONE
+        """
+
+    private static let venueLinesText = """
+        Target {kind}: {name}
+        What a review for this {kind} should weigh: {guidance}
+        Recommendation scale, most favourable first: {scale}
+        Instructions for this report: {report instructions}
         """
 }

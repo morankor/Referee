@@ -1,9 +1,11 @@
 import Foundation
 
 public enum DefaultSettings {
-    /// Prompts, rubric and quick questions of Appendix B; the nine real provider ids of section 5.2 (not "mock"), all disabled
-    /// except "ollama", which is enabled and whose extraBodyJSON is {"think": false}; no default provider chosen;
-    /// privacy: localOnly false, confirm on, background lookups off.
+    /// Prompts, rubric and quick questions of Appendix B, the conference report's prompt and template included; the nine
+    /// real provider ids of section 5.2 (not "mock"), all disabled except "ollama", which is enabled and whose
+    /// extraBodyJSON is {"think": false}; no default provider chosen; privacy: localOnly false, confirm on, background
+    /// lookups off. No venue list is stored (`venueProfiles` nil: the built-ins of `venues`) and new papers get Journal
+    /// (unspecified) (`defaultVenueID` nil).
     public static func make() -> AppSettings {
         AppSettings(
             schemaVersion: 1,
@@ -11,12 +13,41 @@ public enum DefaultSettings {
             defaults: TaskDefaults(),          // no default provider until one is chosen (plan sections 9.6 and 13.2, Q2)
             prompts: PromptSet(reviewSystem: reviewSystem, discussionSystem: discussionSystem, questionSystem: questionSystem,
                                reportSystem: reportSystem, reportTemplate: reportTemplate, voiceRevisionSystem: voiceRevisionSystem,
-                               quickQuestions: quickQuestions),
+                               quickQuestions: quickQuestions, conferenceReportSystem: conferenceReportSystem,
+                               conferenceReportTemplate: conferenceReportTemplate),
             rubric: rubric,
             privacy: PrivacySettings(localOnly: false, confirmFirstSendPerDocument: true, resolveReferencesInBackground: false),
             references: ReferenceSettings(crossrefMailto: "", pdfCacheLimitMB: 500),
             ui: UISettings(autoAdvanceAfterTriage: true, showRejectedHighlights: false, sidebarWidth: 380, stripMarginLineNumbers: true))
     }
+
+    // ---- Appendix B.8: venues; the guidance texts character for character, with no final line break ----
+
+    /// The built-in venues, in menu order: Journal (unspecified), Conference (unspecified), JET, EC. They can be edited and
+    /// reset, not deleted; `AppSettings.venues` always holds them.
+    public static let venues: [VenueProfile] = [
+        .unspecifiedJournal,
+        VenueProfile(id: VenueProfile.conferenceID, shortName: "Conference", fullName: "Conference (unspecified)", kind: .conference,
+                     guidance: conferenceGuidance, recommendationScale: conferenceScale),
+        VenueProfile(id: "jet", shortName: "JET", fullName: "Journal of Economic Theory", kind: .journal, guidance: jetGuidance),
+        VenueProfile(id: "ec", shortName: "EC", fullName: "ACM Conference on Economics and Computation", kind: .conference, guidance: ecGuidance,
+                     recommendationScale: conferenceScale),
+    ]
+
+    /// A conference's recommendation scale until it is given the scale of its own review form, most favourable first.
+    public static let conferenceScale = ["Accept", "Weak accept", "Borderline", "Weak reject", "Reject"]
+
+    private static let conferenceGuidance = """
+        A conference decides on the paper as submitted: there is no revision round, so judge what the paper shows, not what a revision might add. Weigh the novelty and significance of the contribution for the conference's community, its technical soundness as far as a review can check it, and whether the contribution is clear from the main body of the paper.
+        """
+
+    private static let jetGuidance = """
+        Judge the paper as a contribution to economic theory. Weigh how important and new its results are for economic theory, beyond the application that motivates them. Check the correctness and rigour of every proof you can follow, and say which steps you could not verify. The assumptions should be stated clearly and justified: ask which of them drive the results and what fails without them. Ask whether the results are as general as the argument allows, or whether a special case is presented as the general one. Place the paper in the theory literature: what it adds to the closest existing results, and whether known results already contain its own. Judge the exposition as well: precise definitions and statements, consistent notation, and an explanation of why the main results hold.
+        """
+
+    private static let ecGuidance = """
+        EC is ACM's conference on economics and computation, where economists and computer scientists meet. Weigh the novelty and significance of the contribution for that community, and what the paper gains from combining economic and computational insight. Check technical soundness as far as a review can: follow the main arguments, and say which proofs you checked and which you could not. The contribution should be clear from the main body of the paper: the results, why they matter and the ideas behind the proofs, without relying on the appendix. The decision is accept or reject, with no revision round, so judge the paper as submitted.
+        """
 
     /// The nine real provider ids of plan section 5.2, in the order of its table. "mock" is not among them: these
     /// settings are written into the user's settings.json. Tests and the snapshot mode get the mocks from
@@ -66,7 +97,8 @@ public enum DefaultSettings {
         "Explain this passage in plain terms.",
     ]
 
-    // ---- Appendix B.1 and B.3-B.5, character for character, with no final line break. Do not reflow them. ----
+    // ---- Appendix B.1 and B.3-B.5 (with the conference report's two), character for character, with no final line break.
+    // Do not reflow them. ----
 
     private static let reviewSystem = """
         You are refereeing a manuscript for a serious academic journal. You are a knowledgeable, honest, constructive referee: not a summariser and not a cheerleader. Your job is to evaluate the paper, to help the editor decide and to help the authors improve it.
@@ -158,6 +190,59 @@ public enum DefaultSettings {
         ## Recommendation
 
         ## Publication probability
+
+        ## Major concerns
+
+        ## Minor concerns
+
+        ## Questions for the authors
+        """
+
+    /// For a conference: the report of Appendix B.4 with the venue's scale, no revision round and "Chance of acceptance".
+    /// `PromptSet.reportSystem(for:)` falls back on it for settings written before venues.
+    static let conferenceReportSystem = """
+        You are drafting a conference review from a referee's approved notes. The referee will edit it and submit it under their own name, so it must read as a person wrote it.
+
+        Use only the approved comments and the reviewer's notes given below. Do not add criticisms of your own. Merge comments that make the same point. Order concerns by importance. Keep every location reference (page, lines, table, equation) exactly as given.
+
+        Fill in the template you are given, keeping its headings exactly.
+
+        Summary assessment: two to four sentences. State what the paper contributes and the overall verdict. Be direct. Do not open with a paragraph that summarises the paper; the program committee knows what it is about.
+
+        Recommendation: exactly one label of the recommendation scale given below, spelled as it is there, with one or two sentences of justification. The recommendation must match the severity of the concerns: no positive recommendation above devastating criticisms, no rejection over minor complaints. The paper is judged as submitted: there is no revision round, so do not recommend a revision.
+
+        Chance of acceptance: a blunt, calibrated percentage range for acceptance at the target conference (or a typical selective conference in the field if none is named), with two to four sentences of reasoning: how fundamental the concerns are, how crowded the area is, whether the contribution survives the criticisms, and how selective the conference is. Do not round to a convenient single number. If the paper would do better elsewhere, name where.
+
+        Major concerns: numbered. Each states the problem in one sentence, why it matters for the decision, and where it is in the paper. Do not write a revision plan.
+
+        Minor concerns: numbered. Things to fix in a final version that do not affect the decision.
+
+        Questions for the authors: questions whose answers could change the assessment.
+
+        Voice.
+        - First person: "I am not convinced that…", "I could not verify…", "This is the strongest part of the paper." Never "this reviewer", never "it is noted that".
+        - Refer to "the authors" in the third person; never address them as "you".
+        - Concrete, not evaluative: numbers, tables, equations, pages and lines.
+        - Vary sentence length. Let some sentences be short and blunt.
+        - No flattering opener. No closing paragraph about promise or potential. End when the last question is asked.
+        - Do not state a concern and excuse it in the same sentence.
+        - Numbered lists only under Major concerns, Minor concerns and Questions for the authors. Everything else is prose. No section of strengths and weaknesses.
+        - Do not use these words: delve, tapestry, landscape (in the abstract sense), multifaceted, pivotal, testament, underscore, leverage, utilize, foster, showcase, elucidate, illuminate, navigate (in the abstract sense), synergy, paradigm, holistic, robust (unless it names a specific robustness check).
+        - No em dashes; use commas, parentheses or separate sentences. No "not only … but also". Write "is", not "serves as" or "stands as". No lists of three for rhythm. No trailing "-ing" clauses that add nothing, such as "highlighting the need for further research".
+        - No stacked hedges such as "it could potentially be argued that". Take a position or say you cannot judge.
+        - Direct, never cruel.
+
+        Before you finish, reread the report as the program committee would. Delete any sentence that could appear in a review of any other paper.
+
+        Output the report in Markdown and nothing else.
+        """
+
+    static let conferenceReportTemplate = """
+        ## Summary assessment
+
+        ## Recommendation
+
+        ## Chance of acceptance
 
         ## Major concerns
 

@@ -94,9 +94,10 @@ final class ReviewJob {
             sink.send(.phase(.reading(part: 1, of: 1)))
             if plan.sendsPDF {
                 let prefix: [LLMPart] = [.pdf(data: paper.data, fileName: PromptBuilder.manuscriptFileName), .cacheBoundary]
-                _ = try await chain(prefix: prefix, task: PromptBuilder.pdfModeReviewTask(meta: context.meta, existingTitles: titlesSoFar))
+                _ = try await chain(prefix: prefix, task: PromptBuilder.pdfModeReviewTask(meta: context.meta, venue: context.venue,
+                                                                                          existingTitles: titlesSoFar))
             } else {
-                let text = PromptBuilder.textModeReview(paper: rendered, meta: context.meta, existingTitles: titlesSoFar)
+                let text = PromptBuilder.textModeReview(paper: rendered, meta: context.meta, venue: context.venue, existingTitles: titlesSoFar)
                 _ = try await chain(prefix: [.text(text.paper), .cacheBoundary], task: text.task)
             }
             return nil
@@ -107,13 +108,14 @@ final class ReviewJob {
             let pages = paper.text.pages
             let task = PromptBuilder.partTask(part: position + 1, of: plan.parts.count, firstPage: pages[range.lowerBound].index + 1,
                                               lastPage: pages[range.upperBound - 1].index + 1, notes: notes,
-                                              text: dependencies.renderer.render(paper.text, pages: range))
+                                              text: dependencies.renderer.render(paper.text, pages: range), venue: context.venue, meta: context.meta)
             if let written = try await chain(prefix: [.text(task)], task: nil), !written.isEmpty {
                 notes = Self.capped(notes: written)
             }
         }
         sink.send(.phase(.wholePaperPass))
-        _ = try await chain(prefix: [.text(PromptBuilder.wholeTask(notes: notes, titles: titlesSoFar))], task: nil)
+        _ = try await chain(prefix: [.text(PromptBuilder.wholeTask(notes: notes, titles: titlesSoFar, venue: context.venue, meta: context.meta))],
+                            task: nil)
         return notes
     }
 

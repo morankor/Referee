@@ -471,9 +471,9 @@ All types are in Appendix A (they compile as printed [V]). The ones that are per
 | `ReviewComment` | One referee comment: `origin` (AI run or user), `status` (pending / approved / rejected), `kind` (major / minor / question / strength), `category` (rubric slug), title, body, optional suggestion, `anchor`, discussion `thread`, optional `proposedRevision`, `previousVersions`, `includeInReport`, optional `similarTo` (an earlier comment on the same passage). |
 | `Anchor` | Where a comment or question points: the quote, `spans` (page + UTF-16 range in `PDFPage.string`, one per text line touched), cached highlight `rects` in page space, confidence (`exact`, `fuzzy(score)`, `pageOnly`, `none`), display label ("p. 4, lines 14–16"). |
 | `Conversation` | A question thread started from a selection (or about the whole paper). |
-| `ReportDraft` | Markdown text, parsed recommendation, provenance, up to ten earlier versions. |
+| `ReportDraft` | Markdown text, parsed recommendation (for a conference, a label of the venue's scale, G.9), provenance, up to ten earlier versions. |
 | `RunRecord` | Audit entry for each time content was sent to a model: provider, model, destination host or CLI, whether the PDF file itself was sent, request count, token usage, outcome. |
-| `AppSettings` | Providers, defaults, prompts, rubric, privacy, reference lookup, UI. Separate file; no secrets. |
+| `AppSettings` | Providers, defaults, prompts, rubric, privacy, reference lookup, UI, and the venues with the default venue of new papers (G.9). Separate file; no secrets. |
 
 ### 4.2 Where things are stored, and why
 
@@ -1016,7 +1016,7 @@ Implemented once, in `LLMKit`, as a wrapper every HTTP provider's `stream` goes 
 
 ### 6.1 Surface
 
-`ReviewEngine` (target `ReviewEngine`; protocol in Appendix A.6; initialiser in §11.3) is built from a provider registry, the paper service, a matcher factory, a renderer and the machine's memory size. Jobs: `plan`, `review`, `discuss`, `ask`, `generateReport`, `reviseVoice`, `lint`. Each LLM job returns a cold stream of events, records a `RunRecord`, and obeys cancellation. Everything a job needs besides the paper arrives in `EngineContext`: provider, provider settings, the chosen model's `ModelInfo` (or `nil`), prompts, rubric, manuscript metadata and the paper digest.
+`ReviewEngine` (target `ReviewEngine`; protocol in Appendix A.6; initialiser in §11.3) is built from a provider registry, the paper service, a matcher factory, a renderer and the machine's memory size. Jobs: `plan`, `review`, `discuss`, `ask`, `generateReport`, `reviseVoice`, `lint`. Each LLM job returns a cold stream of events, records a `RunRecord`, and obeys cancellation. Everything a job needs besides the paper arrives in `EngineContext`: provider, provider settings, the chosen model's `ModelInfo` (or `nil`), prompts, rubric, manuscript metadata, the paper digest and the paper's venue (§6.3, step 5).
 
 ### 6.2 How the paper reaches the model
 
@@ -1058,15 +1058,17 @@ Texts are in Appendix B. `PromptSet` fields are user-editable; the **format spec
 
 | Job | `system` | User turn parts, in order |
 |---|---|---|
-| review, one pass | `reviewSystem` + rubric block + `FORMAT_REVIEW` | paper (`.pdf` or `.text`), `.cacheBoundary`, task text (`TASK_REVIEW` + reviewer notes + titles of existing comments) |
-| review, part *i* of *n* | same | one text: `TASK_PART` with the part's pages, the notes so far and the text of the part filled in where its placeholders stand |
-| review, whole-paper pass | same | task text (`TASK_WHOLE` with final notes and titles so far) |
-| discuss | `discussionSystem` + `FORMAT_REVISION` | paper context, `.cacheBoundary`, the comment, the transcript, the new message |
-| ask | `questionSystem` | paper context, `.cacheBoundary`, the selected passage with its location label, the transcript, the question |
-| report | `reportSystem` | paper context, `.cacheBoundary`, venue and notes, approved comments, `reportTemplate` |
+| review, one pass | `reviewSystem` in the venue's wording + rubric block + `FORMAT_REVIEW` | paper (`.pdf` or `.text`), `.cacheBoundary`, task text (`TASK_REVIEW` + reviewer notes + venue lines + titles of existing comments) |
+| review, part *i* of *n* | same | one text: `TASK_PART` with the part's pages, the venue lines, the notes so far and the text of the part filled in where its placeholders stand |
+| review, whole-paper pass | same | task text (`TASK_WHOLE` with final notes, titles so far and the venue lines) |
+| discuss | `discussionSystem` + `FORMAT_REVISION` | paper context, `.cacheBoundary`, the venue lines, the comment, the transcript, the new message |
+| ask | `questionSystem` | paper context, `.cacheBoundary`, the venue lines, the selected passage with its location label, the transcript, the question |
+| report | `reportSystem`, for a conference `conferenceReportSystem` | paper context, `.cacheBoundary`, venue lines and notes, approved comments, `reportTemplate` (for a conference `conferenceReportTemplate`) |
 | voice revision | `voiceRevisionSystem` | the report Markdown, the lint findings |
 
 The rubric block lists enabled `RubricCategory` entries as `- <id>: <name>. <guidance>` and tells the model to use exactly those ids in `category:`.
+
+**Venues** (step 5, G.9). `EngineContext.venue` is the paper's venue, a `VenueProfile` of Settings ▸ Venues (`AppSettings.venues`; the built-ins are in B.8): a journal or a conference, with a name, guidance on what a review for it should weigh, optional report instructions, and for a conference a recommendation scale. `AppCore` resolves `session.meta.venueID` for every job. For a conference the review system prompt addresses a program committee (B.2, venue wording) and the report takes the conference prompt and template (B.4). The venue lines (B.2, `VENUE`) name the venue and carry its guidance where the task texts have `{venue}`, first in discussion and question tasks, and at the head of the report's request, which for a conference also gives the scale. Journal (unspecified), the venue of every session saved before venues, adds nothing that was not sent before: with it every prompt is byte for byte what it was (`VenueJournalTests` compares the SHA-256 of 21 requests and 8 style checks with those of the code at commit `c1c6ee3`).
 
 **Paper context** for discuss, ask and report: the same content as a one-pass review (PDF or full text) when that fits within 60% of the input budget. Otherwise: `context.paperDigest` when it is not `nil`, followed by the rendered text of the pages around the anchor (the anchor's page and its two neighbours; for a question with no selection and for the report, page 1 and its neighbour). `AppCore` copies `session.paperDigest` into `EngineContext.paperDigest` for every job; a review read in parts is what produces it (§6.4).
 
@@ -1252,6 +1254,9 @@ Two-column pages are not re-ordered (§1.3): a quote inside one column anchors n
 Request: paper context; then
 
 ```
+Target journal: Journal of Economic Theory (JET)           ← the venue lines (B.2) and a blank line; none for Journal (unspecified) without guidance
+What a review for this journal should weigh: …
+
 The comment under discussion (location: p. 4, lines 14–16):
 kind: major | category: claims
 quote: …
@@ -1283,11 +1288,11 @@ or a line `@@WITHDRAW`. Everything before the marker is the visible reply; the b
 
 ### 6.9 Questions about a selection
 
-`ask(paper:conversation:question:context:)`. A new conversation's `anchor` is built by the model from its normalised selection (§7.4): quote = the selection's text, spans and rects as normalised, confidence `.exact`, label from the matcher. Request: paper context; "Selected passage (p. 4, lines 14–16): «…»"; transcript; the question. The reply is plain text. `ReviewSessionModel.convertReplyToComment` turns an answer into a pending user-origin comment anchored to the same selection. A question asked with no selection has `anchor == nil` and is about the whole paper.
+`ask(paper:conversation:question:context:)`. A new conversation's `anchor` is built by the model from its normalised selection (§7.4): quote = the selection's text, spans and rects as normalised, confidence `.exact`, label from the matcher. Request: paper context; the venue lines (B.2), when the venue has any; "Selected passage (p. 4, lines 14–16): «…»"; transcript; the question, with a blank line between each. The reply is plain text. `ReviewSessionModel.convertReplyToComment` turns an answer into a pending user-origin comment anchored to the same selection. A question asked with no selection has `anchor == nil` and is about the whole paper.
 
 ### 6.10 The report
 
-**Generation.** Inputs: comments with `status == .approved && includeInReport`, in the order major, minor, question, strength, each group in document order; `meta.targetVenue`; `meta.reviewerNotes`; the template. Each comment is rendered as
+**Generation.** Inputs: comments with `status == .approved && includeInReport`, in the order major, minor, question, strength, each group in document order; the paper's venue (`EngineContext.venue`, §6.3), whose venue lines open the request (for Journal (unspecified) the line `Target journal: <meta.targetVenue, or "not specified">` of before); `meta.reviewerNotes`; the template. A conference's report takes the conference prompt and template (B.4): its recommendation is a label of the venue's scale, it has "Chance of acceptance" where a journal's has "Publication probability", and it asks for no revision plan, since a conference has no revision round. Each comment is rendered as
 
 ```
 [M1] major | claims | p. 4, lines 14–16
@@ -1301,9 +1306,9 @@ with prefixes M, m, Q, S. The system prompt (Appendix B.4) fixes structure and v
 
 With zero approved comments the job does not run; the Report tab says "Approve at least one comment first."
 
-**After generation.** `ReportDraft.recommendation` is parsed from the text under the "Recommendation" heading (first of "reject", "major revision", "minor revision", "accept", case-insensitive). The previous draft, if any, is pushed to `versions` with a note.
+**After generation.** `ReportDraft.recommendation` is parsed from the text under the "Recommendation" heading (first of "reject", "major revision", "minor revision", "accept", case-insensitive). For a conference (step 5, G.9) `recommendation` stays nil and `ReportDraft.recommendationLabel` is parsed the same way, on the venue's scale: the label named in the first sentence of that section, else anywhere in it, matched as whole words, ignoring case, emphasis and hyphens; of two labels the one that comes first, and of two that start together the longer ("Weak accept", not "Accept"). A label that is not on the scale gives no recommendation. A voice revision keeps the old recommendation, or label, when the new text names none. The previous draft, if any, is pushed to `versions` with a note.
 
-**Lint** (`lint(reportMarkdown:)`, deterministic, runs after generation and on every edit, debounced 0.5 s). Rules and patterns are in Appendix B.7: banned vocabulary, em dashes, "not only … but also", "serves as / stands as", trailing "-ing" clauses, "this reviewer", sycophantic opener, optimistic closer, hedge stacks, a "Strengths and Weaknesses" heading, missing required headings, and a consistency check between the recommendation and the number of major concerns. Findings are ranges in the Markdown with a rule id and message.
+**Lint** (`lint(reportMarkdown:venue:)` for the paper's venue; `lint(reportMarkdown:)` is the journal check; deterministic, runs after generation, on every edit, debounced 0.5 s, and when the paper's venue changes). Rules and patterns are in Appendix B.7: banned vocabulary, em dashes, "not only … but also", "serves as / stands as", trailing "-ing" clauses, "this reviewer", sycophantic opener, optimistic closer, hedge stacks, a "Strengths and Weaknesses" heading, missing required headings (a conference's: "Chance of acceptance" for "Publication probability"), and a consistency check between the recommendation and the number of major concerns, on the venue's scale. Findings are ranges in the Markdown with a rule id and message.
 
 **Voice revision.** Optional LLM pass: sends the report and the findings with `voiceRevisionSystem`; the result replaces the draft after pushing the old one to `versions`.
 
@@ -1743,7 +1748,7 @@ For a text-mode plan the second line reads "The extracted text (34 pages) will b
 
 ### 9.8 Report tab
 
-Top: Target venue field (`meta.targetVenue`), "Notes for the report" field (`meta.reviewerNotes`), the count "8 approved comments (3 major, 4 minor, 1 question)". Buttons: Generate (or Regenerate), Revise voice, Versions ▾, Export ▾ (Copy as plain text, Copy Markdown, Markdown file…, Text file…, Word document…, PDF…). Body: a plain-text Markdown editor (13-pt system font, comfortable line spacing) with a Preview toggle (rendered with `AttributedString(markdown:)`); while a report or voice revision streams it shows `model.streamingReportText`, read-only. Under it a collapsible "Style check" list of lint findings (rule, message; clicking selects the range) and the recommendation picker (Accept / Minor revision / Major revision / Reject) prefilled from the text, with the consistency warning when it disagrees with the concerns.
+Top: the paper's venue (step 5, G.9: `model.currentVenue`, its display name and kind; the venue is chosen on the main screen with `model.setVenue(id:)`, so the free-text Target venue field, which wrote `meta.targetVenue`, goes), "Notes for the report" field (`meta.reviewerNotes`), the count "8 approved comments (3 major, 4 minor, 1 question)". Buttons: Generate (or Regenerate), Revise voice, Versions ▾, Export ▾ (Copy as plain text, Copy Markdown, Markdown file…, Text file…, Word document…, PDF…). Body: a plain-text Markdown editor (13-pt system font, comfortable line spacing) with a Preview toggle (rendered with `AttributedString(markdown:)`); while a report or voice revision streams it shows `model.streamingReportText`, read-only. Under it a collapsible "Style check" list of lint findings (rule, message; clicking selects the range) and the recommendation picker over the venue's scale (`model.recommendationScale`: Accept / Minor revision / Major revision / Reject for a journal, the venue's labels for a conference; `model.recommendationLabel`, `model.setRecommendation(label:)`) prefilled from the text, with the consistency warning when it disagrees with the concerns (`currentVenue.recommendationMismatch(label:majorConcerns:)`, rule `recommendation-mismatch` of B.7).
 
 ### 9.9 States
 
@@ -1960,10 +1965,15 @@ Wave 0 creates these exact declarations; owners fill them in and may add anythin
 ```swift
 // ====== RefereeCore, besides Appendix A (Wave 0a) =====================================================================
 public enum DefaultSettings {
-    /// Prompts, rubric and quick questions of Appendix B; the nine real provider ids of section 5.2 (not "mock"), all disabled
-    /// except "ollama", which is enabled and whose extraBodyJSON is {"think": false}; no default provider chosen;
-    /// privacy: localOnly false, confirm on, background lookups off.
+    /// Prompts, rubric and quick questions of Appendix B, the conference report's prompt and template included; the nine
+    /// real provider ids of section 5.2 (not "mock"), all disabled except "ollama", which is enabled and whose
+    /// extraBodyJSON is {"think": false}; no default provider chosen; privacy: localOnly false, confirm on, background
+    /// lookups off. No venue list is stored (venueProfiles nil: the built-ins) and new papers get Journal (unspecified).
     public static func make() -> AppSettings
+    /// The built-in venues of Appendix B.8, in menu order: Journal (unspecified), Conference (unspecified), JET, EC (step 5, G.9).
+    public static let venues: [VenueProfile]
+    /// A conference's recommendation scale until it is given the scale of its own review form, most favourable first.
+    public static let conferenceScale: [String]               // ["Accept", "Weak accept", "Borderline", "Weak reject", "Reject"]
 }
 public enum FormatSpec {                                  // Appendix B.2: constants in code, never settings
     public static var review: String { get }            // FORMAT_REVIEW
@@ -1973,6 +1983,9 @@ public enum FormatSpec {                                  // Appendix B.2: const
     public static var taskPart: String { get }
     public static var taskWhole: String { get }
     public static var taskContinue: String { get }
+    public static var venue: String { get }             // VENUE: the venue lines (step 5, G.9)
+    /// The phrases of reviewSystem that speak of a journal, each with what it becomes for a conference (step 5, G.9).
+    public static var conferenceWording: [(journal: String, conference: String)] { get }
 }
 
 // ====== TestSupport (Wave 0b; frozen) =================================================================================
@@ -2879,7 +2892,7 @@ Each item has a default so that nothing waits for the user.
 
 ## Appendix A. Contracts (Swift)
 
-These files are the shared language of the project. A.1–A.8 are the complete contents of `Sources/RefereeCore/` apart from `DefaultSettings` and `FormatSpec` (§11.3); they compile exactly as printed (Swift 5 language mode, no warnings) [V]. Wave 0a copies them verbatim. Every public struct carries its public memberwise initialiser inside the struct: parameters in declaration order, optionals defaulting to `nil`, arrays to `[]`, dictionaries to `[:]`. A.9 lists the public members of the two application models in `AppCore` (declarations only; it compiles with stub bodies [V]; Gate 1's additions are marked in G.6, Wave 3's in G.7).
+These files are the shared language of the project. A.1–A.8 are the complete contents of `Sources/RefereeCore/` apart from `DefaultSettings` and `FormatSpec` (§11.3); they compile exactly as printed (Swift 5 language mode, no warnings) [V]. Wave 0a copies them verbatim. Every public struct carries its public memberwise initialiser inside the struct: parameters in declaration order, optionals defaulting to `nil`, arrays to `[]`, dictionaries to `[:]`. A.9 lists the public members of the two application models in `AppCore` (declarations only; it compiles with stub bodies [V]; Gate 1's additions are marked in G.6, Wave 3's in G.7, step 5's in G.8 and, for venues, G.9).
 
 ### A.1 `Basics.swift`
 
@@ -3373,16 +3386,17 @@ public struct ReportVersion: Codable, Sendable, Equatable {
 
 public struct ReportDraft: Codable, Sendable, Equatable {
     public var markdown: String
-    public var recommendation: Recommendation?
+    public var recommendation: Recommendation?   // a journal's; nil for a report written for a conference
+    public var recommendationLabel: String?      // a conference's: one label of its VenueProfile.scale; nil for a journal's report
     public var generatedAt: Date?
     public var provider: ProviderRef?
     public var basedOnCommentIDs: [UUID]
     public var userEdited: Bool
     public var versions: [ReportVersion]     // newest last, max 10
-    public init(markdown: String, recommendation: Recommendation? = nil, generatedAt: Date? = nil, provider: ProviderRef? = nil,
-                basedOnCommentIDs: [UUID] = [], userEdited: Bool, versions: [ReportVersion] = []) {
-        self.markdown = markdown; self.recommendation = recommendation; self.generatedAt = generatedAt; self.provider = provider
-        self.basedOnCommentIDs = basedOnCommentIDs; self.userEdited = userEdited; self.versions = versions
+    public init(markdown: String, recommendation: Recommendation? = nil, recommendationLabel: String? = nil, generatedAt: Date? = nil,
+                provider: ProviderRef? = nil, basedOnCommentIDs: [UUID] = [], userEdited: Bool, versions: [ReportVersion] = []) {
+        self.markdown = markdown; self.recommendation = recommendation; self.recommendationLabel = recommendationLabel; self.generatedAt = generatedAt
+        self.provider = provider; self.basedOnCommentIDs = basedOnCommentIDs; self.userEdited = userEdited; self.versions = versions
     }
 }
 
@@ -3416,11 +3430,12 @@ public struct ConsentRecord: Codable, Sendable, Equatable {
 
 public struct ManuscriptMeta: Codable, Sendable, Equatable {
     public var title: String?
-    public var targetVenue: String?
+    public var targetVenue: String?          // the venue's displayName; free text in a session saved before venues, which the prompts still name
     public var manuscriptID: String?
     public var reviewerNotes: String         // free text passed to review and report prompts
-    public init(title: String? = nil, targetVenue: String? = nil, manuscriptID: String? = nil, reviewerNotes: String) {
-        self.title = title; self.targetVenue = targetVenue; self.manuscriptID = manuscriptID; self.reviewerNotes = reviewerNotes
+    public var venueID: String?              // VenueProfile.id of the venue the paper is reviewed for; nil = Journal (unspecified)
+    public init(title: String? = nil, targetVenue: String? = nil, manuscriptID: String? = nil, reviewerNotes: String, venueID: String? = nil) {
+        self.title = title; self.targetVenue = targetVenue; self.manuscriptID = manuscriptID; self.reviewerNotes = reviewerNotes; self.venueID = venueID
     }
 }
 
@@ -3661,10 +3676,11 @@ public struct EngineContext: Sendable, Equatable {
     public var rubric: [RubricCategory]
     public var meta: ManuscriptMeta
     public var paperDigest: String?          // ReviewSession.paperDigest; the paper context for replies and the report when the paper does not fit
+    public var venue: VenueProfile           // the paper's venue (AppSettings.venue(id: meta.venueID)); its kind, name and guidance shape every prompt
     public init(provider: ProviderRef, providerSettings: ProviderSettings, model: ModelInfo? = nil, prompts: PromptSet, rubric: [RubricCategory] = [],
-                meta: ManuscriptMeta, paperDigest: String? = nil) {
+                meta: ManuscriptMeta, paperDigest: String? = nil, venue: VenueProfile = .unspecifiedJournal) {
         self.provider = provider; self.providerSettings = providerSettings; self.model = model; self.prompts = prompts; self.rubric = rubric; self.meta = meta
-        self.paperDigest = paperDigest
+        self.paperDigest = paperDigest; self.venue = venue
     }
 }
 
@@ -3734,9 +3750,17 @@ public protocol ReviewEngineProtocol: Sendable {
     func ask(paper: LoadedPaper, conversation: Conversation, question: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error>
     func generateReport(paper: LoadedPaper, session: ReviewSession, context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
     /// `draft` is the report being revised: the result is that draft with the new text, its recommendation parsed again
-    /// (the old one kept when the new text names none) and its comment ids and versions as they were.
+    /// (the old one kept when the new text names none) and its comment ids and versions as they were. For a conference
+    /// (`context.venue`) the same holds for `recommendationLabel`, and `recommendation` is nil.
     func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
     func lint(reportMarkdown: String) -> [LintFinding]
+    /// The style check of a report written for `venue`: a conference's report has "Chance of acceptance" where a journal's
+    /// has "Publication probability", and its recommendation is a label of the venue's scale. Default: the journal rules.
+    func lint(reportMarkdown: String, venue: VenueProfile) -> [LintFinding]
+}
+
+extension ReviewEngineProtocol {
+    public func lint(reportMarkdown: String, venue: VenueProfile) -> [LintFinding] { lint(reportMarkdown: reportMarkdown) }
 }
 ```
 
@@ -3755,6 +3779,26 @@ public struct RubricCategory: Codable, Sendable, Equatable, Identifiable {
     public init(id: String, name: String, guidance: String, enabled: Bool) { self.id = id; self.name = name; self.guidance = guidance; self.enabled = enabled }
 }
 
+public enum VenueKind: String, Codable, Sendable, CaseIterable { case journal, conference }
+
+/// Where a paper is reviewed for (Settings ▸ Venues; plan.md Appendix G.9). The prompts name it and carry its guidance; a
+/// conference's report takes its recommendation from `recommendationScale`. The built-ins (`DefaultSettings.venues`,
+/// Appendix B.8) can be edited and reset, not deleted.
+public struct VenueProfile: Codable, Sendable, Equatable, Identifiable {
+    public var id: String                    // "jet"; a built-in's id is fixed, an added venue's is a new UUID string
+    public var shortName: String             // "JET"
+    public var fullName: String              // "Journal of Economic Theory"
+    public var kind: VenueKind
+    public var guidance: String              // what a review for this venue should weigh, inserted into the prompts; "" = nothing
+    public var reportInstructions: String?   // more instructions, inserted into the report's request only
+    public var recommendationScale: [String] // a conference's labels, most favourable first; a journal uses Recommendation
+    public init(id: String, shortName: String, fullName: String, kind: VenueKind, guidance: String, reportInstructions: String? = nil,
+                recommendationScale: [String] = []) {
+        self.id = id; self.shortName = shortName; self.fullName = fullName; self.kind = kind; self.guidance = guidance
+        self.reportInstructions = reportInstructions; self.recommendationScale = recommendationScale
+    }
+}
+
 public struct PromptSet: Codable, Sendable, Equatable {
     public var reviewSystem: String          // rubric and referee stance (editable)
     public var discussionSystem: String
@@ -3763,10 +3807,13 @@ public struct PromptSet: Codable, Sendable, Equatable {
     public var reportTemplate: String        // Markdown skeleton with the section headings
     public var voiceRevisionSystem: String
     public var quickQuestions: [String]      // presets in the selection popover
+    public var conferenceReportSystem: String?   // reportSystem for a conference; nil = the default (settings written before venues)
+    public var conferenceReportTemplate: String? // reportTemplate for a conference; nil = the default
     public init(reviewSystem: String, discussionSystem: String, questionSystem: String, reportSystem: String, reportTemplate: String,
-                voiceRevisionSystem: String, quickQuestions: [String] = []) {
+                voiceRevisionSystem: String, quickQuestions: [String] = [], conferenceReportSystem: String? = nil, conferenceReportTemplate: String? = nil) {
         self.reviewSystem = reviewSystem; self.discussionSystem = discussionSystem; self.questionSystem = questionSystem; self.reportSystem = reportSystem
         self.reportTemplate = reportTemplate; self.voiceRevisionSystem = voiceRevisionSystem; self.quickQuestions = quickQuestions
+        self.conferenceReportSystem = conferenceReportSystem; self.conferenceReportTemplate = conferenceReportTemplate
     }
 }
 
@@ -3836,10 +3883,12 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var privacy: PrivacySettings
     public var references: ReferenceSettings
     public var ui: UISettings
+    public var venueProfiles: [VenueProfile]?   // Settings ▸ Venues as stored; nil = the built-ins as shipped. Read and write `venues`
+    public var defaultVenueID: String?          // the venue of a new paper; nil = Journal (unspecified)
     public init(schemaVersion: Int, providers: [ProviderID: ProviderSettings] = [:], defaults: TaskDefaults, prompts: PromptSet, rubric: [RubricCategory] = [],
-                privacy: PrivacySettings, references: ReferenceSettings, ui: UISettings) {
+                privacy: PrivacySettings, references: ReferenceSettings, ui: UISettings, venueProfiles: [VenueProfile]? = nil, defaultVenueID: String? = nil) {
         self.schemaVersion = schemaVersion; self.providers = providers; self.defaults = defaults; self.prompts = prompts; self.rubric = rubric
-        self.privacy = privacy; self.references = references; self.ui = ui
+        self.privacy = privacy; self.references = references; self.ui = ui; self.venueProfiles = venueProfiles; self.defaultVenueID = defaultVenueID
     }
 }
 
@@ -3882,6 +3931,167 @@ extension SessionStoring {
     public func recoveryNotice(sha256: String) async -> String? { nil }
     public func deleteAllSessions() async throws {
         for summary in await listSessions() { try await deleteSession(sha256: summary.id) }
+    }
+}
+
+// ---- venues (Appendix G.9) ----
+
+extension VenueProfile {
+    public static let journalID = "journal"
+    public static let conferenceID = "conference"
+    /// "Journal (unspecified)", the venue of a session saved before venues existed: with it every prompt is what it was then.
+    public static let unspecifiedJournal = VenueProfile(id: journalID, shortName: "Journal", fullName: "Journal (unspecified)", kind: .journal,
+                                                        guidance: "")
+
+    /// One of `DefaultSettings.venues`: it can be edited and reset, not deleted.
+    public var isBuiltIn: Bool { DefaultSettings.venues.contains { $0.id == id } }
+
+    /// "Journal (unspecified)" or "Conference (unspecified)": no venue is named, so the prompts name the paper's own
+    /// `ManuscriptMeta.targetVenue`, if any.
+    public var isUnspecified: Bool { id == Self.journalID || id == Self.conferenceID }
+
+    /// "Journal of Economic Theory (JET)": how the prompts name a venue, and what `ManuscriptMeta.targetVenue` holds. The full
+    /// name alone when the short name is empty or the same, or when the venue is unspecified; the short name alone when the
+    /// full name is empty.
+    public var displayName: String {
+        let full = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let short = shortName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if full.isEmpty { return short }
+        if isUnspecified || short.isEmpty || short.caseInsensitiveCompare(full) == .orderedSame { return full }
+        return "\(full) (\(short))"
+    }
+
+    /// The labels a recommendation is chosen from, most favourable first. A journal's are those of `Recommendation`; a
+    /// conference's are `recommendationScale` without blank or repeated labels (ignoring case), or
+    /// `DefaultSettings.conferenceScale` when none is left.
+    public var scale: [String] {
+        guard kind == .conference else { return Recommendation.allCases.map(\.label) }
+        var labels: [String] = []
+        for label in recommendationScale {
+            let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty || labels.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) { continue }
+            labels.append(trimmed)
+        }
+        return labels.isEmpty ? DefaultSettings.conferenceScale : labels
+    }
+
+    /// The label of `scale` that `text` names, as `scale` spells it: of the labels it contains as whole words (ignoring case,
+    /// emphasis marks, and hyphens against spaces), the one that starts first, and of two that start together the longer
+    /// ("Weak accept", not "Accept"). nil when it names none.
+    public func scaleLabel(in text: String) -> String? {
+        let haystack = Self.folded(text)
+        var best: (start: Int, length: Int, label: String)?
+        for label in scale {
+            let needle = Self.folded(label)
+            guard !needle.isEmpty, let start = Self.firstWholeWord(needle, in: haystack) else { continue }
+            if let current = best, current.start < start || (current.start == start && current.length >= needle.count) { continue }
+            best = (start, needle.count, label)
+        }
+        return best?.label
+    }
+
+    /// Rule `recommendation-mismatch` of Appendix B.7 on this venue's scale: `label` disagrees with a report that lists
+    /// `majorConcerns` numbered major concerns when it lies in the more favourable half of `scale` and there is one, or in
+    /// the less favourable half and there is none. The middle label of a scale of odd length, and a label not on the
+    /// scale, never disagree. For a journal this is the rule as it was: accept or minor revision with a major concern,
+    /// major revision or reject without one.
+    public func recommendationMismatch(label: String, majorConcerns: Int) -> Bool {
+        let labels = scale
+        let wanted = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let position = labels.firstIndex(where: { $0.caseInsensitiveCompare(wanted) == .orderedSame }) else { return false }
+        let half = labels.count / 2
+        if position < half { return majorConcerns > 0 }
+        if position >= labels.count - half { return majorConcerns == 0 }
+        return false
+    }
+
+    /// Lower case, without emphasis marks, hyphens and underscores read as spaces, every run of white space one space.
+    private static func folded(_ text: String) -> [Character] {
+        var result: [Character] = []
+        for character in text.lowercased() where character != "*" && character != "`" {
+            if character.isWhitespace || character == "-" || character == "_" || character == "\u{2010}" || character == "\u{2011}" {
+                if !result.isEmpty, result.last != " " { result.append(" ") }
+            } else {
+                result.append(character)
+            }
+        }
+        if result.last == " " { result.removeLast() }
+        return result
+    }
+
+    /// Where `needle` first occurs in `haystack` with no letter or digit just before or just after it.
+    private static func firstWholeWord(_ needle: [Character], in haystack: [Character]) -> Int? {
+        guard !needle.isEmpty, needle.count <= haystack.count else { return nil }
+        func isWordCharacter(_ position: Int) -> Bool { haystack[position].isLetter || haystack[position].isNumber }
+        for start in 0...(haystack.count - needle.count) where haystack[start..<(start + needle.count)].elementsEqual(needle) {
+            let end = start + needle.count
+            if (start == 0 || !isWordCharacter(start - 1)) && (end == haystack.count || !isWordCharacter(end)) { return start }
+        }
+        return nil
+    }
+}
+
+extension Recommendation {
+    /// "Accept", "Minor revision", "Major revision", "Reject": a journal's scale (`VenueProfile.scale`).
+    public var label: String {
+        switch self {
+        case .accept: return "Accept"
+        case .minorRevision: return "Minor revision"
+        case .majorRevision: return "Major revision"
+        case .reject: return "Reject"
+        }
+    }
+
+    /// The recommendation whose `label` this is, ignoring case and surrounding white space.
+    public init?(label: String) {
+        let wanted = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let match = Self.allCases.first(where: { $0.label.caseInsensitiveCompare(wanted) == .orderedSame }) else { return nil }
+        self = match
+    }
+}
+
+extension PromptSet {
+    /// The report's system prompt for a venue of this kind: `reportSystem` for a journal; for a conference
+    /// `conferenceReportSystem`, or the default of Appendix B.4 when the settings have none.
+    public func reportSystem(for kind: VenueKind) -> String {
+        kind == .conference ? conferenceReportSystem ?? DefaultSettings.conferenceReportSystem : reportSystem
+    }
+
+    /// The report's template for a venue of this kind, in the same way.
+    public func reportTemplate(for kind: VenueKind) -> String {
+        kind == .conference ? conferenceReportTemplate ?? DefaultSettings.conferenceReportTemplate : reportTemplate
+    }
+}
+
+extension AppSettings {
+    /// Settings ▸ Venues in menu order: `venueProfiles` without a repeated id and with every built-in it lacks put back at
+    /// its place in `DefaultSettings.venues`; the built-ins themselves when `venueProfiles` is nil (a settings file written
+    /// before venues). Setting it stores that list, or nil when it is the built-ins as shipped.
+    public var venues: [VenueProfile] {
+        get { Self.completed(venueProfiles ?? DefaultSettings.venues) }
+        set {
+            let list = Self.completed(newValue)
+            venueProfiles = list == DefaultSettings.venues ? nil : list
+        }
+    }
+
+    /// The venue of a new paper: `defaultVenueID`'s, or Journal (unspecified) when it names none.
+    public var defaultVenue: VenueProfile { venue(id: defaultVenueID) }
+
+    /// The venue with this id in `venues`; Journal (unspecified) for nil or an id that names none (a session saved before
+    /// venues, or one whose venue was deleted).
+    public func venue(id: String?) -> VenueProfile {
+        let list = venues
+        return list.first { $0.id == id } ?? list.first { $0.id == VenueProfile.journalID } ?? .unspecifiedJournal
+    }
+
+    private static func completed(_ venues: [VenueProfile]) -> [VenueProfile] {
+        var list: [VenueProfile] = []
+        for venue in venues where !list.contains(where: { $0.id == venue.id }) { list.append(venue) }
+        for (position, builtIn) in DefaultSettings.venues.enumerated() where !list.contains(where: { $0.id == builtIn.id }) {
+            list.insert(builtIn, at: min(position, list.count))
+        }
+        return list
     }
 }
 ```
@@ -4122,6 +4332,15 @@ public final class ReviewSessionModel {
     /// observable through `session` and `settings` (step 5, O1).
     public var chatProvider: ProviderDescriptor?
     public var reportProvider: ProviderDescriptor?   // the same for the report and its voice revision (settings.defaults.report)
+    // Venues (step 5, G.9; ReviewSessionModelVenue.swift), observable through `session` and `settings`:
+    public var venues: [VenueProfile]               // Settings ▸ Venues in menu order (settings.venues)
+    /// The open paper's venue: session.meta.venueID in `venues`; Journal (unspecified) for a session saved before venues or whose
+    /// venue was deleted; with no paper open, the venue a new paper would get (settings.defaultVenue).
+    public var currentVenue: VenueProfile
+    public var recommendationScale: [String]        // currentVenue.scale, most favourable first (a journal: Accept, Minor revision, Major revision, Reject)
+    /// The report's recommendation as a label of `recommendationScale` (a journal's report.recommendation, a conference's
+    /// report.recommendationLabel); nil without a report, when none is set, or when it is not on the current scale.
+    public var recommendationLabel: String?
 
     public init(dependencies: AppDependencies, settings: AppSettings)
 
@@ -4179,6 +4398,9 @@ public final class ReviewSessionModel {
     public func generateReport()
     public func updateReportMarkdown(_ markdown: String)     // user edits; re-lints (debounced)
     public func setRecommendation(_ recommendation: Recommendation?)
+    /// Either scale (step 5, G.9): a label of recommendationScale, ignoring case, or nil for none. A journal's sets report.recommendation,
+    /// a conference's report.recommendationLabel (and report.recommendation nil). A label not on the scale, or no report: nothing.
+    public func setRecommendation(label: String?)
     public func reviseReportVoice()
     public func restoreReportVersion(at index: Int)
     public func exportReport(format: ExportFormat, to url: URL) throws   // throws ExportError
@@ -4201,6 +4423,12 @@ public final class ReviewSessionModel {
     public func dismissTransientUI()            // Esc: citation card, composing, editing, open thread, then the PDF selection
     public func updateMeta(_ meta: ManuscriptMeta)
     public func flushPendingSave() async
+
+    // ---- venue (step 5, G.9) ----
+    /// The paper's venue becomes the one with this id: meta.venueID, and meta.targetVenue its display name (nil for an unspecified
+    /// venue). Saves at once, refreshes the plan, lints the report again; comments, conversations and the report stay as they are.
+    /// No paper open, an id not in `venues`, or the venue the paper is already on: nothing.
+    public func setVenue(id: String)
 }
 
 
@@ -4240,6 +4468,17 @@ public final class SettingsModel {
     public func deleteAllReviewData() async throws
     /// Saves a change still waiting for its 0.5 s debounce; the app calls it before quitting (Wave 3).
     public func flushPendingSave() async
+
+    // ---- Settings ▸ Venues (step 5, G.9; SettingsModelVenues.swift): every change goes through `update` ----
+    public var venues: [VenueProfile]                                               // settings.venues, in menu order
+    public var defaultVenue: VenueProfile                                           // the venue of a newly opened paper
+    @discardableResult public func addVenue(kind: VenueKind) -> String              // "New journal" / "New conference" at the end; its new id
+    public func updateVenue(_ venue: VenueProfile)                                  // replaces the venue with venue.id, built-ins included, as given
+    @discardableResult public func duplicateVenue(id: String) -> String?           // "<full name> (copy)" just after it, a new id; nil for an unknown id
+    public func deleteVenue(id: String)                                             // not a built-in; a deleted default becomes Journal (unspecified)
+    public func moveVenues(fromOffsets source: IndexSet, toOffset destination: Int) // as SwiftUI's onMove reports it
+    public func resetVenue(id: String)                                              // a built-in back to Appendix B.8
+    public func setDefaultVenue(id: String)                                         // an id in `venues`; "journal" stores nil
 }
 ```
 
@@ -4247,7 +4486,7 @@ public final class SettingsModel {
 
 ## Appendix B. Default prompts, rubric, report template, lint rules
 
-Derived from the user's own peer-review rubric (`~/.claude/skills/peer-review/SKILL.md`): its foundational principle, five questions, mathematics checks, writing checks, report format, "what not to do", and the rules for a review that reads as written by a person. Everything in B.1 and B.3–B.6 is the default value of an editable setting. B.2 is a constant in code. The reviewer ran B.1 and B.2 through two local models and found them faithful to the rubric; three changes below come from what those models did with them: the "authors" rule, the limit on `strength` comments, and the note about extraction artefacts.
+Derived from the user's own peer-review rubric (`~/.claude/skills/peer-review/SKILL.md`): its foundational principle, five questions, mathematics checks, writing checks, report format, "what not to do", and the rules for a review that reads as written by a person. Everything in B.1, B.3–B.6 and B.8 is the default value of an editable setting. B.2 is a constant in code. The reviewer ran B.1 and B.2 through two local models and found them faithful to the rubric; three changes below come from what those models did with them: the "authors" rule, the limit on `strength` comments, and the note about extraction artefacts.
 
 ### B.1 `reviewSystem`
 
@@ -4286,7 +4525,7 @@ Rules.
 
 ### B.2 Format and task constants (`RefereeCore/FormatSpec.swift`, not editable)
 
-In code: `FormatSpec.review` (`FORMAT_REVIEW`), `.revision` (`FORMAT_REVISION`), `.taskReviewText`, `.taskReviewPDF`, `.taskPart`, `.taskWhole`, `.taskContinue`. Placeholders in braces are filled by `PromptBuilder`. The constants carry the texts below with three differences, and the doc comment of `FormatSpec` in `Sources/RefereeCore/FormatSpec.swift` is the binding rule for every placeholder: the "← only when …" notes are not prompt text and are left out; `{same optional lines}` is written out as the three optional lines; and `taskReviewText` is the two text-mode blocks in one string, split by `PromptBuilder` at the line `{paper text}` (what stands before it goes with the rendered paper before the cache boundary, the rest after it). An optional line whose condition does not hold is removed with its line break; `{if i > 1:}` is always removed, and for the first part the two lines after it and the following empty line go too.
+In code: `FormatSpec.review` (`FORMAT_REVIEW`), `.revision` (`FORMAT_REVISION`), `.taskReviewText`, `.taskReviewPDF`, `.taskPart`, `.taskWhole`, `.taskContinue`, `.venue` (`VENUE`) and `.conferenceWording` (step 5, G.9). Placeholders in braces are filled by `PromptBuilder`. The constants carry the texts below with three differences, and the doc comment of `FormatSpec` in `Sources/RefereeCore/FormatSpec.swift` is the binding rule for every placeholder: the "← …" notes are not prompt text and are left out; `{same optional lines}` is written out as the three optional lines; and `taskReviewText` is the two text-mode blocks in one string, split by `PromptBuilder` at the line `{paper text}` (what stands before it goes with the rendered paper before the cache boundary, the rest after it). An optional line whose condition does not hold is removed with its line break; `{if i > 1:}` is always removed, and for the first part the two lines after it and the following empty line go too. The venue line `{venue}` becomes the venue lines (`VENUE`, below), one after the other, and is removed with its line break when there are none; it stands where `{Target journal: …}` stood before venues.
 
 `FORMAT_REVIEW` (appended to `reviewSystem` after the rubric block):
 
@@ -4336,7 +4575,7 @@ followed (after the cache boundary) by
 ```text
 Write your referee comments on this manuscript in the required format.
 {Reviewer's notes: …}                      ← only when meta.reviewerNotes is not empty
-{Target journal: …}                        ← only when meta.targetVenue is set
+{venue}                                    ← the venue lines; for Journal (unspecified) without guidance "Target journal: …" when meta.targetVenue is set, as before venues
 {Comments already made, do not repeat them: title; title; …}     ← only when there are existing comments
 ```
 
@@ -4352,6 +4591,7 @@ Write your referee comments on this manuscript in the required format.
 
 ```text
 The manuscript is long, so you are reading it in parts, as text extracted from a PDF. This is part {i} of {n}: PDF pages {a} to {b}. Lines of the form [[page N]] mark where PDF page N begins. Words run together, odd hyphenation and broken equations or tables are artefacts of extraction; do not comment on them.
+{venue}                                    ← the venue lines; none for Journal (unspecified) without guidance, as before venues
 
 {if i > 1:}
 Your notes on the earlier parts:
@@ -4371,6 +4611,7 @@ You have now read the whole manuscript in parts. Your notes:
 {notes}
 
 Comments you already made: {titles}
+{venue}                                    ← the venue lines; none for Journal (unspecified) without guidance, as before venues
 
 Write any further comments that only make sense for the paper as a whole: conclusions against evidence, hidden assumptions, how far the results travel, position in the debate, missing work. Use the required format. For each quote use one of the passages copied in your notes. If you have nothing to add, write only @@DONE
 ```
@@ -4397,6 +4638,24 @@ suggestion:
 If the comment should be dropped, end your reply with a line containing only @@WITHDRAW
 Otherwise write no block.
 ```
+
+`VENUE`, the venue lines (step 5, G.9): what `{venue}` stands for, what opens a discussion or question task (followed by a blank line), and what opens the report's request (followed by the reviewer's notes, B.4). The venue is `EngineContext.venue` (built-ins in B.8). Each line stands only when every placeholder in it has a value:
+
+```text
+Target {kind}: {name}                                           ← {kind}: journal or conference; {name}: see below
+What a review for this {kind} should weigh: {guidance}          ← only when the venue's guidance is not empty
+Recommendation scale, most favourable first: {scale}            ← the report of a conference only: VenueProfile.scale joined by "; "
+Instructions for this report: {report instructions}            ← the report only, when the venue has report instructions
+```
+
+`{name}` is the venue's display name ("Journal of Economic Theory (JET)"); for Conference (unspecified) it is the paper's `meta.targetVenue`, or "not specified" when that is empty. Journal (unspecified), the venue of every session saved before venues, keeps every prompt as it was: its `{name}` has a value only in `TASK_REVIEW`, when `meta.targetVenue` is set, and in the report's request, where it is "not specified" otherwise. So without guidance it adds nothing to the parts, the whole-paper pass, discussions and questions, and its `TASK_REVIEW` and report lines are the `Target journal: …` lines of before.
+
+Venue wording (`FormatSpec.conferenceWording`): for a conference, the first occurrence of each phrase on the left is replaced in `reviewSystem` (B.1) by the phrase on its right; a phrase the referee edited away is left alone. A journal's `reviewSystem` is sent as it is.
+
+| In `reviewSystem` | For a conference |
+|---|---|
+| `for a serious academic journal` | `for the program committee of a selective academic conference` |
+| `to help the editor decide` | `to help the program committee decide` |
 
 ### B.3 `discussionSystem` and `questionSystem`
 
@@ -4470,7 +4729,7 @@ Output the report in Markdown and nothing else.
 Report user turn (assembled by the engine after the paper context):
 
 ```text
-Target journal: {venue, or "not specified"}
+Target journal: {venue, or "not specified"}       ← the venue lines (VENUE, B.2); this one line for Journal (unspecified) without guidance
 Reviewer's notes: {notes, or "none"}
 
 Approved comments:
@@ -4482,7 +4741,60 @@ suggestion: …
 …
 
 Template:
-{reportTemplate}
+{reportTemplate}                                    ← conferenceReportTemplate for a conference
+```
+
+For a conference (step 5, G.9) the report has a system prompt and a template of its own, `PromptSet.conferenceReportSystem` and `conferenceReportTemplate` (editable like the others; a settings file written before venues has neither and gets these defaults through `PromptSet.reportSystem(for:)` and `reportTemplate(for:)`). The venue lines give it the venue's scale; there is no revision round, so it asks for no revision plan, and "Publication probability" becomes "Chance of acceptance":
+
+```text
+You are drafting a conference review from a referee's approved notes. The referee will edit it and submit it under their own name, so it must read as a person wrote it.
+
+Use only the approved comments and the reviewer's notes given below. Do not add criticisms of your own. Merge comments that make the same point. Order concerns by importance. Keep every location reference (page, lines, table, equation) exactly as given.
+
+Fill in the template you are given, keeping its headings exactly.
+
+Summary assessment: two to four sentences. State what the paper contributes and the overall verdict. Be direct. Do not open with a paragraph that summarises the paper; the program committee knows what it is about.
+
+Recommendation: exactly one label of the recommendation scale given below, spelled as it is there, with one or two sentences of justification. The recommendation must match the severity of the concerns: no positive recommendation above devastating criticisms, no rejection over minor complaints. The paper is judged as submitted: there is no revision round, so do not recommend a revision.
+
+Chance of acceptance: a blunt, calibrated percentage range for acceptance at the target conference (or a typical selective conference in the field if none is named), with two to four sentences of reasoning: how fundamental the concerns are, how crowded the area is, whether the contribution survives the criticisms, and how selective the conference is. Do not round to a convenient single number. If the paper would do better elsewhere, name where.
+
+Major concerns: numbered. Each states the problem in one sentence, why it matters for the decision, and where it is in the paper. Do not write a revision plan.
+
+Minor concerns: numbered. Things to fix in a final version that do not affect the decision.
+
+Questions for the authors: questions whose answers could change the assessment.
+
+Voice.
+- First person: "I am not convinced that…", "I could not verify…", "This is the strongest part of the paper." Never "this reviewer", never "it is noted that".
+- Refer to "the authors" in the third person; never address them as "you".
+- Concrete, not evaluative: numbers, tables, equations, pages and lines.
+- Vary sentence length. Let some sentences be short and blunt.
+- No flattering opener. No closing paragraph about promise or potential. End when the last question is asked.
+- Do not state a concern and excuse it in the same sentence.
+- Numbered lists only under Major concerns, Minor concerns and Questions for the authors. Everything else is prose. No section of strengths and weaknesses.
+- Do not use these words: delve, tapestry, landscape (in the abstract sense), multifaceted, pivotal, testament, underscore, leverage, utilize, foster, showcase, elucidate, illuminate, navigate (in the abstract sense), synergy, paradigm, holistic, robust (unless it names a specific robustness check).
+- No em dashes; use commas, parentheses or separate sentences. No "not only … but also". Write "is", not "serves as" or "stands as". No lists of three for rhythm. No trailing "-ing" clauses that add nothing, such as "highlighting the need for further research".
+- No stacked hedges such as "it could potentially be argued that". Take a position or say you cannot judge.
+- Direct, never cruel.
+
+Before you finish, reread the report as the program committee would. Delete any sentence that could appear in a review of any other paper.
+
+Output the report in Markdown and nothing else.
+```
+
+```text
+## Summary assessment
+
+## Recommendation
+
+## Chance of acceptance
+
+## Major concerns
+
+## Minor concerns
+
+## Questions for the authors
 ```
 
 ### B.5 `voiceRevisionSystem`
@@ -4528,9 +4840,40 @@ All matching is case-insensitive and on word boundaries unless noted.
 | `flattering-opener` | first paragraph after the first heading matches `commendable|valuable contribution|interesting paper|well[- ]written|timely` | "Opening praise without content." |
 | `optimistic-closer` | last paragraph matches `promising|exciting|potential to|bright future|future directions` | "Ends on generic optimism; end with the last question." |
 | `template-heading` | a heading containing `strengths` and `weaknesses` | "This heading is a common marker of generated reviews." |
-| `missing-section` | any of the six template headings absent | "Section '<name>' is missing." |
+| `missing-section` | any of the six template headings absent; for a conference's report (G.9) the six of its template, "Chance of acceptance" for "Publication probability" | "Section '<name>' is missing." |
 | `opens-with-summary` | first sentence under "Summary assessment" starts with `this (paper|manuscript|study|article) (presents|proposes|investigates|explores|examines)` and the paragraph has more than four sentences | "Do not summarise the paper; state the assessment." |
-| `recommendation-mismatch` | recommendation is accept or minor revision and there is at least one numbered item under Major concerns; or recommendation is reject or major revision and there is none | "The recommendation does not match the concerns listed." |
+| `recommendation-mismatch` | recommendation is accept or minor revision and there is at least one numbered item under Major concerns; or recommendation is reject or major revision and there is none. On any venue's scale (G.9, `VenueProfile.recommendationMismatch(label:majorConcerns:)`): a label in the more favourable half of the scale with a major concern, or in the less favourable half without one; the middle label of a scale of odd length ("Borderline") never mismatches. A conference's recommendation is the label of its scale named under "Recommendation" (§6.10) | "The recommendation does not match the concerns listed." |
+
+### B.8 Built-in venues (`DefaultSettings.venues`, step 5, G.9)
+
+The defaults of Settings ▸ Venues, in menu order. Each can be edited and reset; none can be deleted; `AppSettings.venues` puts back any that a settings file lacks, and a file written before venues has the four as they are here. A venue's guidance follows "What a review for this journal (conference) should weigh:" in the venue lines (B.2). It holds only well-established, non-numeric characteristics of the venue: no page limits, score scales, deadlines or acceptance rates. The user edits all of it in Settings.
+
+| `id` | `shortName` | `fullName` | `kind` | `guidance` | `reportInstructions` | `recommendationScale` |
+|---|---|---|---|---|---|---|
+| `journal` | Journal | Journal (unspecified) | journal | empty: every prompt as before venues | none | `[]` (a journal uses `Recommendation`) |
+| `conference` | Conference | Conference (unspecified) | conference | below | none | the default conference scale |
+| `jet` | JET | Journal of Economic Theory | journal | below | none | `[]` |
+| `ec` | EC | ACM Conference on Economics and Computation | conference | below (decisions are accept or reject, with no revision round) | none | the default conference scale |
+
+The default conference scale (`DefaultSettings.conferenceScale`), most favourable first: "Accept", "Weak accept", "Borderline", "Weak reject", "Reject". It stands in until the user enters the scale of the venue's actual review form. A journal's scale is that of `Recommendation`: Accept, Minor revision, Major revision, Reject.
+
+Conference (unspecified):
+
+```text
+A conference decides on the paper as submitted: there is no revision round, so judge what the paper shows, not what a revision might add. Weigh the novelty and significance of the contribution for the conference's community, its technical soundness as far as a review can check it, and whether the contribution is clear from the main body of the paper.
+```
+
+JET, Journal of Economic Theory:
+
+```text
+Judge the paper as a contribution to economic theory. Weigh how important and new its results are for economic theory, beyond the application that motivates them. Check the correctness and rigour of every proof you can follow, and say which steps you could not verify. The assumptions should be stated clearly and justified: ask which of them drive the results and what fails without them. Ask whether the results are as general as the argument allows, or whether a special case is presented as the general one. Place the paper in the theory literature: what it adds to the closest existing results, and whether known results already contain its own. Judge the exposition as well: precise definitions and statements, consistent notation, and an explanation of why the main results hold.
+```
+
+EC, ACM Conference on Economics and Computation:
+
+```text
+EC is ACM's conference on economics and computation, where economists and computer scientists meet. Weigh the novelty and significance of the contribution for that community, and what the paper gains from combining economic and computational insight. Check technical soundness as far as a review can: follow the main arguments, and say which proofs you checked and which you could not. The contribution should be clear from the main body of the paper: the results, why they matter and the ideas behind the proofs, without relying on the appendix. The decision is accept or reject, with no revision round, so judge the paper as submitted.
+```
 
 ---
 
@@ -5289,3 +5632,23 @@ Step 5 implements `docs/design-review.md`: 35 changes to the UI, `D1`–`D35`, a
 | O1 (`docs/design-review.md`, "Outside `Sources/RefereeUI`"): where chat and report go | `ReviewSessionModel.chatProvider` and `reportProvider`: the provider of that job as `resolveTarget` finds it, read-only, observable through `session` and `settings`; nil when the job's provider is not registered or not enabled. For D4 | A.9 |
 | O2 (the same table): the status of a local provider | `ReviewSessionModel.activeAvailability` and `refreshActiveAvailability()`: only a local active provider is asked for its `availability()` (Ollama: `/api/version` on loopback, 2 s, no key read), whenever the active provider changes and when the window asks; a remote provider, or none, is never asked (an API check reads the Keychain, a CLI check starts a process) and gives nil at once. A check of the same provider keeps the last answer until the new one arrives, so the indicator does not flicker; an answer that arrives after the provider changed is dropped. For D13; §9.7's sentence on "nothing ready" follows in the docs pass of step 5 | A.9 |
 | O3 (the same table): two snapshot stand-ins | `SnapshotSupport.providers()` ends with `mock-slow` (`MockScript.sample` with 40 ms between deltas, every purpose) and `mock-offline` (a local `StaticProvider`, `.needsSetup`, "Ollama is not running"), both built in (`AuthMode.none`) and left off by `settings()`; for the scenes `design-report-streaming` and `design-review-provider-offline`. Settings ▸ Providers lists them under "Built in" in the snapshot mode, so the settings pictures show one or two more rows at the end of the list. A snapshot run still starts no process and makes no request: one plays a script in-process, the other only reports its status. **Six lines in four tests pinned the list, not the three the review names: also `SnapshotSupportTests` line 16 (the static rows' type), `IntegrationSmokeTests` line 38 (the snapshot graph) and `ShellProviderRowsTests` line 53 (the "Built in" group; a Shell file, changed by step 5a because the stand-ins are built in)** | §5.9, §11.3 |
+
+### G.9 Venues
+
+The user's request in step 5: "add an option to choose a venue on the main screen (after all an ec review is not the same as a jet review)" (EC, the ACM Conference on Economics and Computation; JET, the Journal of Economic Theory). One agent built the core in a worktree (`s5/venue`): the types, the settings, the per-paper choice, venue-aware prompts and the recommendation on the venue's scale, with `AppCore`'s API. The on-screen controls come in a later UI pass on top of it. `docs/contract-notes/step5-venue.md` has the exact signatures and what the UI pass builds. Every change is additive, with defaults; `Recommendation` and every existing member keep their names and meanings.
+
+| Decision | What changed | Where |
+|---|---|---|
+| A venue is a settings record | `VenueKind` (`.journal`, `.conference`) and `VenueProfile`: `id`, `shortName`, `fullName`, `kind`, `guidance` (what a review for it should weigh), optional `reportInstructions`, and for a conference `recommendationScale`, an ordered list of labels, most favourable first. Computed: `isBuiltIn`, `isUnspecified`, `displayName` ("Journal of Economic Theory (JET)"), `scale`, `scaleLabel(in:)`, `recommendationMismatch(label:majorConcerns:)`. In `Settings.swift`, beside `RubricCategory`, so A.1–A.8 remain the whole of `RefereeCore` apart from `DefaultSettings` and `FormatSpec` | A.7 |
+| Stored as optionals | `AppSettings.venueProfiles` (nil = the built-ins as shipped) and `defaultVenueID` (nil = Journal (unspecified)), read and written through `venues` (the stored list without a repeated id and with every built-in it lacks put back at its place) and `defaultVenue`; `venue(id:)` gives Journal (unspecified) for nil or an unknown id. Optional because of §4.4's rule: a settings file written before venues loads unchanged and has the built-ins; it gains no venue key until a venue is edited, and a list equal to the shipped one is stored as nil | A.7, §4.1 |
+| Four built-ins, editable, never deleted | Journal (unspecified), Conference (unspecified), JET (journal) and EC (conference; accept or reject, no revision round). Guidance written as a referee in the field would and limited to well-established, non-numeric characteristics: no page limits, score scales, deadlines or acceptance rates. The default conference scale is "Accept", "Weak accept", "Borderline", "Weak reject", "Reject", to be replaced with the scale of the venue's actual review form | B.8 |
+| The paper's venue | `ManuscriptMeta.venueID` (optional). `setVenue(id:)` sets it and sets `targetVenue` to the venue's display name (nil for an unspecified venue), so existing readers still name the venue. A new paper gets the default venue. A session saved before venues (free text in `targetVenue`, no id) is on Journal (unspecified) and its text is still sent as before; so is a session whose venue was deleted, which keeps its id | A.4, A.9 |
+| The engine gets the venue | `EngineContext.venue`, default Journal (unspecified), which `AppCore` resolves from `meta.venueID` for every job (plan and consent card included). `referee-cli` passes none, so its prompts are those of before | A.6, §6.1 |
+| Journal (unspecified) is today's behaviour, byte for byte | Its venue lines are the old `Target journal: …` lines in the one-pass review and the report, and nothing elsewhere; journal parsing and the journal style check are unchanged. `VenueJournalTests` compares the SHA-256 of 21 requests (one pass in text and PDF mode, three parts and the whole-paper pass, a continuation, discussions, questions, reports, a voice revision) and of 8 style checks with those taken from the code at commit `c1c6ee3`, for four ways of reaching that venue | §6.3, B.2 |
+| A conference's system prompt | Venue wording: two phrases of `reviewSystem` ("for a serious academic journal", "to help the editor decide") replaced by their conference phrases at their first occurrence. A replacement, not a placeholder in the editable text, because settings files from before venues hold the old text word for word; a phrase the referee edited away is left alone | B.2 |
+| The venue lines | `FormatSpec.venue` (`VENUE`): "Target journal/conference: <name>", "What a review for this journal/conference should weigh: <guidance>", and in the report only the conference's scale and the venue's report instructions; each line only when its values are set. The placeholder `{venue}` takes the place of `{Target journal: …}` in `TASK_REVIEW` and is new in `TASK_PART` and `TASK_WHOLE`; the same lines open discussion and question tasks and the report's request. The FormatSpec doc comment states the rule | B.2, §6.3, §6.8, §6.9 |
+| A conference's report | `PromptSet.conferenceReportSystem` and `conferenceReportTemplate` (optional; nil = the defaults, through `reportSystem(for:)` and `reportTemplate(for:)`), editable like the journal's and reset with the other prompts: a label of the venue's scale as the recommendation, "Chance of acceptance" for "Publication probability", no revision plan | B.4, §6.10 |
+| A conference's recommendation | `ReportDraft.recommendationLabel` (optional), parsed as the journal's recommendation is (the first sentence under "Recommendation", else the section) on the venue's scale: whole words, ignoring case, emphasis and hyphens, the earliest label, the longer of two that start together. A label not on the scale gives none; `recommendation` stays nil for a conference. A change of venue leaves the report and both fields as they are; `recommendationLabel` on the model reads the field of the current venue's kind | A.4, §6.10 |
+| The style check on either scale | `ReviewEngineProtocol.lint(reportMarkdown:venue:)`, with a default that runs `lint(reportMarkdown:)`, so other conformers keep compiling. For a conference: its template's headings, and a label in the more favourable half of the scale with a major concern, or in the less favourable half without one, is a mismatch (the middle label of an odd scale never is); for a journal this is the old rule exactly. The model lints with the paper's venue, also when it changes | A.6, B.7 |
+| The model's API | `ReviewSessionModel`: `venues`, `currentVenue`, `setVenue(id:)` (saves at once, refreshes the plan, lints again; never removes a comment; the paper's own venue or an unknown id does nothing), `recommendationScale`, `recommendationLabel`, `setRecommendation(label:)`. `SettingsModel`: `venues`, `defaultVenue`, `addVenue(kind:)`, `updateVenue(_:)`, `duplicateVenue(id:)`, `deleteVenue(id:)` (built-ins excepted), `moveVenues(fromOffsets:toOffset:)`, `resetVenue(id:)`, `setDefaultVenue(id:)`. In new files (`ReviewSessionModelVenue.swift`, `SettingsModelVenues.swift`); four private helpers of `ReviewSessionModel` became internal (`refreshPlan`, `mutateSession`, `lint`, `track`) | A.9 |
+| Left for the UI pass | The venue control on the main screen, a Settings ▸ Venues editor (with the default venue), editors for the two conference report texts in Settings ▸ Prompts, and the Report tab showing the paper's venue and its scale instead of the free-text field | §9.8 |

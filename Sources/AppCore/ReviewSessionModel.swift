@@ -210,7 +210,7 @@ public final class ReviewSessionModel {
             document.fileName = url.lastPathComponent
             document.lastKnownPath = url.path
             session = ReviewSession(schemaVersion: 1, id: UUID(), document: document,
-                                    meta: ManuscriptMeta(title: loaded.text.titleGuess, reviewerNotes: ""), createdAt: now, updatedAt: now)
+                                    meta: metaForNewPaper(title: loaded.text.titleGuess), createdAt: now, updatedAt: now)
             changed = true
         }
 
@@ -228,7 +228,7 @@ public final class ReviewSessionModel {
         self.session = session
         if changed { scheduleAutosave() }
         citations = index
-        lintFindings = session.report.map { dependencies.engine.lint(reportMarkdown: $0.markdown) } ?? []
+        lintFindings = session.report.map { dependencies.engine.lint(reportMarkdown: $0.markdown, venue: currentVenue) } ?? []
         await refreshPlan()?.value
         guard generation == openGeneration else { return }
         phase = .ready
@@ -631,7 +631,7 @@ public final class ReviewSessionModel {
         let restored = report.versions[index]
         report.versions = ModelSupport.versions(afterSaving: report, note: "before restore", at: clock.now())
         report.markdown = restored.markdown
-        report.recommendation = ModelSupport.recommendation(in: restored.markdown)
+        ModelSupport.readRecommendation(of: &report, venue: currentVenue)
         report.userEdited = true
         mutateSession { $0.report = report }
         lint(report.markdown)
@@ -882,7 +882,7 @@ public final class ReviewSessionModel {
         let context = EngineContext(provider: ProviderRef(providerID: ref.providerID, model: modelID), providerSettings: providerSettings,
                                     model: modelInfo(providerID: ref.providerID, modelID: modelID), prompts: settings.prompts,
                                     rubric: settings.rubric, meta: session?.meta ?? ManuscriptMeta(reviewerNotes: ""),
-                                    paperDigest: session?.paperDigest)
+                                    paperDigest: session?.paperDigest, venue: currentVenue)
         return JobTarget(descriptor: provider.descriptor, context: context)
     }
 
@@ -922,7 +922,7 @@ public final class ReviewSessionModel {
     /// another provider or model is dropped at once; the new one follows. A new provider is asked for its status
     /// (`refreshActiveAvailability()`, local providers only).
     @discardableResult
-    private func refreshPlan() -> Task<Void, Never>? {
+    func refreshPlan() -> Task<Void, Never>? {
         planGeneration += 1
         let generation = planGeneration
         let target = resolveTarget(for: .review)
@@ -1059,7 +1059,7 @@ public final class ReviewSessionModel {
         report.versions = ModelSupport.versions(afterSaving: session?.report, note: "before regenerate", at: now)
         report.generatedAt = draft.generatedAt ?? now
         report.provider = draft.provider ?? target.ref
-        report.recommendation = draft.recommendation ?? ModelSupport.recommendation(in: draft.markdown)
+        ModelSupport.completeRecommendation(of: &report, venue: target.context.venue)
         report.userEdited = false
         if report.basedOnCommentIDs.isEmpty {
             report.basedOnCommentIDs = session?.comments.filter { $0.status == .approved && $0.includeInReport }.map(\.id) ?? []
@@ -1074,7 +1074,7 @@ public final class ReviewSessionModel {
         let now = clock.now()
         var report = draft
         report.versions = ModelSupport.versions(afterSaving: old, note: "before voice revision", at: now)
-        report.recommendation = draft.recommendation ?? ModelSupport.recommendation(in: draft.markdown) ?? old.recommendation
+        ModelSupport.completeRecommendation(of: &report, venue: target.context.venue, keeping: old)
         report.generatedAt = draft.generatedAt ?? now
         report.provider = draft.provider ?? target.ref
         if report.basedOnCommentIDs.isEmpty { report.basedOnCommentIDs = old.basedOnCommentIDs }
@@ -1411,10 +1411,11 @@ public final class ReviewSessionModel {
 
     // ---- report lint (section 6.10) ----
 
-    private func lint(_ markdown: String) {
+    /// For the paper's venue (`currentVenue`): a conference's report has its own headings and scale (Appendix G.9).
+    func lint(_ markdown: String) {
         lintTask?.cancel()
         lintTask = nil
-        lintFindings = dependencies.engine.lint(reportMarkdown: markdown)
+        lintFindings = dependencies.engine.lint(reportMarkdown: markdown, venue: currentVenue)
     }
 
     private func scheduleLint(of markdown: String) {
@@ -1425,14 +1426,14 @@ public final class ReviewSessionModel {
         lintTask = Task { [weak self] in
             do { try await clock.sleep(until: deadline) } catch { return }
             guard let self, !Task.isCancelled, self.session?.report?.markdown == markdown else { return }
-            self.lintFindings = engine.lint(reportMarkdown: markdown)
+            self.lintFindings = engine.lint(reportMarkdown: markdown, venue: self.currentVenue)
         }
     }
 
     // ---- session changes and autosave (sections 2.4, 4.5) ----
 
     /// Every change of `session` goes through here: it bumps `updatedAt` and schedules the autosave.
-    private func mutateSession(_ change: (inout ReviewSession) -> Void) {
+    func mutateSession(_ change: (inout ReviewSession) -> Void) {
         guard var updated = session else { return }
         change(&updated)
         guard updated != session else { return }
@@ -1507,7 +1508,7 @@ public final class ReviewSessionModel {
 
     /// Runs `operation` on the main actor as a task of this model, which `waitForBackgroundWork()` can wait for.
     @discardableResult
-    private func track(_ operation: @escaping @MainActor () async -> Void) -> Task<Void, Never> {
+    func track(_ operation: @escaping @MainActor () async -> Void) -> Task<Void, Never> {
         let id = UUID()
         let task = Task { [weak self] in
             await operation()

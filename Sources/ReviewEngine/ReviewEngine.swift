@@ -66,8 +66,13 @@ public final class ReviewEngine: ReviewEngineProtocol {
         }
     }
 
-    /// The style check of Appendix B.7; deterministic, no model.
+    /// The style check of Appendix B.7; deterministic, no model. The journal rules.
     public func lint(reportMarkdown: String) -> [LintFinding] {
         ReportLinter.lint(reportMarkdown)
+    }
+
+    /// The style check of a report written for `venue` (Appendix G.9): for a conference, its template's headings and its scale.
+    public func lint(reportMarkdown: String, venue: VenueProfile) -> [LintFinding] {
+        ReportLinter.lint(reportMarkdown, venue: venue)
     }
 }

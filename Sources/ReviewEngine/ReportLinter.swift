@@ -4,6 +4,10 @@ import RefereeCore
 /// The deterministic style check of plan.md Appendix B.7. Matching is case-insensitive and on word boundaries except
 /// where a pattern starts or ends with punctuation (the em dash, the trailing "-ing" clause). Ranges are UTF-16 ranges
 /// in the Markdown. Findings come in document order, numbered from 0.
+///
+/// The venue (Appendix G.9) changes two rules: a conference's report has the conference template's headings
+/// ("Chance of acceptance" for "Publication probability"), and its recommendation is a label of the venue's scale.
+/// For a journal every rule is as it was before venues.
 enum ReportLinter {
     private struct Rule {
         let id: String
@@ -43,8 +47,9 @@ enum ReportLinter {
     private static let weaknessesWord = regex(#"\bweakness(?:es)?\b"#)
     private static let sentenceEnd = regex(#"[.?!]+(?=\s|$)"#)
 
-    static func lint(_ markdown: String) -> [LintFinding] {
-        let structure = ReportStructure(markdown)
+    static func lint(_ markdown: String, venue: VenueProfile = .unspecifiedJournal) -> [LintFinding] {
+        let sections = ReportStructure.sections(for: venue.kind)
+        let structure = ReportStructure(markdown, sections: sections)
         let text = structure.text
         let whole = NSRange(location: 0, length: text.length)
         var found: [(range: NSRange, order: Int, sequence: Int, rule: String, message: String)] = []
@@ -76,8 +81,8 @@ enum ReportLinter {
                 add(line.range, "template-heading", "This heading is a common marker of generated reviews.", order: 22)
             }
         }
-        // missing-section: the six template headings.
-        for name in ReportStructure.templateSections where structure.section(named: name) == nil {
+        // missing-section: the six template headings of the venue's kind.
+        for name in sections where structure.section(named: name) == nil {
             add(NSRange(location: text.length, length: 0), "missing-section", "Section '\(displayName(name))' is missing.", order: 23)
         }
         // opens-with-summary: a summary that opens by describing the paper and runs to more than four sentences.
@@ -90,11 +95,10 @@ enum ReportLinter {
                 add(sentence, "opens-with-summary", "Do not summarise the paper; state the assessment.", order: 24)
             }
         }
-        // recommendation-mismatch: the recommendation against the number of major concerns.
-        if let recommendation = structure.recommendation(), let (heading, body) = structure.section(named: "recommendation") {
-            let items = structure.majorConcernItems()
-            let positive = recommendation == .accept || recommendation == .minorRevision
-            if (positive && items > 0) || (!positive && items == 0) {
+        // recommendation-mismatch: the recommendation, a label of the venue's scale, against the number of major concerns.
+        let label = venue.kind == .conference ? structure.recommendationLabel(on: venue) : structure.recommendation()?.label
+        if let label, let (heading, body) = structure.section(named: "recommendation") {
+            if venue.recommendationMismatch(label: label, majorConcerns: structure.majorConcernItems()) {
                 let range = structure.paragraphs(in: body).first.map { structure.range(of: $0) } ?? structure.lines[heading.line].range
                 add(range, "recommendation-mismatch", "The recommendation does not match the concerns listed.", order: 25)
             }
