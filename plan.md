@@ -1189,6 +1189,7 @@ emit .finished(run)                        status .completed, usage summed, requ
 - Cancellation: `.finished(run)` with `.cancelled`; open drafts are discarded. A consumer cancelled *between* two events sees the stream end without `.finished` (a cold `AsyncThrowingStream` cannot deliver it then); the model records such a run as cancelled itself, with no banner (A.6).
 - No event retracts a draft: a draft whose block is then dropped (a repeat, a third `strength` comment, a block with neither title nor body) is simply not followed by a `.comment`. The model discards every draft that no `.comment` replaced when the run ends, whatever its status (A.6).
 - `StopReason.refusal`: `.notice("The model declined to continue.")`, run completes with what exists.
+- **Where the model keeps the run (step 5c).** `ReviewSessionModel` puts the `.started` record into `session.runs` at once, status `.running`, and replaces it by the `.finished` record when the stream ends (without one, by the started record marked cancelled or failed); the same for every kind of run. The comments of a review under way therefore name their own run's provider and model, whatever the document's provider is meanwhile (§9.3). A session saved while a run was under way (the app quit or crashed) reads as usual; when the document is opened again, a run still `.running` becomes `.failed("The app quit before this run ended.")`. The destination menu's "Sent so far" lists a run once it has ended, when its record says whether the PDF or the text went.
 
 ### 6.7 Anchoring a quote to the PDF
 
@@ -3389,7 +3390,8 @@ public struct ReportDraft: Codable, Sendable, Equatable {
 public enum RunKind: String, Codable, Sendable { case review, discussion, question, report, revise }
 public enum RunStatus: Codable, Sendable, Equatable { case running, completed, cancelled, failed(String) }
 
-/// Audit trail: every time manuscript content was sent to a model.
+/// Audit trail: every time manuscript content was sent to a model. The model keeps a run in `session.runs` from its start
+/// (status .running) and replaces that record by how the run ended (section 6.6, step 5c).
 public struct RunRecord: Codable, Sendable, Equatable, Identifiable {
     public var id: UUID
     public var kind: RunKind
@@ -5298,3 +5300,4 @@ Step 5c merged the Reader, Sidebar and Shell branches of step 5b (`docs/contract
 | Problem | Decision | Where |
 |---|---|---|
 | Sidebar 1: a provider switched off since its review has no public descriptor, so the sidebar kept its own map of the nine providers' names | `ReviewSessionModel.registeredProviders`: the descriptors of every registered provider, in the registry's order, switched on or not and whatever Local only says; nothing is asked for it. The sidebar's labels name a provider by it (`SidebarSourceNames.knownProviders` is gone), and so does the destination menu's "Sent so far" | A.9 |
+| Sidebar 2: the run of a review under way was not in the session, so its comments took the document's provider and model, wrong once the document moved to another provider during the run | The model records every run when it starts (its `.started` record, status `.running`) and replaces that record by how the run ended; the comments of a review under way name their own run. A session saved mid-run (a quit or a crash) reads as usual, and its run left `.running` becomes `.failed("The app quit before this run ended.")` when the document is opened again. "Sent so far" lists a run once it has ended | §6.6, A.4 |

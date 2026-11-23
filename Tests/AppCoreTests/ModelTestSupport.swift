@@ -4,10 +4,11 @@ import RefereeCore
 @testable import AppCore
 import TestSupport
 
-// Helpers for the tests of the two models. Every dependency is a fake from TestSupport, except four small stand-ins
+// Helpers for the tests of the two models. Every dependency is a fake from TestSupport, except a few small stand-ins
 // that TestSupport does not have: a clock the test moves by hand (the debounces), a provider that counts its
-// `listModels()` calls (Gate 0: no fake does), a paper service that fails to load, and a session store that fails to
-// read. They live here, in the test target, and nowhere else.
+// `listModels()` calls (Gate 0: no fake does), a paper service that fails to load, a session store that fails to
+// read, and (step 5c) an engine whose reviews differ from call to call and can be held open, with the gate that holds
+// them. They live here, in the test target, and nowhere else.
 
 /// A clock the test moves by hand. A wait ends when the clock reaches its deadline, or with `CancellationError`.
 final class ManualModelClock: ModelClock, @unchecked Sendable {
@@ -121,6 +122,107 @@ final class UnreadableModelSessionStore: SessionStoring, @unchecked Sendable {
     func save(_ session: ReviewSession) async throws { lock.withLock { saved += 1 } }
     func listSessions() async -> [SessionSummary] { [] }
     func deleteSession(sha256: String) async throws {}
+}
+
+/// A gate the test opens by hand: `wait()` returns once `open()` has been called, at once when it already has.
+final class ModelTestGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func open() {
+        let waiting: [CheckedContinuation<Void, Never>] = lock.withLock {
+            isOpen = true
+            defer { waiters = [] }
+            return waiters
+        }
+        for waiter in waiting { waiter.resume() }
+    }
+
+    func wait() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            lock.lock()
+            if isOpen {
+                lock.unlock()
+                continuation.resume()
+            } else {
+                waiters.append(continuation)
+                lock.unlock()
+            }
+        }
+    }
+}
+
+/// Reviews as a real engine plays them, built per call from what the call was given (step 5c): a run record of the
+/// call's own provider and model (`.started`, status `.running`), the comments `script` makes for that run, then
+/// `.finished` with the run completed. A call with
+/// a gate in `gates` (by its position, 0 for the first review) waits after its comments until the test opens the gate:
+/// a review under way. Every other job, and the plan, goes to the scripted engine, which records them as usual.
+final class StagedReviewEngine: ReviewEngineProtocol, @unchecked Sendable {
+    typealias Script = @Sendable (_ call: Int, _ context: EngineContext, _ existing: [ReviewComment], _ run: RunRecord) -> [ReviewComment]
+
+    let scripted: ScriptedReviewEngine
+    private let script: Script
+    private let gates: [Int: ModelTestGate]
+    private let lock = NSLock()
+    private var reviews: [(context: EngineContext, existing: [ReviewComment])] = []
+
+    init(scripted: ScriptedReviewEngine, gates: [Int: ModelTestGate] = [:], script: @escaping Script) {
+        self.scripted = scripted
+        self.gates = gates
+        self.script = script
+    }
+
+    /// What each review call was given, in order.
+    var reviewCalls: [(context: EngineContext, existing: [ReviewComment])] { lock.withLock { reviews } }
+
+    func plan(paper: LoadedPaper, context: EngineContext) async -> SendPlan { await scripted.plan(paper: paper, context: context) }
+
+    func review(paper: LoadedPaper, existing: [ReviewComment], context: EngineContext) -> AsyncThrowingStream<ReviewEvent, Error> {
+        let call = lock.withLock { () -> Int in
+            reviews.append((context, existing))
+            return reviews.count - 1
+        }
+        let started = RunRecord(id: UUID(), kind: .review, provider: context.provider, destination: "this Mac", sentPDF: false, requestCount: 0,
+                                startedAt: ModelSample.start.addingTimeInterval(Double(call) * 600), status: .running)
+        let comments = script(call, context, existing, started)
+        var finished = started
+        finished.status = .completed
+        finished.requestCount = 1
+        finished.finishedAt = started.startedAt.addingTimeInterval(60)
+        let events: [ReviewEvent] = [.started(started)] + comments.map { .comment($0, replacesDraft: UUID()) }
+        let gate = gates[call]
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                for event in events { continuation.yield(event) }
+                if let gate { await gate.wait() }
+                continuation.yield(.finished(finished))
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
+                gate?.open()
+            }
+        }
+    }
+
+    func discuss(paper: LoadedPaper, comment: ReviewComment, message: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error> {
+        scripted.discuss(paper: paper, comment: comment, message: message, context: context)
+    }
+
+    func ask(paper: LoadedPaper, conversation: Conversation, question: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error> {
+        scripted.ask(paper: paper, conversation: conversation, question: question, context: context)
+    }
+
+    func generateReport(paper: LoadedPaper, session: ReviewSession, context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+        scripted.generateReport(paper: paper, session: session, context: context)
+    }
+
+    func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+        scripted.reviseVoice(draft: draft, findings: findings, context: context)
+    }
+
+    func lint(reportMarkdown: String) -> [LintFinding] { scripted.lint(reportMarkdown: reportMarkdown) }
 }
 
 /// Everything one review-model test works with.

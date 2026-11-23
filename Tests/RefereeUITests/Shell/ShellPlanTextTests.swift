@@ -141,6 +141,12 @@ import AppCore
         #expect(ShellPlanText.sentSoFar([run("gone", at: 5, pdf: true)], name: { $0 }, date: { _ in "then" }) == ["gone: 1 time, last then (PDF file)"])
         #expect(ShellPlanText.sentSoFar([], name: { $0 }, date: { _ in "" }).isEmpty)
         #expect(ShellPlanText.nothingSent == "Nothing has been sent yet.")
+
+        // A run under way (recorded at its start since step 5c) is listed once it has ended and says what went.
+        var underWay = run("mock", at: 400, pdf: false)
+        underWay.status = .running
+        #expect(ShellPlanText.sentSoFar(runs + [underWay], name: { names[$0] ?? $0 }, date: { "t\(Int($0.timeIntervalSince1970))" }) == lines)
+        #expect(ShellPlanText.sentSoFar([underWay], name: { $0 }, date: { _ in "" }).isEmpty)
     }
 
     // ---- numbers ----

@@ -28,7 +28,8 @@ struct SidebarSource: Equatable {
     static let defaultModelText = "default model"
     static let unrecordedText = "Model not recorded"
 
-    /// An AI comment whose run is missing from the session (a review the app did not see to its end).
+    /// An AI comment whose run is missing from the session: since step 5c a run is recorded when it starts, so only a
+    /// review written by an earlier version that did not see it to its end has none.
     static let unrecorded = SidebarSource(providerID: nil, providerName: unrecordedText, model: nil, modelName: nil)
 
     /// "Sonnet", "gpt-5.1", "default model".
@@ -51,8 +52,9 @@ struct SidebarSource: Equatable {
 
 /// Names the sources of a session's comments and answers from what the window knows. Pure once made.
 struct SidebarSourceNames: Equatable {
-    /// The review that is running. The comments it has delivered are not in `session.runs` yet: the model records a run
-    /// when it ends. Its provider is the active one, the model the active model (what the review asked for).
+    /// The review that is running, for the drafts it is writing. Its comments name its run like any other: the model
+    /// records a run when it starts (step 5c), so they keep that run's provider and model even when the document's
+    /// provider changes meanwhile. Before the run's first event, the active provider and model stand in for it.
     struct Running: Equatable {
         var since: Date
         var ref: ProviderRef
@@ -70,14 +72,20 @@ struct SidebarSourceNames: Equatable {
         self.running = running
     }
 
-    /// What the model knows now: every registered provider (step 5c), switched on or not.
+    /// What the model knows now: every registered provider (step 5c), switched on or not, and the session's runs, the
+    /// one under way included.
     @MainActor init(model: ReviewSessionModel) {
+        let runs = model.session?.runs ?? []
         var running: Running?
-        if case .running(.review, _, let since) = model.runState, let provider = model.activeProvider {
-            running = Running(since: since, ref: ProviderRef(providerID: provider.id, model: model.activeModel))
+        if case .running(.review, _, let since) = model.runState {
+            if let run = runs.last(where: { $0.kind == .review && $0.status == .running }) {
+                running = Running(since: run.startedAt, ref: run.provider)
+            } else if let provider = model.activeProvider {
+                running = Running(since: since, ref: ProviderRef(providerID: provider.id, model: model.activeModel))
+            }
         }
         self.init(descriptors: model.registeredProviders, cachedModels: model.settings.providers.mapValues(\.cachedModels),
-                  runs: model.session?.runs ?? [], running: running)
+                  runs: runs, running: running)
     }
 
     /// The label of a provider and the model asked of it.
@@ -88,11 +96,11 @@ struct SidebarSourceNames: Equatable {
                              modelName: modelName == ref.model ? nil : modelName)
     }
 
-    /// The label of a comment: its run's provider and model; nil for the referee's own comment.
+    /// The label of a comment: its run's provider and model, the run under way included; nil for the referee's own
+    /// comment; "Model not recorded" when the session does not have its run.
     func source(of comment: ReviewComment) -> SidebarSource? {
         guard case .ai(let runID) = comment.origin else { return nil }
         if let run = runs.first(where: { $0.id == runID }) { return source(of: run.provider) }
-        if let running, comment.createdAt >= running.since { return source(of: running.ref) }
         return .unrecorded
     }
 

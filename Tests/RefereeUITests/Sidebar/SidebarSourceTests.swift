@@ -70,20 +70,54 @@ import TestSupport
         #expect(all.count == 1)
     }
 
-    /// A run is recorded when it ends: the comments of the review that is running name the active provider; an AI
-    /// comment whose run the session does not have says so.
+    /// A run is recorded when it starts (step 5c): a comment of the review under way names that run's provider and
+    /// model; the drafts name the run under way; an AI comment whose run the session does not have says so.
     @Test func aRunningReviewAndARunTheSessionDoesNotHave() {
         let start = Sample.created
-        let running = SidebarSourceNames.Running(since: start, ref: ProviderRef(providerID: "claude-cli", model: "opus"))
-        let names = SidebarSourceNames(descriptors: [Self.claude], cachedModels: ["claude-cli": Self.claudeModels], running: running)
-        let fresh = Sample.comment(origin: .ai(runID: UUID()), createdAt: start.addingTimeInterval(5))
+        var underWay = Sample.run("claude-cli", model: "opus", startedAt: start)
+        underWay.status = .running
+        underWay.finishedAt = nil
+        let running = SidebarSourceNames.Running(since: start, ref: underWay.provider)
+        let names = SidebarSourceNames(descriptors: [Self.claude], cachedModels: ["claude-cli": Self.claudeModels], runs: [underWay],
+                                       running: running)
+        let fresh = Sample.comment(origin: .ai(runID: underWay.id), createdAt: start.addingTimeInterval(5))
         #expect(names.source(of: fresh)?.text == "Claude Code · Opus")
         #expect(names.runningSource?.text == "Claude Code · Opus")
-        let older = Sample.comment(origin: .ai(runID: UUID()), createdAt: start.addingTimeInterval(-5))
-        #expect(names.source(of: older) == .unrecorded)
+        let unknown = Sample.comment(origin: .ai(runID: UUID()), createdAt: start.addingTimeInterval(5))
+        #expect(names.source(of: unknown) == .unrecorded)
         #expect(SidebarSource.unrecorded.text == "Model not recorded")
         #expect(SidebarSourceNames().source(of: fresh) == .unrecorded)
         #expect(SidebarSourceNames().runningSource == nil)
+    }
+
+    /// Through the model: while a review runs, its comments and drafts name the provider and model the review was started
+    /// with, also after the document has been moved to another provider (step 5c, the Sidebar's contract problem 2).
+    @Test @MainActor func theCommentsOfAReviewUnderWayKeepItsProviderWhenTheDocumentChangesProvider() async throws {
+        let gate = SidebarSourceGate()
+        let harness = try await SidebarTestHarness.open(comments: [], engine: ScriptedReviewEngine(plan: Sample.plan),
+                                                        providers: [MockLLMProvider(id: "mock"), MockLLMProvider(id: "mock-remote", isLocal: false)],
+                                                        wrap: { SidebarHeldReviewEngine(scripted: $0, gate: gate) })
+        let model = harness.model
+        model.setActiveProvider(ProviderRef(providerID: "mock", model: "model-x"))
+        model.startReview()
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(10)
+        while model.session?.comments.isEmpty != false, clock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        let comment = try #require(model.session?.comments.first)
+        #expect(SidebarSourceNames(model: model).source(of: comment)?.text == "Mock · model-x")
+        #expect(SidebarSourceNames(model: model).runningSource?.text == "Mock · model-x")
+
+        // The referee moves the document to another provider while the review runs: the labels stay the run's.
+        model.setActiveProvider(ProviderRef(providerID: "mock-remote", model: "model-y"))
+        #expect(model.activeProvider?.id == "mock-remote")
+        #expect(SidebarSourceNames(model: model).source(of: comment)?.text == "Mock · model-x")
+        #expect(SidebarSourceNames(model: model).runningSource?.text == "Mock · model-x")
+
+        gate.open()
+        while model.runState != .idle, clock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(model.runState == .idle)
+        #expect(SidebarSourceNames(model: model).source(of: comment)?.text == "Mock · model-x")
+        #expect(SidebarSourceNames(model: model).runningSource == nil)
     }
 
     @Test func anAnswerNamesItsProviderAndTheRefereesMessagesNothing() {
@@ -104,4 +138,88 @@ import TestSupport
         #expect(source.text == "Codex · gpt-5.1-codex")
         #expect(source.help == "Written by codex-cli, model gpt-5.1-codex")
     }
+}
+
+/// A gate the test opens by hand.
+private final class SidebarSourceGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func open() {
+        let waiting: [CheckedContinuation<Void, Never>] = lock.withLock {
+            isOpen = true
+            defer { waiters = [] }
+            return waiters
+        }
+        for waiter in waiting { waiter.resume() }
+    }
+
+    func wait() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            lock.lock()
+            if isOpen {
+                lock.unlock()
+                continuation.resume()
+            } else {
+                waiters.append(continuation)
+                lock.unlock()
+            }
+        }
+    }
+}
+
+/// A review as the real engine plays it, held open: the run of the call's own provider and model (`.started`), one
+/// comment of that run, then nothing until the gate opens, then `.finished`. Everything else goes to the scripted engine.
+private final class SidebarHeldReviewEngine: ReviewEngineProtocol, @unchecked Sendable {
+    let scripted: ScriptedReviewEngine
+    let gate: SidebarSourceGate
+
+    init(scripted: ScriptedReviewEngine, gate: SidebarSourceGate) {
+        self.scripted = scripted
+        self.gate = gate
+    }
+
+    func plan(paper: LoadedPaper, context: EngineContext) async -> SendPlan { await scripted.plan(paper: paper, context: context) }
+
+    func review(paper: LoadedPaper, existing: [ReviewComment], context: EngineContext) -> AsyncThrowingStream<ReviewEvent, Error> {
+        let run = RunRecord(id: UUID(), kind: .review, provider: context.provider, destination: "this Mac", sentPDF: false, requestCount: 0,
+                            startedAt: SidebarTestData.created, status: .running)
+        var finished = run
+        finished.status = .completed
+        finished.finishedAt = run.startedAt.addingTimeInterval(60)
+        let comment = SidebarTestData.comment(origin: .ai(runID: run.id), title: "Delivered while the review runs")
+        let gate = gate
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                continuation.yield(.started(run))
+                continuation.yield(.comment(comment, replacesDraft: UUID()))
+                await gate.wait()
+                continuation.yield(.finished(finished))
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
+                gate.open()
+            }
+        }
+    }
+
+    func discuss(paper: LoadedPaper, comment: ReviewComment, message: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error> {
+        scripted.discuss(paper: paper, comment: comment, message: message, context: context)
+    }
+
+    func ask(paper: LoadedPaper, conversation: Conversation, question: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error> {
+        scripted.ask(paper: paper, conversation: conversation, question: question, context: context)
+    }
+
+    func generateReport(paper: LoadedPaper, session: ReviewSession, context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+        scripted.generateReport(paper: paper, session: session, context: context)
+    }
+
+    func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error> {
+        scripted.reviseVoice(draft: draft, findings: findings, context: context)
+    }
+
+    func lint(reportMarkdown: String) -> [LintFinding] { scripted.lint(reportMarkdown: reportMarkdown) }
 }

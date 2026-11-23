@@ -66,14 +66,15 @@ enum SidebarTestData {
 
     static func open(comments: [ReviewComment], conversations: [Conversation] = [], report: ReportDraft? = nil, runs: [RunRecord] = [],
                      engine: ScriptedReviewEngine = ScriptedReviewEngine(plan: SidebarTestData.plan),
-                     providers: [any LLMProvider] = [MockLLMProvider()]) async throws -> SidebarTestHarness {
+                     providers: [any LLMProvider] = [MockLLMProvider()],
+                     wrap: ((ScriptedReviewEngine) -> any ReviewEngineProtocol)? = nil) async throws -> SidebarTestHarness {
         let paper = try makeSamplePaper()
         let store = InMemorySessionStore()
         try await store.save(ReviewSession(schemaVersion: 1, id: UUID(), document: paper.ref, meta: ManuscriptMeta(reviewerNotes: ""),
                                            comments: comments, conversations: conversations, report: report, runs: runs,
                                            createdAt: SidebarTestData.created, updatedAt: SidebarTestData.created))
         let dependencies = AppDependencies(paperService: FakePaperService(paper: paper), matcherFactory: { FakeQuoteMatcher(paper: $0) },
-                                           citationIndexer: FakeCitationIndexer(), engine: engine, resolver: FakeResolver(),
+                                           citationIndexer: FakeCitationIndexer(), engine: wrap?(engine) ?? engine, resolver: FakeResolver(),
                                            sessions: store, settings: InMemorySettingsStore(), providers: ProviderRegistry(providers),
                                            secrets: InMemorySecretStore())
         let model = ReviewSessionModel(dependencies: dependencies, settings: SnapshotSupport.settings())

@@ -164,11 +164,13 @@ enum ShellPlanText {
 
     /// One line per provider of `runs`, the most recently used first: "Mock: 2 times, last 18 Nov 2026 at 11:20
     /// (extracted text)", "(PDF file)", or "(PDF file and extracted text)" when both went. `name` gives a provider's
-    /// display name (its id when it is not known); `date` writes the date of the last send.
+    /// display name (its id when it is not known); `date` writes the date of the last send. A run still under way
+    /// (recorded since step 5c when it starts, status `.running`) is left out until it ends: only then does its record
+    /// say whether the PDF or the text went.
     static func sentSoFar(_ runs: [RunRecord], name: (ProviderID) -> String, date: (Date) -> String) -> [String] {
         var order: [ProviderID] = []
         var byProvider: [ProviderID: [RunRecord]] = [:]
-        for run in runs {
+        for run in runs where run.status != .running {
             if byProvider[run.provider.providerID] == nil { order.append(run.provider.providerID) }
             byProvider[run.provider.providerID, default: []].append(run)
         }

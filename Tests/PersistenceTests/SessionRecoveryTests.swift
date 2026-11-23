@@ -221,6 +221,27 @@ import TestSupport
         }
     }
 
+    /// Step 5c: a run is recorded when it starts, so a session saved while one was under way (the app then quit or
+    /// crashed) holds a run still marked running, with no end and no request counted yet. The file reads back as saved.
+    @Test func aSessionSavedWhileARunWasUnderWayReadsBack() async throws {
+        try await withTemporaryFolder { root in
+            let sha = Samples.sha("c5")
+            let run = RunRecord(id: UUID(), kind: .review, provider: ProviderRef(providerID: "claude-cli", model: nil), destination: "claude",
+                                sentPDF: false, requestCount: 0, startedAt: Samples.moment, status: .running)
+            var session = Samples.session(sha256: sha)
+            session.comments = [ReviewComment(id: UUID(), origin: .ai(runID: run.id), status: .pending, kind: .major, category: "claims",
+                                              title: "Delivered before the quit", body: "The body.",
+                                              anchor: Anchor(quote: "", confidence: .none, locationLabel: ""), includeInReport: true,
+                                              createdAt: Samples.moment, updatedAt: Samples.moment)]
+            session.runs = [run]
+            try await FileSessionStore(directory: root).save(session)
+            let text = String(decoding: try Data(contentsOf: root.appendingPathComponent(sha).appendingPathComponent("session.json")), as: UTF8.self)
+            #expect(text.contains("\"running\" : {"))
+            #expect(!text.contains("finishedAt"))
+            #expect(try await FileSessionStore(directory: root).loadSession(sha256: sha) == session)
+        }
+    }
+
     @Test func aSessionFileWrittenBeforeSimilarToExistedDecodes() async throws {
         try await withTemporaryFolder { root in
             let sha = Samples.sha("b1")

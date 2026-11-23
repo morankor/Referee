@@ -21,6 +21,10 @@ import RefereeCore
 //   providers are blocked by Local only"; both are errors. A failed reply is no banner: `replyFailure` shows it inline.
 // - Every run that started is recorded in `session.runs`, also when it was cancelled or its stream threw. A stream that
 //   ends without `.finished` was cancelled (Appendix A.6): recorded as cancelled, no banner.
+// - A run is recorded when it starts (its `.started` record, status `.running`) and that record is replaced by how it
+//   ended (step 5c): the comments of a review under way name that run's own provider and model, whatever the document's
+//   provider is meanwhile. A session saved while a run was under way (the app quit or crashed) is still read as usual;
+//   when it is opened again, a run left `.running` is marked failed ("The app quit before this run ended.").
 // - unload is called once per successful load: by close, and by open when the document it loaded is no longer wanted.
 // - Provider status (step 5, O2; docs/contract-notes/step5a-foundation.md): only a local active provider is asked for
 //   its `availability()`, whenever the active provider changes and when the window asks. A check of the same provider
@@ -107,6 +111,7 @@ public final class ReviewSessionModel {
         static let protectedPDF = "This PDF is protected. Its text is readable, so reviews send the text, not the file."
         static let noTextLayer = "This PDF has no text layer. Comments can be tied to pages only, and only providers that accept PDF files can review it."
         static let approveFirst = "Approve at least one comment first."
+        static let interruptedRun = "The app quit before this run ended."
         static func reviewStopped(_ reason: String) -> String { "Review stopped: " + reason }
         static func reportStopped(_ reason: String) -> String { "Report stopped: " + reason }
         static func revisionStopped(_ reason: String) -> String { "Voice revision stopped: " + reason }
@@ -218,6 +223,12 @@ public final class ReviewSessionModel {
             document.lastKnownPath = url.path
             session = ReviewSession(schemaVersion: 1, id: UUID(), document: document,
                                     meta: ManuscriptMeta(title: loaded.text.titleGuess, reviewerNotes: ""), createdAt: now, updatedAt: now)
+            changed = true
+        }
+
+        // No run of this document can be under way while it opens: one still `.running` was cut off when the app quit.
+        for index in session.runs.indices where session.runs[index].status == .running {
+            session.runs[index].status = .failed(Message.interruptedRun)
             changed = true
         }
 
@@ -975,6 +986,7 @@ public final class ReviewSessionModel {
         case .started(let run):
             progress.started = run
             progress.startedAt = run.startedAt
+            recordStart(of: run)
             runState = .running(kind: .review, phase: progress.phase, startedAt: run.startedAt)
         case .phase(let phase):
             progress.phase = phase
@@ -1041,6 +1053,7 @@ public final class ReviewSessionModel {
                 switch event {
                 case .started(let run):
                     started = run
+                    recordStart(of: run)
                     runState = .running(kind: kind, phase: nil, startedAt: run.startedAt)
                 case .textDelta(let text):
                     streamingReportText += text
@@ -1110,7 +1123,9 @@ public final class ReviewSessionModel {
             for try await event in stream {
                 if Task.isCancelled { break }
                 switch event {
-                case .started(let run): outcome.started = run
+                case .started(let run):
+                    outcome.started = run
+                    recordStart(of: run)
                 case .textDelta(let text): streamingReplyText += text
                 case .notice(let text): showBanner(.info, text)
                 case .finished(let reply, let proposal, let run): outcome.finished = (reply, proposal, run)
@@ -1200,9 +1215,19 @@ public final class ReviewSessionModel {
         }
     }
 
-    /// Appends the run to `session.runs` and returns how it ended. A run whose stream ended without `.finished` is
-    /// recorded from its `.started` record: failed when the stream threw (and the job was not cancelled), cancelled
-    /// otherwise, since only a consumer cancelled between two events misses `.finished` (Appendix A.6).
+    /// The run as it starts (its `.started` record, status `.running`) joins `session.runs` at once (step 5c), so that
+    /// what it delivers names its own provider and model while it is under way; `record(started:finished:thrown:)`
+    /// replaces it by how it ended.
+    private func recordStart(of run: RunRecord) {
+        mutateSession { session in
+            if let index = session.runs.firstIndex(where: { $0.id == run.id }) { session.runs[index] = run } else { session.runs.append(run) }
+        }
+    }
+
+    /// Puts how the run ended in `session.runs`, in place of the record of its start (else at the end), and returns
+    /// how it ended. A run whose stream ended without `.finished` is recorded from its `.started` record: failed when
+    /// the stream threw (and the job was not cancelled), cancelled otherwise, since only a consumer cancelled between
+    /// two events misses `.finished` (Appendix A.6).
     private func record(started: RunRecord?, finished: RunRecord?, thrown: String?) -> RunStatus {
         let unfinished: RunStatus = Task.isCancelled ? .cancelled : thrown.map { .failed($0) } ?? .cancelled
         var run = finished
@@ -1212,7 +1237,15 @@ public final class ReviewSessionModel {
             run = record
         }
         if let run {
-            mutateSession { $0.runs.append(run) }
+            let replaced = [started?.id, run.id].compactMap { $0 }
+            mutateSession { session in
+                if let index = session.runs.firstIndex(where: { replaced.contains($0.id) }) {
+                    session.runs[index] = run
+                    session.runs.removeAll { $0.id != run.id && replaced.contains($0.id) }
+                } else {
+                    session.runs.append(run)
+                }
+            }
             let failed: Bool
             if case .failed = run.status { failed = true } else { failed = false }
             Log.event("model.run.end", ["kind": .id(run.kind.rawValue), "failed": .bool(failed)])
