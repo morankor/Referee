@@ -23,11 +23,13 @@ import TestSupport
 // - design-review-provider-offline (D13): the chosen local provider reports that it is not running.
 // And for the user's request of step 5b ("let me also choose a model"):
 // - design-review-choose-model: the destination menu with a provider's models, the paper's one checked.
+// And for a finding of the Reader agent at step 5b:
+// - design-review-sidebar-returns: the sidebar hidden, then a comment begun from the selection bar's path: it shows again.
 
 @MainActor enum ShellDesignScenes {
     static var all: [SnapshotScene] {
         [welcomeFirstRun, welcomeMany, reviewNoProvider, reviewLongNames, reviewParts, consentSubscriptionPDF, bannerProviderDown,
-         settingsFirstRun, reviewSplitDestinations, reviewProviderOffline, reviewChooseModel]
+         settingsFirstRun, reviewSplitDestinations, reviewProviderOffline, reviewChooseModel, reviewSidebarReturns]
     }
 
     /// An invented journal-system file name, longer than the toolbar can show.
@@ -333,6 +335,25 @@ import TestSupport
             let checked = menu.choices.filter { $0.ref == ShellDestinationMenu.appliedRef(model) }.map(\.title)
             if checked != ["phi4"] { failures.append("checked: \(checked), expected phi4") }
             if ShellSceneSupport.windowState(context)?.destinationMenuOpen != true { failures.append("the destination menu is not open") }
+            return failures
+        })
+    }
+
+    /// The sidebar hidden by hand, then a comment of one's own begun (`beginComposingComment()`, what the selection bar's
+    /// Comment and N call): the sidebar shows again, with the new comment's card, rather than taking it out of sight.
+    static var reviewSidebarReturns: SnapshotScene {
+        SnapshotScene(name: "design-review-sidebar-returns", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
+            guard let model = context.model, let state = ShellSceneSupport.windowState(context) else { return }
+            state.showSidebar = false
+            await ShellSceneSupport.wait(seconds: 0.5) { false }          // the window lays itself out without the sidebar
+            model.beginComposingComment()
+            await ShellSceneSupport.wait { state.showSidebar }
+        }, verify: { context in
+            guard let model = context.model else { return ["a review scene without a model"] }
+            var failures: [String] = []
+            if ShellSceneSupport.windowState(context)?.showSidebar != true { failures.append("the sidebar stayed hidden") }
+            if model.composing == nil { failures.append("no comment is being written") }
+            if model.sidebarTab != .comments { failures.append("the sidebar shows \(model.sidebarTab)") }
             return failures
         })
     }

@@ -78,6 +78,7 @@ public struct ReviewWindowView: View {
         .onGeometryChange(for: CGFloat.self) { proxy in proxy.size.width } action: { width in
             windowState.adaptNavigator(toWidth: width)
         }
+        .background { ShellSidebarFollower(model: model, windowState: windowState) }
     }
 
     /// A file URL of a PDF: by its type when the file says, else by its extension.
@@ -85,6 +86,62 @@ public struct ReviewWindowView: View {
         guard url.isFileURL else { return false }
         if let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType { return type.conforms(to: .pdf) }
         return url.pathExtension.lowercased() == "pdf"
+    }
+}
+
+/// What the model has open in the sidebar (the inspector), as far as the window needs to know: whether a comment is
+/// being written, which comment is in the editor or has its thread open, how many conversations the session holds,
+/// and the tab.
+struct ShellSidebarDemand: Equatable {
+    var sessionID: UUID?
+    var composing: Bool
+    var editingCommentID: UUID?
+    var openThreadCommentID: UUID?
+    var conversations: Int
+    var tab: SidebarTab
+
+    @MainActor init(_ model: ReviewSessionModel) {
+        self.init(sessionID: model.session?.id, composing: model.composing != nil, editingCommentID: model.editingCommentID,
+                  openThreadCommentID: model.openThreadCommentID, conversations: model.session?.conversations.count ?? 0,
+                  tab: model.sidebarTab)
+    }
+
+    init(sessionID: UUID?, composing: Bool, editingCommentID: UUID?, openThreadCommentID: UUID?, conversations: Int, tab: SidebarTab) {
+        self.sessionID = sessionID
+        self.composing = composing
+        self.editingCommentID = editingCommentID
+        self.openThreadCommentID = openThreadCommentID
+        self.conversations = conversations
+        self.tab = tab
+    }
+
+    /// Whether going from `old` to `new` opened something that lives in the sidebar: a comment of one's own being
+    /// written, an editor or a thread opening (or moving to another comment), a conversation added to the same session,
+    /// or another tab. Closing things never counts: the sidebar is never hidden by itself.
+    static func opensSomething(from old: ShellSidebarDemand, to new: ShellSidebarDemand) -> Bool {
+        (new.composing && !old.composing)
+            || (new.editingCommentID != nil && new.editingCommentID != old.editingCommentID)
+            || (new.openThreadCommentID != nil && new.openThreadCommentID != old.openThreadCommentID)
+            || (new.sessionID != nil && new.sessionID == old.sessionID && new.conversations > old.conversations)
+            || new.tab != old.tab
+    }
+}
+
+/// Shows a hidden sidebar when the model opens something in it, so that the selection bar's Comment and Ask AI, or
+/// a tab chosen from the menu, never act out of sight (step 5b, from the Reader's work). A view of no size of its own,
+/// so that only it, not the whole window, is drawn again when the session changes.
+struct ShellSidebarFollower: View {
+    let model: ReviewSessionModel
+    let windowState: ShellReviewWindowState
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+            .onChange(of: ShellSidebarDemand(model)) { old, new in
+                guard !windowState.showSidebar, ShellSidebarDemand.opensSomething(from: old, to: new) else { return }
+                withAnimation { windowState.showSidebar = true }
+            }
     }
 }
 

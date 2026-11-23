@@ -160,6 +160,30 @@ import TestSupport
         #expect(!state.showsNavigator)
     }
 
+    /// A hidden sidebar shows when the model opens something in it, and is never hidden by itself.
+    @Test func theSidebarShowsWhenSomethingOpensInIt() {
+        let session = UUID()
+        let idle = ShellSidebarDemand(sessionID: session, composing: false, editingCommentID: nil, openThreadCommentID: nil, conversations: 1,
+                                      tab: .comments)
+        func after(_ change: (inout ShellSidebarDemand) -> Void) -> ShellSidebarDemand {
+            var new = idle
+            change(&new)
+            return new
+        }
+        #expect(ShellSidebarDemand.opensSomething(from: idle, to: after { $0.composing = true }))           // Comment, N
+        #expect(ShellSidebarDemand.opensSomething(from: idle, to: after { $0.editingCommentID = UUID() }))  // E, Add as Comment
+        #expect(ShellSidebarDemand.opensSomething(from: idle, to: after { $0.openThreadCommentID = UUID() }))
+        #expect(ShellSidebarDemand.opensSomething(from: idle, to: after { $0.conversations = 2 }))         // Ask AI's new conversation
+        #expect(ShellSidebarDemand.opensSomething(from: idle, to: after { $0.tab = .chat }))               // ask() and ⌘2 switch the tab
+        // Closing things, or another session's conversations (a document opened), show nothing.
+        let busy = after { $0.composing = true; $0.editingCommentID = UUID(); $0.openThreadCommentID = UUID() }
+        #expect(!ShellSidebarDemand.opensSomething(from: busy, to: idle))
+        #expect(!ShellSidebarDemand.opensSomething(from: idle, to: after { $0.conversations = 0 }))
+        #expect(!ShellSidebarDemand.opensSomething(from: idle, to: after { $0.sessionID = UUID(); $0.conversations = 5 }))
+        #expect(!ShellSidebarDemand.opensSomething(from: idle, to: idle))
+        #expect(Set(ShellScenes.all.map(\.name)).contains("design-review-sidebar-returns"))
+    }
+
     /// D32: what the Dock says after a job that ended in the background.
     @Test func theDockCountsTheNewCommentsOrTicksAReport() {
         let run = RunRecord(id: UUID(), kind: .review, provider: ProviderRef(providerID: "mock", model: nil), destination: "", sentPDF: false,
