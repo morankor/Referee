@@ -12,7 +12,7 @@ enum CommonBrand {
     static let name = "Human in the Loop"
     /// The name where a space cannot go, such as the product token of the User-Agent header ("HumanInTheLoop/0.1.0").
     static let token = "HumanInTheLoop"
-    /// The name the app had until step 5. Its data folders are moved from this name once (brand.md, "Rename").
+    /// The name the app had until step 5. Its data folders are moved from this name once (brand.md, section 7.2).
     static let formerName = "Referee"
     /// The line under the name: who does what.
     static let tagline = "AI drafts. You referee."
