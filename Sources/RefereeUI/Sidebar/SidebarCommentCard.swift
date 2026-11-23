@@ -126,10 +126,9 @@ struct SidebarCommentCard: View {
                 .help(comment.title)
             Spacer(minLength: 4)
             if let source = state.source {
-                // Its own width, at most 170 points (then cut in the middle); the title gives way first.
+                // Title and label share the line, each cut when it must be; no frame of its own, so that the line
+                // asks for no width the narrowest inspector does not have (plan.md section 9.2).
                 SidebarSourceLabel(source: source)
-                    .frame(maxWidth: 170)
-                    .fixedSize(horizontal: true, vertical: false)
             }
             if state.actions.contains(.undo) {
                 Button("Undo") { model.setStatus(.pending, for: comment.id) }

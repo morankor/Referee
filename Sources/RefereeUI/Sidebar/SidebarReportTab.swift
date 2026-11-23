@@ -374,12 +374,8 @@ struct SidebarReportTab: View {
                 Text("Style check")
                     .font(Theme.metadataFont.weight(.semibold))
                 if !findings.isEmpty {
-                    Text("\(findings.count)")
-                        .font(Theme.metadataFont.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .background(Color.orange, in: Capsule())
+                    // The shared tag (D16): orange on an orange tint, legible where white on orange was not.
+                    CommonTag("\(findings.count)", color: .orange)
                         .accessibilityLabel(findings.count == 1 ? "1 finding" : "\(findings.count) findings")
                 }
             }

@@ -44,7 +44,8 @@ struct SidebarSourceLabel: View {
 
 /// The header of a card (D1, step 5b): what the comment is on the left and where it is on the right, then a row of
 /// facts (who wrote it, how many messages, a waiting revision) that joins the first line when everything fits. When
-/// even the first line does not fit, the location takes a line of its own.
+/// what and where do not fit on one line, the location goes to the facts' line, on its right; only when that does not
+/// fit either does it take a line of its own.
 struct SidebarCardHeader<Leading: View, Location: View, Facts: View>: View {
     let hasFacts: Bool
     let leading: Leading
@@ -73,6 +74,14 @@ struct SidebarCardHeader<Leading: View, Location: View, Facts: View>: View {
                     location
                 }
                 if hasFacts { facts }
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                leading
+                HStack(spacing: 6) {
+                    if hasFacts { facts }
+                    Spacer(minLength: 8)
+                    location
+                }
             }
             VStack(alignment: .leading, spacing: 3) {
                 leading

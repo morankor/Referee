@@ -380,7 +380,7 @@ struct SidebarKindFilterMenu: View {
             }
         } label: {
             if let inForce {
-                SidebarChipLabel(title: inForce.title, count: inForce.count, showsChevron: true, isSelected: true)
+                SidebarChipLabel(title: inForce.title, count: inForce.count, isSelected: true)
             } else {
                 SidebarChipLabel(title: "Kind", count: nil, showsChevron: true, isSelected: false)
             }
