@@ -56,7 +56,7 @@ struct OllamaAdapter: HTTPProviderAdapter {
         if let error = json["error"] {
             throw LLMError.server(status: 500, message: VendorError(json: ["error": error]).text(status: nil))
         }
-        var events: [LLMEvent] = []
+        var events = state.model(json["model"]?.stringValue)                  // every line names it; sent once (step 5c)
         if let content = json["message"]?["content"]?.stringValue, !content.isEmpty {
             events.append(.textDelta(content))                 // message.thinking is ignored
         }

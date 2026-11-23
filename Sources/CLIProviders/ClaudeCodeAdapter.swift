@@ -123,6 +123,7 @@ struct ClaudeStreamParser: CLIStreamParser {
     private(set) var outcome: CLIOutcome?
     private var sawText = false
     private var stopReason: StopReason?
+    private var namedModel: String?
 
     mutating func consume(_ line: String) throws -> [LLMEvent] {
         guard let object = JSONLine.object(line) else { return [] }
@@ -135,7 +136,7 @@ struct ClaudeStreamParser: CLIStreamParser {
             case "init":
                 try checkInit(object)
                 sawInit = true
-                return []
+                return named(object["model"] as? String)            // the model this run uses, also for "default" (step 5c)
             case "api_retry":
                 let attempt = JSONLine.int(object["attempt"]).map(String.init) ?? "?"
                 return [.status("retrying (attempt \(attempt))")]
@@ -177,9 +178,19 @@ struct ClaudeStreamParser: CLIStreamParser {
         }
     }
 
+    /// `.model(name)` when the stream names a model other than the one it named last; nothing for a missing or blank
+    /// name (step 5c).
+    private mutating func named(_ model: String?) -> [LLMEvent] {
+        guard let model = model?.trimmingCharacters(in: .whitespacesAndNewlines), !model.isEmpty, model != namedModel else { return [] }
+        namedModel = model
+        return [.model(model)]
+    }
+
     private mutating func streamEvent(_ event: [String: Any]?) throws -> [LLMEvent] {
         guard let event else { return [] }
         switch event["type"] as? String {
+        case "message_start":
+            return named((event["message"] as? [String: Any])?["model"] as? String)
         case "content_block_start":
             let block = event["content_block"] as? [String: Any]
             let type = block?["type"] as? String ?? "unknown"

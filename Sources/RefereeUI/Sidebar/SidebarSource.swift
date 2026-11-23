@@ -11,11 +11,10 @@ import AppCore
 // - The provider: its descriptor among every provider the app registers, switched on or not
 //   (`ReviewSessionModel.registeredProviders`, step 5c), shortened like the destination indicator ("Claude Code
 //   (subscription)" → "Claude Code"); else its id (a provider no longer registered).
-// - The model: the id the run asked for (`RunRecord.provider.model`, `ThreadMessage.provider.model`), shown by its
-//   display name when the provider's cached model list has it; nil reads "default model" (a CLI's own default).
-//
-// The model a provider reports it actually used is not recorded yet; when it is, `SidebarSource.reportedModel` takes
-// it and wins over the requested one.
+// - The model: the one the provider's own stream named (`RunRecord.reportedModel`, `ThreadMessage.reportedModel`,
+//   step 5c: "claude-sonnet-4-6" for a run that asked Claude Code for its default), else the one the run asked for
+//   (`RunRecord.provider.model`, `ThreadMessage.provider.model`); either shown by its display name when the provider's
+//   cached model list has it ("Sonnet", "Claude Sonnet 4.6"); nothing named and nothing asked reads "default model".
 
 /// The label of one comment or answer.
 struct SidebarSource: Equatable {
@@ -23,7 +22,8 @@ struct SidebarSource: Equatable {
     var providerName: String                 // "Claude Code"
     var model: String?                       // the model the run asked for; nil = the provider's own default
     var modelName: String?                   // its display name in the provider's cached model list
-    var reportedModel: String?               // the model the provider said it used, once that is recorded (not yet)
+    var reportedModel: String?               // the model the provider's stream named (step 5c); wins over the one asked for
+    var reportedModelName: String?           // its display name in the provider's cached model list
 
     static let defaultModelText = "default model"
     static let unrecordedText = "Model not recorded"
@@ -32,16 +32,19 @@ struct SidebarSource: Equatable {
     /// review written by an earlier version that did not see it to its end has none.
     static let unrecorded = SidebarSource(providerID: nil, providerName: unrecordedText, model: nil, modelName: nil)
 
-    /// "Sonnet", "gpt-5.1", "default model".
-    var modelText: String { reportedModel ?? modelName ?? model ?? Self.defaultModelText }
+    /// "Sonnet", "gpt-5.1", "claude-sonnet-4-6", "default model".
+    var modelText: String { reportedModelName ?? reportedModel ?? modelName ?? model ?? Self.defaultModelText }
 
     /// "Claude Code · Sonnet".
     var text: String { providerID == nil ? providerName : providerName + " · " + modelText }
 
-    /// The tooltip, with the full ids: "Written by claude-cli, model sonnet".
+    /// The tooltip, with the full ids: "Written by claude-cli, model sonnet"; when the provider named another model than
+    /// the one asked for, both: "Written by claude-cli, model claude-sonnet-4-6 (asked for the provider's default)".
     var help: String {
         guard let providerID else { return "The run that wrote this comment is not recorded in this review." }
-        return "Written by \(providerID), model " + (reportedModel ?? model ?? "not named (the provider's default)")
+        guard let reportedModel else { return "Written by \(providerID), model " + (model ?? "not named (the provider's default)") }
+        guard reportedModel != model else { return "Written by \(providerID), model \(reportedModel)" }
+        return "Written by \(providerID), model \(reportedModel) (asked for \(model ?? "the provider's default"))"
     }
 
     /// For VoiceOver: "Written by Claude Code, model Sonnet".
@@ -88,27 +91,33 @@ struct SidebarSourceNames: Equatable {
                   runs: runs, running: running)
     }
 
-    /// The label of a provider and the model asked of it.
-    func source(of ref: ProviderRef) -> SidebarSource {
+    /// The label of a provider, the model asked of it and the model its stream named (step 5c), each model by its
+    /// display name where the provider's cached list has one.
+    func source(of ref: ProviderRef, reported: String? = nil) -> SidebarSource {
         let name = descriptors.first { $0.id == ref.providerID }.map(Self.shortName) ?? ref.providerID
-        let modelName = ref.model.flatMap { id in cachedModels[ref.providerID]?.first { $0.id == id }?.displayName }
-        return SidebarSource(providerID: ref.providerID, providerName: name, model: ref.model,
-                             modelName: modelName == ref.model ? nil : modelName)
+        let models = cachedModels[ref.providerID] ?? []
+        func displayName(_ id: String?) -> String? {
+            guard let id, let shown = models.first(where: { $0.id == id })?.displayName, shown != id else { return nil }
+            return shown
+        }
+        let reported = reported.flatMap { $0.isEmpty ? nil : $0 }
+        return SidebarSource(providerID: ref.providerID, providerName: name, model: ref.model, modelName: displayName(ref.model),
+                             reportedModel: reported, reportedModelName: displayName(reported))
     }
 
     /// The label of a comment: its run's provider and model, the run under way included; nil for the referee's own
     /// comment; "Model not recorded" when the session does not have its run.
     func source(of comment: ReviewComment) -> SidebarSource? {
         guard case .ai(let runID) = comment.origin else { return nil }
-        if let run = runs.first(where: { $0.id == runID }) { return source(of: run.provider) }
+        if let run = runs.first(where: { $0.id == runID }) { return source(of: run.provider, reported: run.reportedModel) }
         return .unrecorded
     }
 
-    /// The label of a message: an assistant's answer names its provider; the referee's messages and answers without a
-    /// recorded provider have none.
+    /// The label of a message: an assistant's answer names its provider and model; the referee's messages and answers
+    /// without a recorded provider have none.
     func source(of message: ThreadMessage) -> SidebarSource? {
         guard message.role == .assistant, let ref = message.provider else { return nil }
-        return source(of: ref)
+        return source(of: ref, reported: message.reportedModel)
     }
 
     /// The running review's label, for the drafts it is writing.

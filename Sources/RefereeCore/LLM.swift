@@ -82,6 +82,11 @@ public enum StopReason: String, Codable, Sendable { case endOfTurn, maxTokens, r
 public enum LLMEvent: Sendable, Equatable {
     case textDelta(String)
     case status(String)                      // human-readable progress, never model text
+    /// The model that answers, as the provider's own stream names it (Anthropic's message_start, the OpenAI response
+    /// object, Gemini's interaction, every xAI and Ollama chunk, Claude Code's init line; step 5c). Before `.finished`,
+    /// whenever the stream names a model other than the one it last named, so usually once; the last one counts. A
+    /// provider whose stream names none (Codex, Antigravity, Grok Build, the mocks) never sends it.
+    case model(String)
     case finished(StopReason, Usage?)        // exactly once, last, on success
 }
 

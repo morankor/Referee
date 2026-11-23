@@ -36,6 +36,8 @@ final class RunBook {
     private(set) var requestCount = 0
     private(set) var sentPDF = false
     private(set) var usage: Usage?
+    /// The model the provider's stream last named (`LLMEvent.model`), over every request of the job (step 5c).
+    private(set) var reportedModel: String?
     private let debugDump: DebugDump
     private let started = ContinuousClock.now
 
@@ -60,6 +62,7 @@ final class RunBook {
         record.requestCount = requestCount
         record.sentPDF = sentPDF
         record.usage = usage
+        record.reportedModel = reportedModel
         let elapsed = (ContinuousClock.now - started).components
         let seconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
         Log.event("engine.run.finished", ["kind": .id(run.kind.rawValue), "provider": .id(reference.providerID), "status": .id(status.logName),
@@ -95,6 +98,8 @@ final class RunBook {
                     await onDelta(text)
                 case .status(let line):
                     onStatus(line)
+                case .model(let name):
+                    reportedModel = name
                 case .finished(let reason, let reported):
                     stop = reason
                     answerUsage = reported

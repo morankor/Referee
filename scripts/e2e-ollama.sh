@@ -50,6 +50,7 @@ field() { grep -Eo "(^| )$1=[0-9]+" <<< "$SUMMARY" | head -1 | cut -d= -f2; }
 COMMENTS="$(field comments)"
 ANCHORED="$(field anchored)"
 REQUESTS="$(field requests)"
+REPORTED="$(grep -Eo '(^| )model=[^ ]+' <<< "$SUMMARY" | head -1 | cut -d= -f2)"     # the model Ollama's stream named
 [[ "${COMMENTS:-0}" -ge 1 ]] || fail "the review produced no comment"
 if [[ $EXPECT_PARTS -eq 1 && "${REQUESTS:-0}" -lt "$PLANNED" ]]; then fail "the review sent $REQUESTS of the $PLANNED planned requests"; fi
 echo "e2e-ollama.sh: anchored=$ANCHORED of comments=$COMMENTS, requests=$REQUESTS"
@@ -60,4 +61,4 @@ ASK_STATUS=$?
 echo "$ANSWER"
 [[ $ASK_STATUS -eq 0 ]] || fail "ask exited $ASK_STATUS"
 [[ -n "${ANSWER//[[:space:]]/}" ]] || fail "the answer is empty"
-echo "e2e-ollama.sh: OK ($MODEL on $(basename "$PDF"): $COMMENTS comments, $ANCHORED anchored, $REQUESTS requests, $(( $(date +%s) - START )) s)"
+echo "e2e-ollama.sh: OK ($MODEL on $(basename "$PDF"): $COMMENTS comments, $ANCHORED anchored, $REQUESTS requests, $(( $(date +%s) - START )) s, reported model ${REPORTED:--})"

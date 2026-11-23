@@ -137,7 +137,7 @@ final class RetryingReader: @unchecked Sendable {
         switch event {
         case .textDelta: sawText = true
         case .finished: done = true
-        case .status: break
+        case .status, .model: break
         }
         return event
     }

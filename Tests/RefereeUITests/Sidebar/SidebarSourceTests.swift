@@ -12,6 +12,7 @@ import TestSupport
     static let claude = Sample.descriptor("claude-cli", "Claude Code (subscription)", .subscriptionCLI)
     static let codex = Sample.descriptor("codex-cli", "Codex (ChatGPT plan)", .subscriptionCLI)
     static let openAI = Sample.descriptor("openai-api", "OpenAI API", .apiKey)
+    static let anthropic = Sample.descriptor("anthropic-api", "Anthropic API", .apiKey)
     static let claudeModels = [ModelInfo(id: "sonnet", displayName: "Sonnet"), ModelInfo(id: "opus", displayName: "Opus")]
 
     @Test func aProviderAndTheModelItWasAskedFor() {
@@ -131,12 +132,42 @@ import TestSupport
         #expect(names.source(of: unknown) == nil)
     }
 
-    /// Room for the model a provider reports it used, once that is recorded: it wins over the one asked for.
+    /// The model the provider's stream named wins over the one asked for (step 5c), shown by its display name where the
+    /// provider's cached list has one; the tooltip names both when they differ.
     @Test func aReportedModelWinsOverTheRequestedOne() {
         var source = SidebarSourceNames(descriptors: [Self.codex]).source(of: ProviderRef(providerID: "codex-cli", model: nil))
         source.reportedModel = "gpt-5.1-codex"
         #expect(source.text == "Codex · gpt-5.1-codex")
-        #expect(source.help == "Written by codex-cli, model gpt-5.1-codex")
+        #expect(source.help == "Written by codex-cli, model gpt-5.1-codex (asked for the provider's default)")
+
+        // The coordinator's example: a run that asked Claude Code for its default and was told "claude-sonnet-4-6".
+        let names = SidebarSourceNames(descriptors: [Self.claude, Self.anthropic],
+                                       cachedModels: ["claude-cli": [ModelInfo(id: "default", displayName: "Default")] + Self.claudeModels,
+                                                      "anthropic-api": [ModelInfo(id: "claude-sonnet-4-6", displayName: "Claude Sonnet 4.6")]])
+        for asked in ["default", nil] as [String?] {
+            let run = Sample.run("claude-cli", model: asked)
+            var reported = run
+            reported.reportedModel = "claude-sonnet-4-6"
+            let withRun = SidebarSourceNames(descriptors: names.descriptors, cachedModels: names.cachedModels, runs: [reported])
+            let label = withRun.source(of: Sample.comment(origin: .ai(runID: run.id)))
+            #expect(label?.text == "Claude Code · claude-sonnet-4-6")
+            #expect(label?.spoken == "Written by Claude Code, model claude-sonnet-4-6")
+            #expect(label?.help == "Written by claude-cli, model claude-sonnet-4-6 (asked for \(asked ?? "the provider's default"))")
+        }
+        // A reported model the provider's list knows reads by its display name; the same as asked, one name.
+        let api = names.source(of: ProviderRef(providerID: "anthropic-api", model: "claude-sonnet-4-6"), reported: "claude-sonnet-4-6")
+        #expect(api.text == "Anthropic API · Claude Sonnet 4.6")
+        #expect(api.help == "Written by anthropic-api, model claude-sonnet-4-6")
+        // A blank name counts as none.
+        #expect(names.source(of: ProviderRef(providerID: "claude-cli", model: "sonnet"), reported: "").text == "Claude Code · Sonnet")
+    }
+
+    /// An answer names the model its stream named, as a comment does.
+    @Test func anAnswerNamesTheModelItsStreamNamed() {
+        let names = SidebarSourceNames(descriptors: [Self.claude], cachedModels: ["claude-cli": Self.claudeModels])
+        let answer = ThreadMessage(id: UUID(), role: .assistant, text: "Partly.", createdAt: Sample.created,
+                                   provider: ProviderRef(providerID: "claude-cli", model: nil), reportedModel: "claude-opus-5-5")
+        #expect(names.source(of: answer)?.text == "Claude Code · claude-opus-5-5")
     }
 }
 

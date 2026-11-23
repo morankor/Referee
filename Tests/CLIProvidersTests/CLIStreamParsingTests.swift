@@ -23,20 +23,39 @@ import RefereeCore
         events.compactMap { if case .textDelta(let text) = $0 { return text } else { return nil } }
     }
 
+    /// The models the stream named (`.model`, step 5c).
+    static func models(_ events: [LLMEvent]) -> [String] {
+        events.compactMap { if case .model(let name) = $0 { return name } else { return nil } }
+    }
+
     // MARK: Claude Code (D.5)
 
     @Test func claudeDocumentedStream() {
         let (events, thrown, parser) = Self.feed(ClaudeStreamParser(), AppendixD.claudeOK)
         #expect(thrown == nil)
         #expect(Self.deltas(events) == ["Hello", " world"])
+        #expect(Self.models(events) == ["m"])                    // the init line's model (step 5c)
+        #expect(events.first == .model("m"))
         #expect(parser.outcome == .success(.endOfTurn, Usage(inputTokens: 40, outputTokens: 2)))
         #expect(parser.finalResult(exitCode: 0, stderrTail: "") == .success(.endOfTurn, Usage(inputTokens: 40, outputTokens: 2)))
+    }
+
+    /// The init line as Claude Code 2.1.330 printed it in WP5's smoke run, which asked for no model (the CLI's default),
+    /// trimmed to the fields recorded in docs/contract-notes/wp5-cliproviders.md: it names the model the CLI chose. The
+    /// inner message_start may name it again; it is sent once.
+    @Test func claudeNamesTheModelItChoseForItsDefault() {
+        let initLine = #"{"type":"system","subtype":"init","tools":[],"mcp_servers":[],"agents":["claude","Explore","general-purpose","Plan","web-fetch"],"plugins":["cc-plugin-agents-md","cc-plugin-telemetry","cc-plugin-privacy","cc-plugin-plugin-authoring"],"skills":[],"slash_commands":[],"permissionMode":"default","apiKeySource":"none","output_style":"default","model":"claude-opus-5-5","claude_code_version":"2.1.330"}"#
+        let start = #"{"type":"stream_event","event":{"type":"message_start","message":{"id":"msg_1","model":"claude-opus-5-5","usage":{"input_tokens":40,"output_tokens":1}}},"session_id":"s1","parent_tool_use_id":null,"uuid":"u1"}"#
+        let (events, thrown, _) = Self.feed(ClaudeStreamParser(), [initLine, start] + Array(AppendixD.claudeOK.dropFirst(2)))
+        #expect(thrown == nil)
+        #expect(Self.models(events) == ["claude-opus-5-5"])
+        #expect(Self.deltas(events) == ["Hello", " world"])
     }
 
     @Test func claudeRetryNoticeIsAStatus() {
         let (events, thrown, _) = Self.feed(ClaudeStreamParser(), [AppendixD.claudeInit, AppendixD.claudeRetry])
         #expect(thrown == nil)
-        #expect(events == [.status("retrying (attempt 1)")])
+        #expect(events == [.model("m"), .status("retrying (attempt 1)")])
     }
 
     @Test func claudeResultTextIsTheAnswerWhenNoDeltaCame() {
@@ -79,6 +98,7 @@ import RefereeCore
         let (events, thrown, parser) = Self.feed(CodexStreamParser(), AppendixD.codexOK)
         #expect(thrown == nil)
         #expect(Self.deltas(events) == ["Hello", " world"])
+        #expect(Self.models(events).isEmpty)                      // `codex exec --json` names no model (step 5c)
         #expect(parser.outcome == .success(.endOfTurn, Usage(inputTokens: 24_763, outputTokens: 122)))
     }
 
@@ -122,6 +142,7 @@ import RefereeCore
         let (events, thrown, parser) = Self.feed(AntigravityStreamParser(), AppendixD.agyOK)
         #expect(thrown == nil)
         #expect(Self.deltas(events) == ["apple", "\n"])
+        #expect(Self.models(events).isEmpty)                      // Antigravity's stream names no model (step 5c)
         #expect(parser.outcome == .success(.endOfTurn, Usage(inputTokens: 30_384, outputTokens: 4)))
     }
 
@@ -157,6 +178,7 @@ import RefereeCore
             events += step.events
         }
         #expect(Self.deltas(events) == ["Hello", " world"])
+        #expect(Self.models(events).isEmpty)                      // the ACP exchange of D.8 names no model (step 5c)
         #expect(client.stopReason == .endOfTurn)
         #expect(client.phase == .done)
         #expect(client.sessionDeleted)

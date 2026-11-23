@@ -48,11 +48,12 @@ struct XAIAdapter: HTTPProviderAdapter {
             if let input = usage["prompt_tokens"]?.intValue { state.inputTokens = input }
             if let output = usage["completion_tokens"]?.intValue { state.outputTokens = output }
         }
+        let named = state.model(chunk["model"]?.stringValue)                  // every chunk names it; sent once (step 5c)
         let choice = chunk["choices"]?[0]
         if let reason = choice?["finish_reason"]?.stringValue { state.stopReason = Self.stopReason(reason) }
         // reasoning_content is ignored
-        guard let content = choice?["delta"]?["content"]?.stringValue, !content.isEmpty else { return [] }
-        return [.textDelta(content)]
+        guard let content = choice?["delta"]?["content"]?.stringValue, !content.isEmpty else { return named }
+        return named + [.textDelta(content)]
     }
 
     static func stopReason(_ reason: String) -> StopReason {

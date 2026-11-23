@@ -164,4 +164,21 @@ import RefereeCore
         #expect(session.comments.first?.suggestion == nil)
         #expect(session.comments.first?.proposedRevision == nil)
     }
+
+    /// Step 5c: the model a provider's stream named is kept in a run and in an answer as `reportedModel`, an optional
+    /// field: the printed sample, written before it existed, decodes with none, and a value survives the round trip.
+    @Test func theReportedModelIsAnOptionalFieldOfARunAndAnAnswer() throws {
+        var session = try Self.decodeSample()
+        #expect(session.runs.first?.reportedModel == nil)
+        #expect(session.comments.first?.thread.first?.reportedModel == nil)
+        session.runs[0].reportedModel = "gemma4:e4b"
+        session.comments[0].thread.append(ThreadMessage(id: UUID(), role: .assistant, text: "In the text.", createdAt: session.createdAt,
+                                                        provider: ProviderRef(providerID: "claude-cli", model: nil),
+                                                        reportedModel: "claude-sonnet-4-6"))
+        let written = try Self.makeEncoder().encode(session)
+        let text = String(decoding: written, as: UTF8.self)
+        #expect(text.contains("\"reportedModel\" : \"gemma4:e4b\""))
+        #expect(text.contains("\"reportedModel\" : \"claude-sonnet-4-6\""))
+        #expect(try Self.makeDecoder().decode(ReviewSession.self, from: written) == session)
+    }
 }

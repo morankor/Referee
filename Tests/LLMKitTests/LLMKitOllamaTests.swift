@@ -145,6 +145,7 @@ extension Tag {
         let outcome = await collect(provider.stream(request))
         #expect(outcome.error == nil, "\(String(describing: outcome.error))")
         #expect(!outcome.deltas.isEmpty, "model \(smallest) streamed no delta")
+        #expect(outcome.models == [smallest], "the model Ollama's stream named (step 5c)")
         #expect(outcome.finishes.count == 1)
         if case .finished(_, let usage)? = outcome.finishes.first {
             #expect((usage?.outputTokens ?? 0) <= 16)

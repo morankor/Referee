@@ -60,6 +60,8 @@ struct OpenAIAdapter: HTTPProviderAdapter {
         case .event(let value): json = value
         }
         switch json["type"]?.stringValue {
+        case "response.created", "response.in_progress":
+            return state.model(json["response"]?["model"]?.stringValue)         // the response object names its model (step 5c)
         case "response.output_text.delta":
             guard let delta = json["delta"]?.stringValue, !delta.isEmpty else { return [] }
             return [.textDelta(delta)]
@@ -68,13 +70,14 @@ struct OpenAIAdapter: HTTPProviderAdapter {
             return []
         case "response.completed":
             remember(json["response"]?["usage"], in: &state)
-            return [state.finished(state.refusal.isEmpty ? .endOfTurn : .refusal)]
+            return state.model(json["response"]?["model"]?.stringValue) + [state.finished(state.refusal.isEmpty ? .endOfTurn : .refusal)]
         case "response.incomplete":
             remember(json["response"]?["usage"], in: &state)
+            let named = state.model(json["response"]?["model"]?.stringValue)
             switch json["response"]?["incomplete_details"]?["reason"]?.stringValue {
-            case "max_output_tokens": return [state.finished(.maxTokens)]
-            case "content_filter": return [state.finished(.refusal)]
-            default: return [state.finished(.other)]
+            case "max_output_tokens": return named + [state.finished(.maxTokens)]
+            case "content_filter": return named + [state.finished(.refusal)]
+            default: return named + [state.finished(.other)]
             }
         case "response.failed":
             let error = json["response"]?["error"]

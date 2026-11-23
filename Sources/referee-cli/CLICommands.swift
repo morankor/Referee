@@ -363,12 +363,15 @@ struct Commands {
         await dependencies.paperService.unload(paper.ref)
         let status = run?.status ?? .cancelled                         // a stream without .finished was cancelled (Appendix A.6)
         if case .failed(let message) = status { Output.note("error: \(message)") }
+        // The model the provider's stream named (step 5c); "-" when it named none (Codex, Antigravity, Grok Build, the mock).
+        let reported = run?.reportedModel ?? "-"
         let summary = "SUMMARY comments=\(tally.comments) anchored=\(tally.anchored) pageOnly=\(tally.pageOnly) unanchored=\(tally.unanchored) "
-            + "similar=\(tally.similar) requests=\(run?.requestCount ?? 0) status=\(Output.status(status)) seconds=\(Output.seconds(since: start))"
+            + "similar=\(tally.similar) requests=\(run?.requestCount ?? 0) status=\(Output.status(status)) seconds=\(Output.seconds(since: start)) "
+            + "model=\(reported)"
         if json {
             Output.jsonLine(["event": "summary", "comments": tally.comments, "anchored": tally.anchored, "pageOnly": tally.pageOnly,
                              "unanchored": tally.unanchored, "similar": tally.similar, "requests": run?.requestCount ?? 0,
-                             "status": Output.status(status), "seconds": Double(Output.seconds(since: start)) ?? 0])
+                             "status": Output.status(status), "seconds": Double(Output.seconds(since: start)) ?? 0, "model": reported])
         } else {
             Output.line(summary)
         }

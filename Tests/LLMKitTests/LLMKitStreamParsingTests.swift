@@ -12,21 +12,26 @@ struct RecordedStream: Sendable, CustomTestStringConvertible {
     let finished: LLMEvent
     /// The line before which the body is cut for the "early end" row: the vendor's terminal event.
     let terminalLine: String
+    /// The model the stream names (step 5c): `message.model`, the response's `model`, every chunk's `model`, the
+    /// interaction's `model`, every line's `model`. Appendix D.2's OpenAI sample names none.
+    let model: String?
 
     var testDescription: String { provider }
 
     static let all: [RecordedStream] = [
         RecordedStream(provider: "anthropic-api", body: AppendixD.anthropic,
                        deltas: ["@@COMMENT\nkind: major\n", "title: Example\n@@END\n@@DONE"],
-                       finished: .finished(.endOfTurn, Usage(inputTokens: 25, outputTokens: 15)), terminalLine: "event: message_stop"),
+                       finished: .finished(.endOfTurn, Usage(inputTokens: 25, outputTokens: 15)), terminalLine: "event: message_stop", model: "m"),
         RecordedStream(provider: "openai-api", body: AppendixD.openai, deltas: ["Hello", " world"],
-                       finished: .finished(.endOfTurn, Usage(inputTokens: 12, outputTokens: 2)), terminalLine: "event: response.completed"),
+                       finished: .finished(.endOfTurn, Usage(inputTokens: 12, outputTokens: 2)), terminalLine: "event: response.completed", model: nil),
         RecordedStream(provider: "xai-api", body: AppendixD.xai, deltas: ["Ah", ","],
-                       finished: .finished(.endOfTurn, Usage(inputTokens: 41, outputTokens: 2)), terminalLine: "data: [DONE]"),
+                       finished: .finished(.endOfTurn, Usage(inputTokens: 41, outputTokens: 2)), terminalLine: "data: [DONE]", model: "m"),
         RecordedStream(provider: "gemini-api", body: AppendixD.gemini, deltas: ["1, 2, 3, ", "4, 5"],
-                       finished: .finished(.endOfTurn, Usage(inputTokens: 11, outputTokens: 90)), terminalLine: "event: interaction.completed"),
+                       finished: .finished(.endOfTurn, Usage(inputTokens: 11, outputTokens: 90)), terminalLine: "event: interaction.completed",
+                       model: "m"),
         RecordedStream(provider: "ollama", body: AppendixD.ollama, deltas: ["OK"],
-                       finished: .finished(.endOfTurn, Usage(inputTokens: 33, outputTokens: 2)), terminalLine: #"{"model":"gemma:2b","created_at":"2026-11-22T07:32:06.346764Z""#),
+                       finished: .finished(.endOfTurn, Usage(inputTokens: 33, outputTokens: 2)),
+                       terminalLine: #"{"model":"gemma:2b","created_at":"2026-11-22T07:32:06.346764Z""#, model: "gemma:2b"),
     ]
 
     /// The body up to (not including) the terminal event.
@@ -57,6 +62,49 @@ struct RecordedStream: Sendable, CustomTestStringConvertible {
             #expect(outcome.events.last == recorded.finished, "exactly one .finished, and last")
             #expect(outcome.statuses.isEmpty)
         }
+    }
+
+    // ---- the model the stream names (step 5c) ----
+
+    /// Each recorded stream names its model once, before `.finished`, in one chunk and in one-byte chunks; xAI and
+    /// Ollama name it in every chunk and line, and it is still sent once. Appendix D.2's OpenAI sample names none.
+    @Test(arguments: RecordedStream.all)
+    func theRecordedStreamNamesItsModelOnceBeforeItFinishes(_ recorded: RecordedStream) async throws {
+        for chunking in Chunking.allCases {
+            let outcome = await play(recorded.body, provider: recorded.provider, chunking: chunking)
+            #expect(outcome.models == (recorded.model.map { [$0] } ?? []), "\(chunking)")
+            if let position = outcome.events.firstIndex(where: { if case .model = $0 { return true } else { return false } }) {
+                #expect(position < outcome.events.count - 1, "before .finished")
+            }
+        }
+    }
+
+    /// OpenAI's response object names the model it ran (`response.created`, and again in `response.completed`): a
+    /// variant of D.2 with the field. A name that changes during a stream is sent again; the last one counts.
+    @Test func theOpenAIResponseObjectNamesItsModel() async throws {
+        let named = AppendixD.openai
+            .replacingOccurrences(of: #""response":{"id":"resp_1","status":"in_progress"}"#,
+                                  with: #""response":{"id":"resp_1","status":"in_progress","model":"gpt-x-2026-10-01"}"#)
+            .replacingOccurrences(of: #""response":{"id":"resp_1","status":"completed","#,
+                                  with: #""response":{"id":"resp_1","status":"completed","model":"gpt-x-2026-10-01","#)
+        #expect(named != AppendixD.openai)
+        let outcome = await play(named, provider: "openai-api", chunking: .bytes)
+        #expect(outcome.models == ["gpt-x-2026-10-01"])
+        #expect(outcome.deltas == ["Hello", " world"])
+
+        let changed = AppendixD.xai.replacingOccurrences(of: #""created":1,"model":"m","choices":[{"index":0,"delta":{"content":",""#,
+                                                          with: #""created":1,"model":"m2","choices":[{"index":0,"delta":{"content":",""#)
+        #expect(await play(changed, provider: "xai-api").models == ["m", "m2"])
+    }
+
+    /// Gemini: the interaction's `model` (D.3), or a `modelVersion` when an event carries one, the name generateContent
+    /// responses use.
+    @Test func geminiNamesTheModelOfTheInteraction() async throws {
+        let versioned = AppendixD.gemini.replacingOccurrences(of: #""object":"interaction","model":"m"}"#,
+                                                              with: #""object":"interaction","model":"m","modelVersion":"m-001"}"#)
+        #expect(versioned != AppendixD.gemini)
+        #expect(await play(versioned, provider: "gemini-api").models == ["m-001"])
+        #expect(await play(AppendixD.gemini, provider: "gemini-api").models == ["m"])
     }
 
     @Test func theAnthropicTextIsTheCommentBlock() async throws {

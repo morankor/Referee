@@ -29,7 +29,7 @@ import TestSupport
                         switch event {
                         case .textDelta: delta()
                         case .finished: finish()
-                        case .status: break
+                        case .status, .model: break
                         }
                     }
                     end(nil)

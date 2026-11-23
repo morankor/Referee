@@ -138,7 +138,7 @@ public final class SettingsModel {
             for try await event in provider.stream(request) {
                 switch event {
                 case .textDelta(let text): answer += text
-                case .status: break
+                case .status, .model: break
                 case .finished: finished = true
                 }
             }

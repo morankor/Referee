@@ -106,7 +106,8 @@ final class ReplyJob {
         if case .discussion(let comment, _) = subject, status == .completed {
             proposal = parser.proposal(for: comment)
         }
-        let reply = ThreadMessage(id: UUID(), role: .assistant, text: parser.reply, createdAt: Date(), provider: context.provider)
+        let reply = ThreadMessage(id: UUID(), role: .assistant, text: parser.reply, createdAt: Date(), provider: context.provider,
+                                  reportedModel: book.reportedModel)
         sink.finish(final: .finished(reply: reply, proposal: proposal, run: book.finished(status)))
     }
 }

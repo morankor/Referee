@@ -151,6 +151,13 @@ struct StreamOutcome: Sendable {
             return false
         }
     }
+    /// The models the stream named (`.model`, step 5c), in order.
+    var models: [String] {
+        events.compactMap { event in
+            if case .model(let name) = event { return name }
+            return nil
+        }
+    }
     var llmError: LLMError? { error as? LLMError }
 }
 

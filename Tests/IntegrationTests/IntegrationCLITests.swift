@@ -43,6 +43,7 @@ import Testing
         #expect(summary.hasPrefix("SUMMARY comments=6 anchored="))
         #expect(summary.contains(" status=completed "))
         #expect(summary.contains(" requests=1 "))
+        #expect(summary.hasSuffix(" model=-"))                                 // the mock's stream names no model (step 5c)
         #expect(result.lines.contains { $0.hasPrefix("[major] p. 1 (exact)  ") })
         #expect(result.stderr.contains("sending text to this Mac"))
 
@@ -52,6 +53,7 @@ import Testing
         #expect(events.first?["event"] as? String == "started")
         #expect(events.last?["event"] as? String == "summary")
         #expect(events.last?["status"] as? String == "completed")
+        #expect(events.last?["model"] as? String == "-")
         #expect(events.filter { $0["event"] as? String == "comment" }.count == 6)
     }
 

@@ -65,7 +65,7 @@ struct AnthropicAdapter: HTTPProviderAdapter {
         switch json["type"]?.stringValue {
         case "message_start":
             if let usage = json["message"]?["usage"] { remember(usage, in: &state) }
-            return []
+            return state.model(json["message"]?["model"]?.stringValue)          // the model that answers (step 5c)
         case "content_block_delta":
             guard json["delta"]?["type"]?.stringValue == "text_delta",
                   let text = json["delta"]?["text"]?.stringValue, !text.isEmpty else { return [] }

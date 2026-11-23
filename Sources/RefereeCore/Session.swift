@@ -23,9 +23,10 @@ public struct ThreadMessage: Codable, Sendable, Equatable, Identifiable {
     public var role: MessageRole
     public var text: String
     public var createdAt: Date
-    public var provider: ProviderRef?        // set on assistant messages
-    public init(id: UUID, role: MessageRole, text: String, createdAt: Date, provider: ProviderRef? = nil) {
-        self.id = id; self.role = role; self.text = text; self.createdAt = createdAt; self.provider = provider
+    public var provider: ProviderRef?        // set on assistant messages: the provider and the model asked for
+    public var reportedModel: String?        // the model the provider's stream named for the answer (LLMEvent.model); nil = it named none (step 5c)
+    public init(id: UUID, role: MessageRole, text: String, createdAt: Date, provider: ProviderRef? = nil, reportedModel: String? = nil) {
+        self.id = id; self.role = role; self.text = text; self.createdAt = createdAt; self.provider = provider; self.reportedModel = reportedModel
     }
 }
 
@@ -121,7 +122,8 @@ public struct ReportDraft: Codable, Sendable, Equatable {
 public enum RunKind: String, Codable, Sendable { case review, discussion, question, report, revise }
 public enum RunStatus: Codable, Sendable, Equatable { case running, completed, cancelled, failed(String) }
 
-/// Audit trail: every time manuscript content was sent to a model.
+/// Audit trail: every time manuscript content was sent to a model. The model keeps a run in `session.runs` from its start
+/// (status .running) and replaces that record by how the run ended (plan.md section 6.6, step 5c).
 public struct RunRecord: Codable, Sendable, Equatable, Identifiable {
     public var id: UUID
     public var kind: RunKind
@@ -133,10 +135,11 @@ public struct RunRecord: Codable, Sendable, Equatable, Identifiable {
     public var finishedAt: Date?
     public var status: RunStatus
     public var usage: Usage?
+    public var reportedModel: String?        // the model the provider's stream named (LLMEvent.model), the last one of the run; nil = none named (step 5c)
     public init(id: UUID, kind: RunKind, provider: ProviderRef, destination: String, sentPDF: Bool, requestCount: Int, startedAt: Date,
-                finishedAt: Date? = nil, status: RunStatus, usage: Usage? = nil) {
+                finishedAt: Date? = nil, status: RunStatus, usage: Usage? = nil, reportedModel: String? = nil) {
         self.id = id; self.kind = kind; self.provider = provider; self.destination = destination; self.sentPDF = sentPDF; self.requestCount = requestCount
-        self.startedAt = startedAt; self.finishedAt = finishedAt; self.status = status; self.usage = usage
+        self.startedAt = startedAt; self.finishedAt = finishedAt; self.status = status; self.usage = usage; self.reportedModel = reportedModel
     }
 }
 

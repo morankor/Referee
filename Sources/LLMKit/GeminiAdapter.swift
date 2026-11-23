@@ -76,6 +76,8 @@ struct GeminiAdapter: HTTPProviderAdapter {
         case .event(let value): json = value
         }
         switch json["event_type"]?.stringValue {
+        case "interaction.created":
+            return state.model(Self.modelName(in: json))                      // the interaction names its model (step 5c)
         case "step.delta":
             guard json["delta"]?["type"]?.stringValue == "text",
                   let text = json["delta"]?["text"]?.stringValue, !text.isEmpty else { return [] }
@@ -84,11 +86,12 @@ struct GeminiAdapter: HTTPProviderAdapter {
             let interaction = json["interaction"]
             if let input = interaction?["usage"]?["total_input_tokens"]?.intValue { state.inputTokens = input }
             if let output = interaction?["usage"]?["total_output_tokens"]?.intValue { state.outputTokens = output }
+            let named = state.model(Self.modelName(in: json))
             switch interaction?["status"]?.stringValue {
-            case "completed": return [state.finished(.endOfTurn)]
-            case "incomplete": return [state.finished(.maxTokens)]      // "hitting max_tokens"
+            case "completed": return named + [state.finished(.endOfTurn)]
+            case "incomplete": return named + [state.finished(.maxTokens)]      // "hitting max_tokens"
             case "failed": throw LLMError.server(status: 500, message: "the interaction failed")
-            default: return [state.finished(.other)]
+            default: return named + [state.finished(.other)]
             }
         case "error":
             let vendor = VendorError(json: json)
@@ -96,6 +99,12 @@ struct GeminiAdapter: HTTPProviderAdapter {
         default:
             return []                                           // unknown events are ignored, as the docs ask
         }
+    }
+
+    /// The model an interaction event names (step 5c): a `modelVersion` (the field of generateContent responses) when an
+    /// event carries one, else the interaction's `model` (Appendix D.3: `interaction.created` has it).
+    static func modelName(in json: JSONValue) -> String? {
+        json["modelVersion"]?.stringValue ?? json["interaction"]?["modelVersion"]?.stringValue ?? json["interaction"]?["model"]?.stringValue
     }
 
     // ---- errors (section 5.5) ----
