@@ -2,9 +2,9 @@
 
 A Mac app for refereeing a paper. The manuscript sits in the middle of the window; an AI model drafts referee comments into a sidebar on the right, where you approve, reject, discuss, edit or add to them with single keys; you can ask about any passage you select; citations in the text open a card with the cited paper and, when one is free to read, its PDF; and at the end the app drafts a referee report from the comments you approved, which you edit and export.
 
-You choose which AI does the reading: a model that runs on your Mac (Ollama, nothing leaves the computer), an API account (Anthropic, OpenAI, Google Gemini, xAI), or a subscription you already pay for through its command-line tool (Claude Code, Codex). The toolbar always shows where the text would go, and the first time a document would leave your Mac the app asks you.
+You choose which AI does the reading: a model that runs on your Mac (Ollama, nothing leaves the computer), an API account (Anthropic, OpenAI, Google Gemini, xAI), or a subscription you already pay for through its command-line tool (Claude Code, Codex). You choose it per paper, with the model, in the toolbar, which always shows where the text would go; the first time a document would leave your Mac the app asks you. Every comment and answer the AI writes says which provider and which model wrote it.
 
-`plan.md` is the full design. This README is the user's guide: how to build and install the app, the first run, setting up providers, what leaves your Mac, what to do when something does not work, and what still needs checking with your own accounts. The developer's notes are at the end.
+`plan.md` is the full design. This README is the user's guide: how to build and install the app, the first run, working on a paper, setting up providers, what leaves your Mac, what to do when something does not work, and what still needs checking with your own accounts. The developer's notes are at the end.
 
 ## Contents
 
@@ -45,46 +45,73 @@ You can also open a PDF directly: `open -a build/Referee.app paper.pdf`, or drag
 
 ## First run
 
-The app opens with a welcome window: **Open PDF…**, a drop area for a PDF, your recent reviews (none yet), and at the bottom a line that says which AI is set up.
+The app opens with a welcome window: **Open PDF…**, a drop area for a PDF, and your recent reviews (none yet).
 
-- If Ollama is running and has a model when you first start Referee, the app switches it on and makes it the default ("AI: Local · gemma4:e4b"). It never switches on a remote provider by itself.
-- Otherwise the line reads "No AI provider set up — Open Settings". You can still open papers, read them, select passages, write your own comments and look up references; only the AI features wait for a provider.
+- If Ollama is running and has a model when you first start Referee, the app switches it on and makes it the default for reviews. The line at the bottom then reads "AI: Local · gemma4:e4b"; click it to change the provider in Settings.
+- If no provider is set up, the window shows **Set Up AI Provider…** with the note "Reviews need an AI provider. A local model through Ollama keeps the manuscript on this Mac." It opens Settings ▸ Providers. You can still open papers, read them, select passages, write your own comments and look up references; only the AI features wait for a provider.
+- If you start Ollama later, Referee notices the next time you open a window or come back to the app: with no default chosen yet, a provider on your Mac that is switched on and running becomes the default. It does this once per session, and never for a provider outside your Mac.
 
-Open Settings with **⌘,** to set up a provider ([below](#setting-up-ai-providers)). Help ▸ Referee Help lists the keys and commands and has a button that opens this README.
+Settings is **⌘,**. Help ▸ Referee Help lists the keys and commands and has a button that opens this README.
 
 ## Working on a paper
 
-Open a PDF (**⌘O**, the welcome window, or drag it onto the app). Each paper gets its own window:
+Open a PDF (**⌘O**, the welcome window, or drag it onto the app). Each paper gets its own window. Right-click a paper in the welcome window's list to open it, show it in Finder, or delete its review data; a paper whose file has moved says "File not found", and a click lets you find it again.
 
-- **Left: the navigator.** Page thumbnails, the outline when the PDF has one, and **References**: the paper's reference list, each entry with an icon once it has been looked up. Toggle it with the toolbar button on the left or **⌃⌘S**.
-- **Middle: the PDF.** Highlights mark the passages comments refer to (yellow pending, green approved, blue your own, purple a passage you asked about). Click a highlight to select its comment. Select text to get a small bar: **Ask AI**, **Comment** (your own comment on that passage), **Copy**, and quick questions. Click a citation such as "Acemoglu et al. (2011)" to open its card: the reference as printed, what the lookup found, and **Open PDF** (an open-access copy, in a viewer window), **Open in Browser**, **Copy DOI**, **Search Google Scholar**. **⌘F** finds text; **⌘+**, **⌘−**, **⌘0** zoom.
-- **Right: the sidebar.** **Comments** (⌘1), **Chat** (⌘2) and **Report** (⌘3).
-- **Toolbar:** where the text would go (the destination indicator, for example "Local · gemma4:e4b"; click it to choose another provider for this paper), **Review** (⌘R; it becomes Cancel with the progress while a review runs, ⌘. cancels), **Report**, and the sidebar toggle.
+- **Left: the navigator.** Page thumbnails, the outline when the PDF has one, and **References**: the paper's reference list, each entry headed "Surname et al. (2011)" over the reference as printed, with an icon once it has been looked up. Type in **Filter references** to narrow the list ("3 of 9 references"); every word must appear in the entry, accents ignored, so "sorensen" finds "Sørensen". Nothing is sent while you filter. Toggle the navigator with the toolbar button on the left or **⌃⌘S**; in a window narrower than about 1,100 points it steps aside by itself to give the PDF room, and comes back when the window is wider again.
+- **Middle: the PDF.** Highlights mark the passages comments refer to (yellow pending, green approved, blue your own, purple a passage you asked about). Click a highlight to select its comment. Select text to get a small bar: **Ask AI**, **Comment** (your own comment on that passage), **Copy** (it says "Copied"), and quick questions. Once you have asked about the passage or started a comment on it, the bar steps aside and the passage stays selected. **⌘F** finds text (while the find bar is open the comment highlights fade, so the matches stand out); **⌘+**, **⌘−**, **⌘0** zoom.
+- **Citations.** Click a citation such as "Acemoglu et al. (2011)" to open its card: first what the lookup found (title, "authors · year · venue", an "Open access" tag when there is a free copy), then the reference as printed. Buttons appear only when they can act: **Open PDF** (the open-access copy, in a viewer window whose toolbar has zoom, Fit Width, Find and Open in Preview), **Open in Browser**, **Copy DOI**; then **Search Google Scholar** and **Show in References**, always. When nothing was found the card says "No match in Crossref or OpenAlex." and "Common for working papers and books."; when the lookup failed it says why and offers **Retry**.
+- **Right: the sidebar.** **Comments** (⌘1), **Chat** (⌘2) and **Report** (⌘3). If you hide it (⌥⌘0), it comes back by itself when something opens in it, for example a comment begun from the selection bar.
+- **Toolbar:** where the text would go (the destination indicator; click it to choose the provider and model for this paper, [below](#choosing-the-provider-and-model-for-a-paper)), **Review** (⌘R), **Report**, and the sidebar toggle. While a review runs, the Review button shows the progress, for example "Reading part 2 of 5 · 3:12" with a small gauge, and **Stop** (⌘.).
 
-**Reviewing.** Press **⌘R**. Comments appear in the sidebar as the model writes them, sorted by their place in the paper. Then triage with single keys (they work while the PDF or the comment list has the keyboard, not while you type in a field):
+**Reviewing.** Press **⌘R** (or **Run Review** in the empty Comments tab, which also says how many pages and references the app found). Comments appear in the sidebar as the model writes them ("Writing… · 3 received"), sorted by their place in the paper. Only the selected comment is shown in full; the others show their kind, title and place, so that many fit on the screen (⋯ ▸ **Show Full Text of Every Comment** shows them all in full). Each AI comment names the provider and the model that wrote it, for example "Claude Code · Sonnet" or "Ollama · gemma4:e4b". When the provider itself reports which model answered, that name is shown: a review that asked Claude Code for its default reads "Claude Code · claude-sonnet-4-6". Hover over the label to see what was asked for and what answered.
+
+Then triage with single keys (they work while the PDF or the comment list has the keyboard, not while you type in a field). The selected comment moves to the top of the list after each key.
 
 | Key | Does |
 | --- | --- |
 | J / K | next / previous comment |
+| P | next undecided comment, from the top again at the end |
 | A | approve, then move to the next undecided comment |
 | R or X | reject, then move on |
 | U | back to undecided |
 | D | discuss the comment with the model (it can propose a revised comment, which you accept or discard) |
-| E | edit the comment |
+| E | edit the comment (the cursor goes into the comment) |
 | N | a new comment of your own, on the selected text if there is any |
 | Return | show the comment's passage in the PDF again |
 | 1 2 3 4 | kind: major, minor, question, strength |
 | Esc | close what is open (citation card, new comment, editor, discussion, find bar), then clear the selection |
+| Esc in a text field | give the keyboard back to the comment list, so the keys above work again |
 
-Comments marked **≈** were matched to the PDF approximately; "p. 4" with a dotted underline means that the model named the page but its quote could not be located on it; "Passage not found" means the model quoted something that is not in the paper (attach it to a selection with the card's button, or delete it). A small **verify** tag marks comments about missing literature: the model cannot look papers up, so check any paper it names.
+The filters at the top are **All**, **Pending**, **Approved**, **Rejected** with their counts, and **Kind ▾** for major comments, minor ones, questions or strengths. When every comment is decided, the row reads "All 25 decided" with a **Write Report** button.
 
-**The report.** In the Report tab, add the target journal and any notes for the report, then **Generate**. The report is written from the comments you approved. Edit it in place (Preview shows it formatted), use **Revise Voice** to make it sound less machine-written, and **Export ▾** as Markdown, plain text, Word or PDF (or File ▸ Export Report…, **⇧⌘E**). The **Style check** list under the text flags phrases referees often regret (em dashes, "robust" used loosely, and the like); click one to select it.
+Locations read "p. 4, lines 14–16". **≈** before a location means the quote was matched to the PDF approximately; "p. 4 · page only" means the model named the page but its quote was not found on it (select the passage and choose Attach to Selection in the card's ⋯ menu); "Passage not found" means the model quoted something that is not in the paper. A small **verify** tag marks comments about missing literature: the model cannot look papers up, so check any paper it names. A comment on the same passage as an earlier one of the same kind is folded under "Similar to: …", with the provider and model of each; click it to open it.
 
-Everything is saved as you work. Reopening a paper (the same file, even renamed or moved) brings back its comments, discussions and report.
+**Discussing a comment.** **D** opens a thread under the comment. When the model proposes a change, the proposal comes right after its answer, says what changed ("Changes: kind Major → Minor · title · comment"), and offers **Accept Revision** (or **Accept Withdrawal**) and **Discard**. The thread shows which provider and model answered. The card's ⋯ menu has **Earlier Versions** to go back to a text you replaced.
+
+**Your own comments.** **N**, the "+" button or **Comment** in the selection bar opens an editor with the cursor in the comment. The title is optional (it is taken from the comment). **⌘↩** saves, **Esc** cancels.
+
+**Questions.** Select a passage and choose **Ask AI** (or a quick question), or type in **Ask about the paper…** at the bottom of the Chat tab. Answers carry the same provider and model label as comments. **Add as Comment ▾** turns an answer into a comment of your own and opens it in the editor, so you can rewrite it in your voice.
+
+**The report.** In the Report tab, **Venue and notes** holds the target journal and any notes for the report; it folds away once a report exists. Then **Generate**: the report is written from the comments you approved. Edit it in place (Preview shows it formatted; spelling is checked as you type). The recommendation sits beside the count of approved comments, and a warning appears when it disagrees with your concerns. Then:
+
+- **Copy Text** puts the report on the clipboard as plain text (it says "Copied").
+- **Export ▾** has **Copy Markdown**; **Copy Comments to the Authors** and **Copy Confidential Comments to the Editor**, for the two boxes of a journal system (the recommendation and the publication probability go only to the editor); and **Markdown File…**, **Text File…**, **Word Document…**, **PDF…** (or File ▸ Export Report…, **⇧⌘E**).
+- **Revise Voice** asks the model to reword the report so that it reads as yours; **Regenerate** writes it again; **Versions ▾** brings back an earlier text.
+- **Style check** (folded under the text) lists phrases referees often regret, named in words ("Em dash", "Word to check", "Stacked hedge"); click one to select it.
+
+With nothing approved yet, the tab offers **Show Pending Comments**.
+
+**Reviewing again, or with another provider.** Once a paper has AI comments the button reads **Review Again**. For a provider outside your Mac it first says what it will cost ("about 18,000 tokens to Anthropic through Claude Code") and that new comments are added next to the existing ones; nothing is removed. Switching a paper to another provider never removes comments either: every comment keeps the label of the provider and model that wrote it, and a new comment on a passage that an earlier one already covers is folded under it.
+
+Everything is saved as you work (a second after each change). Reopening a paper (the same file, even renamed or moved) brings back its comments, discussions and report. If the app quits in the middle of a review, the comments that had arrived by then are kept, each still naming its provider and model.
 
 ## Setting up AI providers
 
-Open **Settings ▸ Providers** (**⌘,**). The list has three groups; each row has a switch, a coloured status dot (green ready, yellow needs set-up with the reason, red unavailable with the reason) and, on the right, the details. At the bottom choose the default provider for reviews, chat and reports. You can also choose a provider per paper from the toolbar's destination indicator.
+Open **Settings ▸ Providers** (**⌘,**). The list has three groups; each row has a switch, a coloured status dot (green ready, yellow needs set-up with the reason, red unavailable with the reason), the model it will use under its name and, on the right, the details. When no provider is switched on, a note at the top suggests starting with a local model.
+
+- Switching a provider on while no default is set makes it the default for reviews, with its model. Switching the default off moves the default to another provider that is on (a local one first).
+- At the bottom, choose the default provider and model for **Review**, **Chat** and **Report** ("Same as Review" for the last two unless you choose). These are what a paper in **Custom** uses (below).
+- **Send Test Prompt** works once a provider is ready (see below). A provider whose key is saved but which is still off says "Switch on Anthropic API to use it." with a **Switch On** button.
 
 ### Local: Ollama (nothing leaves your Mac)
 
@@ -118,6 +145,8 @@ xAI also lists an npm package, `@xai-official/grok`. When Referee was built, tha
 
 Then switch the provider on in Settings and press **Send Test Prompt**. Referee finds the program in the usual places (or set **Path** to point at it) and checks that the installed version still has the safety options it needs; if one is missing, the provider shows red with the reason, and stays off. Claude Code receives the PDF itself and Codex receives it as page images (both were tried with the invented fixture paper); Antigravity and Grok Build receive the extracted text.
 
+Claude Code reports which model it ran, so its comments name it ("claude-sonnet-4-6"); Codex, Antigravity and Grok Build do not, so their comments name the model you chose, or "default model".
+
 These tools are AI agents that can normally run commands and edit files. Referee runs them with every tool switched off that the tool allows, in an empty temporary folder, and stops the run at once if the model tries to use a tool ([Privacy](#privacy-what-leaves-your-mac-and-when) has the details per tool). Using a subscription through a third-party app is governed by each vendor's terms; Referee only launches your own installed tool for your own work. Keep this to personal use.
 
 ### What "experimental" means
@@ -126,11 +155,23 @@ Antigravity and Grok Build are marked **experimental**. Their adapters were writ
 
 ### The Send Test Prompt button
 
-**Send Test Prompt** sends the single message "Reply with exactly: OK" to the provider and shows the answer. It costs a few tokens on an API account, or one message of your subscription. When it succeeds, Referee records the date, and for an experimental provider the warning disappears. Use it once after setting up each provider. Nothing else in Settings sends a prompt; fetching a model list sends your key to its vendor and nothing of any paper.
+**Send Test Prompt** sends the single message "Reply with exactly: OK" to the provider and shows the answer. Under the button Settings says what it costs: a few tokens on an API account, one message of your subscription through a command-line tool, nothing for a model on your Mac. It is available once the provider is ready (installed, signed in or with a key). When it succeeds, Referee records the date, and for an experimental provider the warning disappears. Use it once after setting up each provider. Nothing else in Settings sends a prompt; fetching a model list sends your key to its vendor and nothing of any paper.
+
+### Choosing the provider and model for a paper
+
+Click the destination indicator in the toolbar. The menu lists:
+
+- **Custom** ("Per action, as set in Settings"): what every new paper starts with. The review, chat questions and the report each go to their own default from Settings ▸ Providers, listed under it ("Review: Ollama · gemma4:e4b", "Chat: Claude Code · sonnet", "Report: Anthropic API · Example Large"), with **Edit in Settings…**.
+- Then every provider that is switched on, each with its models (the arrow shows them): choose a provider ("Default model") or one of its models, and **everything** for this paper uses it: the review, discussions, questions, the report and Revise Voice. "Choose in Settings…" or "More in Settings…" lead to the full list.
+- **What a review sends**: what goes, to which address, how many requests and about how many tokens, and what the provider keeps. **Sent so far**: every provider that has received anything of this paper, how often and when ("Nothing has been sent yet."). Then **Local only**, **Provider Settings…** and **Privacy Settings…**.
+
+The arrow keys move through the menu, → and ← open and close a provider's models, Return chooses.
+
+The indicator itself has two lines: green "Local" over the model for a provider on your Mac; orange for anything else, with the provider's name over the model and "text only" or "experimental" when they apply. In **Custom**, when the actions go to different places, it reads **Custom** over the three, for example "Review: this Mac · Chat: Claude Code · Report: Anthropic", orange if any of them leaves your Mac. "Choose AI provider" means providers are on but none is chosen for this paper; "No AI provider" means none is on. For Ollama the app also checks, at no cost, whether it is running: if not, the indicator turns orange and reads "Ollama is not running", and the menu has **Check Again**.
 
 ### Each paper, the first time
 
-The first time anything of a paper would go to a provider that is not on your Mac, a card asks you: what will be sent (the PDF, or the extracted text), how many requests, about how many tokens, and to which address. **Send** remembers your answer for that paper and provider; tick **Ask again next time** to be asked every time. **Local only** (Settings ▸ Privacy, or the destination menu) blocks every remote provider altogether.
+The first time anything of a paper would go to a provider that is not on your Mac, a card asks you, with the facts in a short table: **What** (the PDF file, its size and pages, or the extracted text), **To** (the address, or "Anthropic, through Claude Code"), **Requests** (how many, about how many tokens), and **Kept** (what the provider keeps); and a warning when only the extracted text goes. **Send to Anthropic** (the button names the vendor) remembers your answer for that paper and provider; tick **Ask again next time** to be asked every time; **Don't Send** (or Esc) sends nothing. This holds for each action separately: a paper whose reviews stay on your Mac but whose questions go to a remote provider asks before the first question. **Local only** (Settings ▸ Privacy, or the destination menu) blocks every remote provider altogether.
 
 Check the journal's policy on AI tools before sending a manuscript under review. Some journals forbid it; a local model keeps the manuscript on your Mac.
 
@@ -138,20 +179,20 @@ Check the journal's policy on AI tools before sending a manuscript under review.
 
 | What | Goes to | When |
 | --- | --- | --- |
-| The PDF, or its extracted text | the provider shown in the paper's toolbar | only when you start a review, send a discussion message, ask a question, or generate or revise the report; the first time per paper and provider only after you agree |
+| The PDF, or its extracted text | the provider that does the action: the paper's own provider, or in Custom each action's default | only when you start a review, send a discussion message, ask a question, or generate or revise the report; the first time per paper and provider only after you agree |
 | Your approved comments, discussions, notes for the report | the same provider | with those same actions |
 | The text or identifier of one reference | Crossref and OpenAlex (public bibliographic services) | when you click that citation, or that entry in References; if you switch off "Look up references only when I click them" (Settings ▸ References), every reference of a paper as soon as it opens |
 | A request for an open-access PDF | the site that hosts it | when you click Open PDF on a citation card |
 | An API key | its own vendor only | with each request to that vendor, including fetching its model list |
 | Anything else | nobody | no telemetry, no update checks, no crash reports |
 
-With Ollama on your Mac and no citation clicked, the app connects to nothing but `127.0.0.1` (your own Mac). File names are never logged and never sent: a provider receives the file as "manuscript.pdf". The app's log (`log show --predicate 'subsystem == "local.referee.app"'`) holds counts and identifiers, never manuscript text.
+With Ollama on your Mac and no citation clicked, the app connects to nothing but `127.0.0.1` (your own Mac). Checking whether Ollama is running is a request to your own Mac too; remote providers are never checked from a paper's window. File names are never logged and never sent: a provider receives the file as "manuscript.pdf". The app's log (`log show --predicate 'subsystem == "local.referee.app"'`) holds counts and identifiers, never manuscript text. The destination menu's **Sent so far** shows, for each paper, every provider that received something of it.
 
 **What the providers keep.** OpenAI and Gemini requests are sent with storage switched off; xAI's endpoint stores nothing; Anthropic's API keeps requests under your API account's data terms. Claude Code runs without saving a session; Codex runs with an ephemeral session, though Codex keeps its own log database under `~/.codex` whose contents were not examined. Antigravity may keep a local conversation record. Grok Build saves every conversation under `~/.grok` and may sync it to your xAI account; Referee deletes the local copy after each run but cannot undo a sync.
 
 **What a manuscript can make a model do.** A manuscript is someone else's text and could contain instructions aimed at a model ("ignore your instructions and …"). Through an API key or Ollama the model can only return text: no tools are offered. Claude Code runs with no tools and no extensions at all, and Referee checks that on every run. Codex runs with its shell and agent tools removed and a read-only sandbox; one built-in code tool cannot be removed, and if the model uses any tool Referee stops the run, though it may learn of the tool only after it ran. Antigravity's tools cannot be switched off (they need approvals nobody gives, file writes stay inside an empty temporary folder, and Referee stops the run at the first tool step). Grok Build runs in its strictest sandbox with every permission denied. For Antigravity and Grok Build none of this has been tested against the real program. In every case the model's output is treated as untrusted text: nothing it writes is run, fetched or opened automatically, and links in comments are not clickable. The worst a successful injection can do through an API provider is distort comments that you then read and triage.
 
-**What stays on your Mac.** Each paper's review (comments with quotes from the manuscript, discussions, report, reference lookups) is in `~/Library/Application Support/Referee/sessions/`, in a folder named after the file's fingerprint, not its name. Downloaded reference PDFs are in `~/Library/Caches/Referee/papers/`. File ▸ Delete Review Data… removes one paper's folder; Settings ▸ Privacy ▸ Delete all review data removes them all; Settings ▸ References clears the downloads. The command-line tools write their own files on their own account, outside Referee's control. Referee never modifies your PDF. It needs no special permissions (no Accessibility, Screen Recording or Full Disk Access).
+**What stays on your Mac.** Each paper's review (comments with quotes from the manuscript, discussions, report, reference lookups, and a record of each run: provider, model, when, what was sent) is in `~/Library/Application Support/Referee/sessions/`, in a folder named after the file's fingerprint, not its name. Downloaded reference PDFs are in `~/Library/Caches/Referee/papers/`. File ▸ Delete Review Data… (or the welcome window's right-click menu) removes one paper's folder; Settings ▸ Privacy ▸ Delete all review data removes them all; Settings ▸ References clears the downloads. The command-line tools write their own files on their own account, outside Referee's control. Referee never modifies your PDF. It needs no special permissions (no Accessibility, Screen Recording or Full Disk Access).
 
 ## Troubleshooting
 
@@ -187,7 +228,8 @@ The first launch with the new signature asks one last time; later rebuilds keep 
 
 - Start the Ollama app, or run `ollama serve` in Terminal. Check it with `curl http://127.0.0.1:11434/api/version` (it answers with a version number).
 - "No model": `ollama pull gemma4:e4b`, then choose the model in Settings ▸ Providers ▸ Ollama.
-- The toolbar's indicator does not test whether Ollama is running (that would cost a request each time); it keeps showing "Local · gemma4:e4b", and the review then stops with a banner that says why. Start Ollama and run the review again (**Retry** on the banner, or ⌘R).
+- The toolbar checks whether Ollama is running when you choose it, when you come back to the app and when you open the destination menu: if it is not, the indicator turns orange and reads "Ollama is not running". After starting Ollama, press **Check Again** in the menu (or switch to another app and back). If a review was already under way, the banner says why it stopped; run it again with **Retry** on the banner or ⌘R.
+- If Ollama was not running when you first started Referee, nothing was chosen as the default. Starting it is enough: the next window you open, or your next return to the app, makes it the default.
 - The first request after starting Ollama loads the model and can take a minute.
 
 ### Other messages
@@ -196,11 +238,12 @@ The first launch with the new signature asks one last time; later rebuilds keep 
 - **"This PDF is protected"**: the text is readable, so reviews send the text, not the file.
 - **A CLI shows red: "… does not list the option …"**: the installed version lacks a safety option Referee requires. Update the tool (the install commands above install the latest version).
 - **"Remote providers are blocked by Local only"**: Settings ▸ Privacy ▸ Local only is on.
-- **A citation card says "No match found"**: Crossref and OpenAlex do not know the reference (common for working papers and books). Search Google Scholar is one click away on the card.
+- **A citation card says "No match in Crossref or OpenAlex."**: neither service knows the reference (common for working papers and books). Search Google Scholar is one click away on the card.
+- **A comment reads "Model not recorded"**: it was written by a review that an older version of Referee did not see to its end, so the review's record is missing. The comment itself is fine.
 
 ## Checks that need your accounts
 
-These were **not** run while building Referee, because each needs your accounts or costs money. Everything else was tested: more than 980 automated tests, the app's own screenshots of every window state, and complete reviews with two local Ollama models. No paid API was ever called. The only prompts sent through a subscription were the ones plan §11.6 allows, through Claude Code and through Codex: the test prompt "Reply with exactly: OK" twice each (while the command-line support was built, and at the end; `docs/contract-notes/wave3.md` has the last results), and one run each of an experiment that handed them the invented four-page fixture paper, to learn whether they can read the PDF itself (they can).
+These were **not** run while building Referee, because each needs your accounts or costs money. Everything else was tested: more than 1,100 automated tests, the app's own screenshots of every window state, and complete reviews with two local Ollama models. No paid API was ever called. The only prompts sent through a subscription were the ones plan §11.6 allows, through Claude Code and through Codex: the test prompt "Reply with exactly: OK" twice each (while the command-line support was built, and at the end of the build's third wave; `docs/contract-notes/wave3.md` has the results), and one run each of an experiment that handed them the invented four-page fixture paper, to learn whether they can read the PDF itself (they can).
 
 Use a non-confidential PDF for each, for example `Fixtures/pdf/ay_round_nolinks.pdf` from this folder (an invented four-page paper) or a published paper of your own:
 
@@ -213,7 +256,7 @@ Use a non-confidential PDF for each, for example `Fixtures/pdf/ay_round_nolinks.
 - [ ] **Antigravity** and **Grok Build**, if you install them: Send Test Prompt first. Both are experimental and were never run against the real programs; expect the first try to fail with a reason, and tell whoever maintains the app what it said.
 - [ ] **The signing certificate** of the Keychain section, if you use it: rebuild twice and confirm that the second rebuild does not ask.
 
-For each review, check that comments arrive, that most of them are tied to the right passage (highlighted in the PDF), and that the report generates. The command-line version gives a one-line summary per run, for example `"$(swift build --show-bin-path)"/referee-cli review Fixtures/pdf/ay_round_nolinks.pdf --provider anthropic-api` with the key in `REFEREE_KEY_ANTHROPIC_API` (provider names: `anthropic-api`, `openai-api`, `gemini-api`, `xai-api`, `claude-cli`, `codex-cli`, `antigravity-cli`, `grok-cli`, `ollama`; build it first with `scripts/build.sh`).
+For each review, check that comments arrive, that most of them are tied to the right passage (highlighted in the PDF), that each comment names the provider and the model (for the API providers and Claude Code, the model the provider reported), and that the report generates. The command-line version gives a one-line summary per run, ending with the model the provider reported, for example `"$(swift build --show-bin-path)"/referee-cli review Fixtures/pdf/ay_round_nolinks.pdf --provider anthropic-api` with the key in `REFEREE_KEY_ANTHROPIC_API` (provider names: `anthropic-api`, `openai-api`, `gemini-api`, `xai-api`, `claude-cli`, `codex-cli`, `antigravity-cli`, `grok-cli`, `ollama`; build it first with `scripts/build.sh`).
 
 ## Testing the text cleaning on journal-system PDFs
 
@@ -232,7 +275,7 @@ If line numbers or stamps survive in the cleaned text, or real text disappears, 
 
 ## For developers
 
-`plan.md` is the single source of truth for the design; `docs/contract-notes/` has one notes file per step of the build (`wave3.md` is the last). The targets and what each may import are in plan §2.1, the shared contracts in `Sources/RefereeCore` (plan Appendix A), and the public surface of every other target in plan §11.3.
+`plan.md` is the single source of truth for the design; `docs/contract-notes/` has one notes file per step of the build (`step5c.md` is the last). The targets and what each may import are in plan §2.1, the shared contracts in `Sources/RefereeCore` (plan Appendix A), and the public surface of every other target in plan §11.3. `docs/design-review.md` is the design review that step 5 implemented.
 
 ### Commands
 
@@ -253,9 +296,9 @@ Run them from the repository root. These are the only commands used in this proj
 
 `make build`, `make test`, `make run`, `make app`, `make snapshots`, `make e2e` and `make fixtures` call the same scripts.
 
-- `snapshots.sh` makes the app draw each window state off screen and capture its own window (no Screen Recording permission needed; a corner of the window shows at the edge of the screen while a scene runs). It writes one PNG per scene and a line per scene in `manifest.jsonl`. Three scenes, `check-document-loaded`, `check-citation-click` and `check-triage-keys`, check that the panes are connected rather than how they look.
-- `referee-cli` runs the app's pipeline without the UI (plan §10.2): `providers`, `dump-raw`, `extract`, `anchor`, `citations`, `plan`, `review`, `ask`. `referee-cli review Fixtures/pdf/ay_round_nolinks.pdf --provider mock` needs no set-up. It uses a temporary data folder unless given `--home`, and keys from `REFEREE_KEY_*` variables only unless given `--use-keychain`.
-- `e2e-ollama.sh` reviews a fixture with a local Ollama model and asks one question about it, at no cost.
+- `snapshots.sh` makes the app draw each window state off screen and capture its own window (no Screen Recording permission needed; a corner of the window shows at the edge of the screen while a scene runs). It writes one PNG per scene and a line per scene in `manifest.jsonl`. Three scenes, `check-document-loaded`, `check-citation-click` and `check-triage-keys`, check that the panes are connected rather than how they look; the `design-` scenes show the states of the design review. A scene can make the snapshot mode's fake reference lookups fail or find nothing for chosen entries (`REFEREE_SNAPSHOT_LOOKUPS`, plan §10.6); nothing in the snapshot mode makes a request or starts a process.
+- `referee-cli` runs the app's pipeline without the UI (plan §10.2): `providers`, `dump-raw`, `extract`, `anchor`, `citations`, `plan`, `review`, `ask`. `referee-cli review Fixtures/pdf/ay_round_nolinks.pdf --provider mock` needs no set-up; its last line is a `SUMMARY` that ends with `model=`, the model the provider reported (`-` when it named none). It uses a temporary data folder unless given `--home`, and keys from `REFEREE_KEY_*` variables only unless given `--use-keychain`.
+- `e2e-ollama.sh` reviews a fixture with a local Ollama model and asks one question about it, at no cost; its last line names the model Ollama reported.
 
 ### Rules that keep builds and tests reliable
 
@@ -270,7 +313,7 @@ Run them from the repository root. These are the only commands used in this proj
 ```text
 Package.swift   Makefile   README.md   plan.md
 scripts/        the commands above, and make-icon.sh (app icon; called by bundle.sh)
-docs/           plan-review.md, prototypes/, contract-notes/ (one notes file per step of the build)
+docs/           plan-review.md, design-review.md, prototypes/, contract-notes/ (one notes file per step of the build)
 Sources/        one folder per target (plan §2.1)
 Tests/          one folder per test target
 Fixtures/       synthetic manuscripts (LaTeX sources, PDFs, raw dumps), model outputs for the mock, sample sessions;

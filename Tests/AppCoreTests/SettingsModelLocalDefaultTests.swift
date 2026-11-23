@@ -42,7 +42,7 @@ private final class LocalDefaultProvider: LLMProvider, @unchecked Sendable {
     }
 }
 
-/// Step 5c, the coordinator's decision on the Shell's contract problem 3 of step 5b: Ollama ships switched on with no
+/// Step 5c, the coordinator's decision on the Shell's contract problem 2 of step 5b: Ollama ships switched on with no
 /// review default, so D5's "switching it on makes it the default" never runs for it when it was not running at the first
 /// launch. Whenever no review default is set and a local provider that is switched on reports ready, it becomes the
 /// review default, once, when a window opens or the app becomes active. Never a remote provider.

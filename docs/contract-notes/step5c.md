@@ -1,0 +1,140 @@
+# Step 5c — Integration of step 5b
+
+Notes of the step 5c integrator, alone on `main`: the merge of the Reader, Sidebar and Shell branches of step 5b, the coordinator's decisions on their contract problems, the flaky test, and the docs pass. Read by the coordinator and by the user. Every plan change named here has a row in Appendix G.8 (its second table, "Step 5c merged …"). `s5/brand` and `s5/venue` were not merged: two other agents are still working on them, and a later pass merges them.
+
+## Merge
+
+`s5/reader` (`4c5daac`), `s5/sidebar` (`be3dc9d`) and `s5/shell` (`c192ad3`) were merged into `main` with `git merge --no-ff`, in that order: `9d07cce`, `9cf4778`, `00450ec`. No conflict: the three branches touched disjoint paths, the Shell's two authorised exceptions included (one `case` line of `CommonSurfaceCheck.swift`, and `useCustomProviders()` / `usesCustomProviders` in AppCore with their test file). `scripts/build.sh` after each merge: exit 0, no warning (`Build complete! (4.52s)`, `(5.08s)`, `(5.54s)`). The full `scripts/test.sh` after the last: `test.sh: OK (1086 tests)`, at a load average of 18.
+
+## The coordinator's decisions, as applied
+
+Each is one commit with its code, tests and plan text; each is additive, with defaults.
+
+| # | Decision | What was done | Commit |
+| --- | --- | --- | --- |
+| a | A failing resolver (Reader 2) | `FakeResolver(answers:)` answers chosen entries `.notFound` or `.failed(reason:)`, shaped as the real resolver shapes them (`FakeResolver.Answer`). `SnapshotSupport.resolver(lookups:)` builds the snapshot graph's resolver from `REFEREE_SNAPSHOT_LOOKUPS` ("failed=<text>;notFound=<text>", each matched in the printed reference, ignoring case; the first item that matches wins; a failed lookup gives "Crossref is busy; try again in a minute."). `LiveDependencies` reads the variable under `REFEREE_SNAPSHOT=1` only. A scene sets it through the new `SnapshotScene.environment`, which the runner adds under its three keys (`REFEREE_HOME`, `REFEREE_SNAPSHOT`, `REFEREE_NO_KEYCHAIN`), which win. `design-citation-states` now looks up the working paper and the book through the model, as a click in the References list does: the overlay shows the not-found card at the top of the PDF; under it the scene draws the failed lookup's card from the model's own `CitationLookup`, kept when the second lookup replaced it (the overlay shows one card at a time), and the unmatched "[14]" mention's. Its `verify` checks what the model holds: `.failed` with the reason, `.notFound`, nothing else looked up. Still no request and no process. Tests: `FakesTests` (two), `IntegrationReviewTests.theSnapshotGraphFailsTheLookupsASceneChooses`, `CommonSnapshotRunnerTests.aScenesEnvironmentReachesItsGraphButNotTheThreeKeysOfTheMode` | `91a41c6` |
+| b | Registered providers (Sidebar 1) | `ReviewSessionModel.registeredProviders`: every registered provider's descriptor, in the registry's order, on or off, whatever Local only says; nothing is asked. The sidebar's labels use it, and `SidebarSourceNames.knownProviders` (the nine names) is gone; the destination menu's "Sent so far" names providers from it too. Tests: `ReviewSessionModelProviderTests.everyRegisteredProviderIsListedWhetherItIsOnOrNot`, `SidebarSourceTests.aProviderThatIsNoLongerOnIsStillNamed` (on the snapshot registry, Claude Code off) | `1733d05` |
+| c | A running review's label (Sidebar 2) | The model records every run when it starts: its `.started` record joins `session.runs` at once (status `.running`), and when the run ends that record is replaced by the `.finished` one (without one, by the started record marked cancelled or failed), for every kind of run. The comments of a review under way therefore name their own run's provider and model, also after the document is moved to another provider during the run; the drafts name the run under way. A session saved mid-run (a quit or a crash) reads as usual; when the document is opened again, a run still `.running` becomes `.failed("The app quit before this run ended.")`. "Sent so far" lists a run once it has ended, when its record says whether the PDF or the text went (unchanged from before). Tests: `ReviewSessionModelRunRecordTests` (three: a review held open by a gate, its run recorded and kept while the document changes provider; a session saved by the autosave mid-run and opened by a second model; every kind recorded once), `SidebarSourceTests.theCommentsOfAReviewUnderWayKeepItsProviderWhenTheDocumentChangesProvider` (through the model, a review held open), `SessionRecoveryTests.aSessionSavedWhileARunWasUnderWayReadsBack` (the file store) | `76dafe0` |
+| d | The model the provider reports (Sidebar 3, the user's request) | `LLMEvent.model(String)`; `RunRecord.reportedModel` and `ThreadMessage.reportedModel` (optional, decoded as absent from older files). The adapters send `.model` where the provider's own stream names the model (next section), once unless the name changes. The engine's `RunBook` keeps the last one of the run's requests and writes it into the `.finished` record and into a reply. The sidebar's label prefers it, by its display name where the provider's cached list has one: a run that asked Claude Code for "default" (or "sonnet") and was told "claude-sonnet-4-6" reads "Claude Code · claude-sonnet-4-6"; the tooltip names both ("… model claude-sonnet-4-6 (asked for default)"). `referee-cli review` ends its SUMMARY with `model=` (`-` when none was named) and its JSON summary has `"model"`; `e2e-ollama.sh` prints it on its last line. The fixture of `design-two-models` gives its Claude Code run `"reportedModel": "claude-sonnet-4-6"`, so the scene shows the label (`1d739e3`). A new enum case is not a field with a default: the four exhaustive switches over `LLMEvent` gained a branch (`RetryPolicy`, `RunBook`, `SettingsModel.sendTestPrompt`, `LLMKitCancellationTests`). Tests: `LLMKitStreamParsingTests` (each recorded stream's model, and OpenAI and Gemini variants), the live Ollama test, `CLIStreamParsingTests` (Claude Code's documented and recorded init lines; none for Codex, Antigravity, Grok Build), `ReportedModelTests` (engine), `SessionFormatTests`, `SidebarSourceTests`, `IntegrationCLITests` | `5b1f7f5`, `1d739e3` |
+| e | A two-provider test | `ReviewSessionModelTwoProvidersTests`: a review with provider A ("mock", model x), the paper moved to provider B ("mock-remote", model y; remote, so the consent card comes first and nothing is sent before the answer), a second review. All five comments stay, the decisions on the first two too; each comment's run names its provider, the model asked for and the model reported; the second review was given the first one's comments, and its comment on the same passage is folded (`similarTo`) and kept; back in Custom nothing goes either. A second test: in Custom with reviews on this Mac and a remote chat default, the reviews run without a card, the first question asks for consent before anything is sent or added (no "ask" call, no conversation), later questions do not, and a second review still goes to this Mac. The AppCore tests gained a staged engine (its reviews differ from call to call and can be held open by a gate) in `ModelTestSupport.swift`. The engine's own folding against earlier comments is `ReviewJobTests`'s | `9f6f9a8` |
+| f | First-run default (Shell 2 of the Shell's notes; the brief's "Shell 3") | `SettingsModel.adoptReadyLocalProviderIfNeeded()`: while no review default is set, the first provider of the registry that is on, local and ready (its `availability()`, free: Ollama's `/api/version` on loopback) becomes the review default, with its chosen model or the first it lists (`/api/tags`, also local); a remote provider is never asked or chosen. Once per run of the app, and not after the referee cleared the review default during the run (choosing None, or switching its provider off). The window manager calls it when it opens a window (welcome or review), the app delegate when the app becomes active; the windows follow through the settings notification. Tests: `SettingsModelLocalDefaultTests` (three: an Ollama started after the first launch becomes the default once, a remote provider never asked; a chosen model kept and an existing default never replaced; a remote provider, one that is off, and one that lists no model are not chosen) | `5945e4a` |
+| g | Custom in the toolbar indicator | When the three jobs go to different places, the indicator reads "Custom" (`arrow.triangle.branch`) over "Review: this Mac · Chat: Claude Code · Report: Anthropic", cut at its end (`detailTruncatesAtEnd`), orange when any job leaves this Mac, else green. A place is "this Mac" for a local provider, a CLI's short name, another remote provider's vendor, "blocked" for a remote one while Local only is on, "not set up" for a job without a provider (which counts as no place of its own: a caller that gives no chat or report provider reads as one destination). Jobs that all go to one place read as that destination, so D4's suffix remains only beside "No AI provider", "Choose AI provider", "Remote blocked" and a local provider that cannot run. The menu's lines name a provider by its display name with at most one bracket (`ShellDestination.nameWithPlace`): "Chat questions go to Claude Code (subscription).", "The report is written by Anthropic API (api.anthropic.com)." Tests: `ShellDestinationTests` (four new or rewritten), the scenes `design-review-split-destinations` and `design-review-custom-menu` | `b4d4290` |
+| h | The plan | A.9 and §11.3 print `useCustomProviders()`, `usesCustomProviders`, `TriageIntent.nextPending`, and each member above (`registeredProviders`, `adoptReadyLocalProviderIfNeeded()`; `FakeResolver.Answer`, `init(answers:)`, `SnapshotSupport.resolver(lookups:)`, `lookupsVariable`, `failedLookupReason`, `SnapshotScene.environment`; the printed `Composition`); A.4 and A.5 print the reported model. `CommonSurfaceCheck.swift` names them all | `627c68d` and each commit above |
+
+## The model a provider reports
+
+| Provider | Where its own stream names the model | Verified on |
+| --- | --- | --- |
+| Anthropic API | `message_start`'s `message.model` | Appendix D.1 ("m") |
+| OpenAI API | the response object's `model`, in `response.created` and `response.in_progress`, again in `response.completed` and `response.incomplete` | D.2's sample is trimmed and has no `model`, so it reports none; a variant adding `"model":"gpt-x-2026-10-01"` to the response object reports it once. The field is the API reference's Response object, not re-fetched at this step |
+| Gemini API | `interaction.created`'s `interaction.model`, or a `modelVersion` (the field of `generateContent` responses, which this adapter does not use) when an event carries one | D.3 ("m"); a variant with `modelVersion` |
+| xAI API | every chunk's `model`, sent once | D.2's xAI sample ("m"); a variant whose last chunk names another model (sent again, the last counts) |
+| Ollama | every line's `model`, sent once | D.4 ("gemma:2b"); live: the one 16-token prompt of `LLMKitLiveOllamaTests` to the local server reported the model it asked for, and `e2e-ollama.sh` reported gemma4:e4b (Acceptance) |
+| Claude Code | the `system`/`init` line's `model` (a `stream_event` `message_start` naming the same model sends nothing more) | D.5 ("m"); the init line WP5's smoke run recorded (`docs/contract-notes/wp5-cliproviders.md`), asked for no model, which names "claude-opus-5-5" |
+| Codex | none: `thread.started`, `turn.started`, the items and `turn.completed` name no model | D.6, and WP5's smoke run's description of the real output |
+| Antigravity | none | D.7 |
+| Grok Build | none | D.8 |
+| the mocks | none (`referee-cli review --provider mock` ends `model=-`) | `IntegrationCLITests` |
+
+No prompt was sent to anything but the local Ollama server.
+
+## The flaky test
+
+`LLMKitCancellationTests.cancellingTheConsumerCancelsTheRequestAndEndsTheStream` (it waits up to 8 s for the first two deltas of a slow stub stream) passed in the full run after the merge (load 18) and in the run made for it with no other build going (load 19–25, nothing compiling): `test.sh: OK (1112 tests)`. It reported 7.85 s there, but Swift Testing's per-test time includes the time a test waits for its turn before its body runs: the median test of that run reported 6.3 s, and `cancellingBeforeTheFirstByteCancelsTheRequest`, whose first wait is 5 s, reported 7.6 s. The 8 s wait itself was not close. As instructed, the test was left unchanged. If it fails again under a load like step 5b's (52, three agents building), the fix that keeps what it checks: wait up to a minute for the first deltas (the condition unchanged), make the stub stream long enough that it cannot end by itself during any wait, and check promptness as "no more than the delta already on its way reaches the consumer after the cancel" rather than "within 3 s".
+
+## Docs pass
+
+- **README.md**, for the user: the first run (Set Up AI Provider…, Ollama started later becoming the default); working on a paper (the navigator stepping aside in a narrow window, the References filter, the selection bar stepping aside and "Copied", the citation card's new order and buttons, find dimming the highlights, the viewer's toolbar, the hidden sidebar coming back, the toolbar's progress and Stop); reviewing (compact cards, "Writing… · n received", the provider and model label with the reported model, the keys with P and Esc in a text field, the filters and Kind ▾, "All n decided" and Write Report, "p. 4 · page only" and ≈); discussions (Changes, Accept Revision, Discard, Earlier Versions); own comments; questions and Add as Comment; the report (Venue and notes, Copy Text, the two journal copies, the style check in words, spelling); Review Again and switching providers; Settings ▸ Providers (switching on, the default bar with models, Send Test Prompt's notes, Switch On); choosing the provider and model for a paper (Custom, the menu, the indicator's states); the consent card's facts and buttons; privacy (Sent so far, the run records, the free Ollama check); troubleshooting (Ollama's status now shown, the citation card's wording, "Model not recorded"); the checks with the user's accounts; the developers' commands (`model=`, `REFEREE_SNAPSHOT_LOOKUPS`).
+- **plan.md**: §9 (an opening paragraph; §9.1 menus, welcome window, Dock badge, settings title; §9.2 toolbar, progress, Review Again, the narrow window, the sidebar coming back; §9.3 rewritten: header, compact and full cards, the source label, the states table, VoiceOver, Earlier Versions; §9.4 P, Esc in a text field, the cursor in Comment, scrolling to the top; §9.5 the selection bar, Chat, the citation card, References, find, the viewer; §9.6 Providers; §9.7 rewritten: the indicator's table with Custom and the local status, the menu, the consent card; §9.8 the Report tab; §9.9 the states; §9.10 the tag and the kind badge); §7.3, §7.6, §7.7, §8.6 and R14 for the Reader's changes; §10.1 the step 5 scenes; and the decisions' own sections (§5.3–§5.6, §6.6, §10.2–§10.6, §11.3, A.4, A.5, A.9, G.8).
+
+## Scenes
+
+`scripts/snapshots.sh` runs 57 scenes: the 46 of step 5a and eleven of step 5b (Reader four, Sidebar two, Shell five). What each shows now, at 1,280 × 800 in light unless said; every one passes in light, `--dark` and `--size 1000x640` (Acceptance). At 1,000 × 640 every review window has no navigator (D19) and the toolbar never overflows.
+
+- `placeholder`: `ay_round_nolinks.pdf`, page 1 from its top, "Local" over "mock", "No comments yet" with the document's facts.
+- `welcome`: the mark, Open PDF…, the drop hint, two recent reviews with only "3 pending" in orange, the "AI: Local · mock" line as a borderless button.
+- `review-empty`: "Local" over "mock", Review filled (D30), "No comments yet", "4 pages · 9 references · no margin line numbers", Run Review, Add Comment; at 1,000 × 640 no navigator, the PDF about 620 pt wide.
+- `consent`: "Mock (remote)" over "mock · text only"; the card's facts (What, To, Requests, Kept, the warning row), "Don't Send", "Send to Mock"; the window dimmed.
+- `banner-error`: "Review stopped: The provider is overloaded." with Retry; two comments kept, each "Mock (fail) · mock"; Review Again.
+- `settings-providers`: the four groups, each provider's model under its name, "Experimental" tags, Antigravity's Send Test Prompt disabled with the CLI note, the default bar ("Mock · mock", "Same as Review").
+- `settings-prompts`, `settings-privacy`, `settings-references`, `settings-advanced`: as at step 5b.
+- `settings-api-key`: Anthropic API "Ready · Key set", "Switch on Anthropic API to use it." with Switch On, the API-key note.
+- `review-destination-menu`: `sample.json` on `ay_nolinks.pdf`; the caption, Custom with its three lines, the providers with Mock (remote) checked and its models, the facts grid, "Sent so far: Mock: 2 times, last 18 Nov 2026 at …", Local only, Provider Settings…, Privacy Settings…; seven cards behind it, each with its label.
+- `review-running`: a spinner, "Reading the paper · 0:02", Stop; two cards and a draft under "Writing… · 2 received".
+- `design-welcome-first-run`: "Set Up AI Provider…" and its sentence under the drop hint, no bottom line.
+- `design-welcome-many`: titles on two lines, only the pending counts orange, a missing file marked "File not found" (below the fold).
+- `design-review-no-provider`: "No AI provider", Review disabled, "Set Up AI Provider…" and Add Comment in the sidebar.
+- `design-review-long-names`: "Antigravity" over "example-extended…only · experimental"; at 1,000 × 640 Review, Report and the sidebar button in the toolbar.
+- `design-review-parts`: an empty circular gauge, "Reading part 1 of 3 · 0:02", Stop; two cards and a draft.
+- `design-consent-subscription-pdf`: "Claude Code" over "default"; What "The PDF file · 165 KB · 4 pages", To "Anthropic, through Claude Code", Kept, "Send to Anthropic".
+- `design-banner-provider-down`: the banner with Retry; "Local" over "gemma4:e4b", green (the static Ollama row reports ready).
+- `design-settings-first-run`: the green start box, the pane on Ollama, "None" and "Same as Review" in the default bar.
+- `design-review-split-destinations` (step 5c): "Custom" over "Review: this Mac · Chat: Claude Code · …", orange, cut at its end; the tooltip has the whole line.
+- `design-review-provider-offline`: an orange triangle, "Local" over "Ollama is not running"; the menu with Mock (offline) checked, its reason in orange and Check Again.
+- `design-review-choose-model`: "Local" over "phi4"; Ollama checked with its models, phi4 checked, "More in Settings…".
+- `design-review-custom-menu` (step 5c): "Custom" over "Review: this Mac · Chat: Claude Code · …"; the menu with Custom checked and its three lines, Anthropic API's models, and "Chat questions go to Claude Code (subscription)." and "The report is written by Anthropic API (api.anthropic.com)."
+- `design-review-sidebar-returns`: the sidebar, hidden in `prepare`, shown again with the "New comment" card.
+- `reader-highlights`, `reader-find`, `reader-ruler`: as before (`reader-find` on a paper without comments).
+- `reader-selection`: the bar over "As shown by Acemoglu et al. [2011],".
+- `reader-citation`: the record first, "Open access" green on a tint, the printed reference in two lines, Open PDF and Open in Browser, then Search Google Scholar and Show in References.
+- `reader-references`: the filter field, "9 references", rows headed "Acemoglu et al. (2011)" …; Banerjee's card at the top.
+- `reference-viewer`: 900 × 700; the toolbar with zoom, Fit Width, "2 pages", Find, Open in Preview; ⌘+ and ⌘0 still work (`verify`).
+- `design-citation-states` (step 5c): the overlay's card "Osborne and Rubinstein (1994)", "No match in Crossref or OpenAlex."; under it the scene's "Kogan (2020)", "Lookup failed: Crossref is busy; try again in a minute." with Retry, and "[14]", "No entry of the reference list matches this citation."; each with Search Google Scholar (and Show in References for an entry).
+- `design-find-no-matches`: the find bar, "No matches".
+- `design-selection-asked`: the Chat tab with the conversation, the purple passage, no bar.
+- `design-selection-copied`: the bar reading "✓ Copied"; `verify` sees it step aside.
+- `design-references-filter`: "learning" typed, "4 of 9 references", four rows.
+- `design-find-with-comments`: "Table 2" found, the comment highlights at 40%.
+- `sidebar-pending`: the second card in full, five compact, each "Mock · mock".
+- `sidebar-streaming`: two compact cards and a draft under "Writing… · 2 received", each "Mock (stall) · mock" (the run under way, recorded at its start).
+- `sidebar-states`: one chip row ending "Kind ▾"; "≈ p. 1, lines 5–7"; the folded similar card with both sources; the rejected line; "p. 3 · page only"; the unanchored card with "verify" and "Passage not found".
+- `sidebar-discussion`: comment A in full, the thread with the answer's label, then the proposal with "Changes: kind Major → Minor · title · comment · suggestion", Accept Revision, Discard, then "Reply…".
+- `sidebar-editing`: comment B in the editor, the cursor in Comment, the others compact.
+- `sidebar-chat`: the conversation, the answer with "Mock · mock", Add as Comment ▾, Copy; no selection bar over the passage.
+- `sidebar-report`: "Venue and notes" folded, the summary row with the recommendation, Copy Text, Export, Revise Voice, Regenerate, Versions; the editor about 508 pt; "Style check 3" folded.
+- `design-triage-25`: the tenth comment in full at the top, compact cards below, one chip row, MINOR brown.
+- `design-triage-done`: "All 25 decided" and Write Report.
+- `design-compose-from-selection`: only "+" and "⋯" above the new comment's card, "Title (optional)", the cursor in Comment, no bar over the passage.
+- `design-reply-failed`: the messages, the proposal, then the red failed-reply line.
+- `design-report-empty`: "Venue and notes" open, "Approve at least one comment, then generate the report.", Show Pending Comments.
+- `design-chat-empty`: "No questions yet" and its sentence.
+- `design-report-streaming`: the report half written by `mock-slow`, "Writing the report · 0:02", Stop, the editor read-only.
+- `design-two-models` (step 5c): Claude Code's comments "Claude Code · claude-sonnet-4-6" (asked for "sonnet", reported), Codex's "Codex · default model", interleaved; the folded card "Similar to: The rollout is tre… (Claude Code · claude-sonnet-4-6)"; the referee's own comment with none.
+- `check-document-loaded`, `check-citation-click`, `check-triage-keys`: pass as before.
+
+## Contract problems
+
+None open. The six problems of the three step 5b notes are decided above (Reader 1 was solved inside step 5b by the Shell's `ShellSidebarFollower`; Shell 1 and 3 are recorded in the plan, Shell 2 is decision f).
+
+## Seen, not changed
+
+- In the destination menu a CLI's row reads "claude · default" and "codex · default": the descriptor's `destination` is the binary's name. The consent card and the indicator no longer show it (D12); this row still does. A wording question for the design pass.
+- `docs/design-review.md` (step 4) still says that `design-citation-states` draws its cards because the snapshot resolver always resolves; that review is a record of step 4 and was left as it was.
+- In Custom at 260 pt the indicator's second line usually stops after the chat destination ("Review: this Mac · Chat: Claude Code · …"), as the coordinator chose (cut at its end); the tooltip has the whole line.
+- `docs/contract-notes/` of earlier steps quote the SUMMARY line without `model=`; they are records of their steps.
+
+## Manual checks for the user
+
+What no test or picture can show, gathered from the three step 5b notes and this step; for a pass in the app, ideally with a local model:
+
+1. **Keys and focus:** select a comment, D, type, ⌘↩, Esc, J: the next comment is selected. E (and N on a selected passage): typing goes into Comment; ⌘↩ saves, Esc cancels, and J and A work at once. Esc in the reply, follow-up, "Ask about the paper…" and Ask AI fields gives the keyboard back. P selects the next undecided comment and wraps; J, K, A, R scroll the new card to the top; a click on a card does not.
+2. **Cards:** ⋯ ▸ Show Full Text of Every Comment expands every card, survives a change of tab, is off in a new window. Earlier Versions restores an old text. The Kind menu checks the kind in force; choosing it again shows all.
+3. **Selection bar:** after Comment or Ask AI the bar goes and the passage stays selected; Cancel brings it back; Copy says "Copied", then the bar goes until another selection; with the sidebar hidden (⌥⌘0), Comment and Ask AI bring it back.
+4. **Citations and References:** a real failed lookup (network off) shows Retry; Open PDF opens the viewer, whose toolbar zooms, finds and opens Preview; Copy DOI says "Copied"; the References filter narrows as you type, Esc clears it, "Show in References" clears a filter that hides its entry. ⌘F dims the comment highlights; closing the find bar brings them back.
+5. **Report:** Copy Text and the two journal copies say "Copied" and paste plain text without the recommendation in the authors' copy; misspelt words are underlined and never corrected; "Venue and notes" folds after the first Generate.
+6. **Destination menu:** ↑ ↓ (the first press lands on what is chosen), → ←, Return; a model row sets the paper's model; "Choose in Settings…" and "More in Settings…" open Settings on that provider; Custom moves the check and sends a question to the chat default (asking first if it is remote); "Edit in Settings…" opens Settings ▸ Providers.
+7. **Custom indicator:** with different defaults for review, chat and report, the toolbar reads "Custom" over the three; hover for the whole line.
+8. **Review Again:** with AI comments and a remote provider, Review Again and ⌘R show the sheet; Cancel does nothing; a local provider starts at once. A second review by another provider keeps every comment, each with its own label.
+9. **Model labels:** a review through Claude Code (or an API provider) names the model the provider reported; Codex names the model you chose or "default model"; hover shows what was asked for.
+10. **Ollama's status:** quit Ollama with a paper open on it: coming back to Referee, or opening the menu, gives "Ollama is not running"; start it and press Check Again: green.
+11. **First run:** with a fresh data folder and Ollama stopped, the welcome window shows Set Up AI Provider…; start Ollama, then open a paper or switch back to Referee: the indicator reads "Local" over the model, and Settings shows Ollama as the review default.
+12. **Settings:** Switch On after saving a key; Send Test Prompt disabled with its tooltip for a provider that is not ready; the settings window's title follows its tab; a default bar submenu sets provider and model.
+13. **Welcome window:** the recent list's context menu; Show in Finder disabled for a missing file; Delete Review Data… with that paper's window open (it closes first); a click on a missing file opens the open panel.
+14. **Window:** resize across 1,100 and 1,240 points (the navigator hides and returns; ⌃⌘S or the toolbar button ends the rule); start a long review and switch to another app: the Dock bounces once and shows the count, "✓" after a report, cleared on return; the progress time ticks each second, Stop and ⌘. stop the job.
+15. **Consent card:** Esc answers "Don't Send"; Return does not send; VoiceOver starts on the title.
+16. **VoiceOver:** a card reads "Major comment, pending, page 1, lines 13 to 14: …" with the actions Approve, Reject, Discuss, Edit; bubbles "You: …" and "Assistant: …"; a citation card "Citation …".
+17. **A quit during a review:** quit Referee while a local review runs, reopen the paper: the comments that had arrived are there, with their label.
+
+## Acceptance
+
+To be filled in after the final run.

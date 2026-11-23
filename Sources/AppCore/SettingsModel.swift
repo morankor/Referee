@@ -201,7 +201,7 @@ public final class SettingsModel {
     /// nothing (Ollama: `/api/version` and `/api/tags` on this Mac, no key read); a remote provider is never asked and
     /// never chosen. At most once per run of the app, and not after the referee cleared the review default during this
     /// run. The Shell calls it when a window opens and when the app becomes active, so that an Ollama started after the
-    /// first launch becomes the default without a visit to Settings (the Shell's contract problem 3 of step 5b).
+    /// first launch becomes the default without a visit to Settings (the Shell's contract problem 2 of step 5b).
     public func adoptReadyLocalProviderIfNeeded() async {
         guard !localDefaultSettled, settings.defaults.review == nil else { return }
         let candidates = dependencies.providers.all.filter { provider in
