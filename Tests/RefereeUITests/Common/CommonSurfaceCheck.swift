@@ -377,7 +377,7 @@ private struct SurfaceBuilder: PaperTextBuilding {
     let _: any View = WelcomeView(recent: [SessionSummary](), open: { (_: URL?) in })
     let intent: TriageIntent? = TriageKeymap.intent(characters: "j", keyCode: 38, modifiers: NSEvent.ModifierFlags())
     switch intent {
-    case .next?, .previous?, .approve?, .reject?, .resetStatus?, .discuss?, .edit?, .reveal?, .newComment?, .setKind(_)?, .dismiss?, nil: break
+    case .next?, .previous?, .nextPending?, .approve?, .reject?, .resetStatus?, .discuss?, .edit?, .reveal?, .newComment?, .setKind(_)?, .dismiss?, nil: break
     }
     TriageKeymap.apply(.setKind(.strength), to: model)
     isEquatable(TriageIntent.self)

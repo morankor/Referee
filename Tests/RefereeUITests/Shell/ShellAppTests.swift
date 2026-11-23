@@ -28,9 +28,10 @@ import TestSupport
             ("File", "Open…", "o", .command), ("File", "Close", "w", .command), ("File", "Export Report…", "e", [.command, .shift]),
             ("Edit", "Find…", "f", .command), ("Edit", "Find Next", "g", .command), ("Edit", "Find Previous", "g", [.command, .shift]),
             ("Edit", "Undo", "z", .command), ("Edit", "Copy", "c", .command), ("Edit", "Select All", "a", .command),
-            ("Review", "Run Review", "r", .command), ("Review", "Cancel", ".", .command), ("Review", "Generate Report", "r", [.command, .shift]),
+            ("Review", "Run Review", "r", .command), ("Review", "Stop", ".", .command), ("Review", "Generate Report", "r", [.command, .shift]),
             ("Review", "Approve", "a", []), ("Review", "Reject", "r", []), ("Review", "Discuss", "d", []), ("Review", "Edit", "e", []),
-            ("Review", "Next Comment", "j", []), ("Review", "Previous Comment", "k", []), ("Review", "New Comment", "n", []),
+            ("Review", "Next Comment", "j", []), ("Review", "Previous Comment", "k", []), ("Review", "Next Pending Comment", "p", []),
+            ("Review", "New Comment", "n", []),
             ("View", "Comments", "1", .command), ("View", "Chat", "2", .command), ("View", "Report", "3", .command),
             ("View", "Hide Navigator", "s", [.command, .control]), ("View", "Hide Sidebar", "0", [.command, .option]),
             ("View", "Zoom In", "+", .command), ("View", "Zoom Out", "-", .command), ("View", "Fit Width", "0", .command),
@@ -40,6 +41,9 @@ import TestSupport
             #expect(found?.keyEquivalent == key, "\(menu) ▸ \(title)")
             #expect(found?.keyEquivalentModifierMask == modifiers, "\(menu) ▸ \(title)")
         }
+        let review = menus.main.items.first { $0.submenu?.title == "Review" }?.submenu?.items.map(\.title) ?? []
+        #expect(review.firstIndex(of: "Next Pending Comment") == review.firstIndex(of: "Previous Comment").map { $0 + 1 })   // D25: after it
+        #expect(!review.contains("Cancel"))                                                                                    // D9: "Stop"
         #expect(item(menus, "File", "Open Recent")?.submenu?.identifier == ShellMainMenu.openRecentIdentifier)
         #expect(item(menus, "File", "Delete Review Data…") != nil)
         #expect(item(menus, "Help", "Referee Help") != nil)

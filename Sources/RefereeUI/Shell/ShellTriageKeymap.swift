@@ -6,7 +6,7 @@ import AppCore
 // monitor of ShellReviewWindowController calls these two functions only when the review window is key and no text is
 // being edited; a scene of Wave 3 drives them with real key events.
 
-public enum TriageIntent: Equatable { case next, previous, approve, reject, resetStatus, discuss, edit, reveal, newComment, setKind(CommentKind), dismiss }
+public enum TriageIntent: Equatable { case next, previous, nextPending, approve, reject, resetStatus, discuss, edit, reveal, newComment, setKind(CommentKind), dismiss }
 
 public enum TriageKeymap {
     /// Return (and the keypad's Enter) and Esc by key code. Letters by the characters they type, so that they follow a
@@ -16,8 +16,9 @@ public enum TriageKeymap {
     /// (AZERTY), and on the keypad. Only plain keys: with Command, Control, Option or Shift held there is no intent
     /// (those go through the menu). Caps Lock and the keypad do not count as modifiers.
     ///
-    /// J next · K previous · A approve · R or X reject · U back to pending · D discuss · E edit · Return reveal ·
-    /// N new own comment · 1 2 3 4 major, minor, question, strength · Esc dismiss.
+    /// J next · K previous · P next pending, from the top again at the end (design review D25) · A approve · R or X
+    /// reject · U back to pending · D discuss · E edit · Return reveal · N new own comment · 1 2 3 4 major, minor,
+    /// question, strength · Esc dismiss.
     public static func intent(characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> TriageIntent? {
         let held = modifiers.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])
         guard held.isEmpty else { return nil }
@@ -42,6 +43,7 @@ public enum TriageKeymap {
         switch letter {
         case "j": return .next
         case "k": return .previous
+        case "p": return .nextPending
         case "a": return .approve
         case "r", "x": return .reject
         case "u": return .resetStatus
@@ -64,6 +66,8 @@ public enum TriageKeymap {
             model.selectNextComment(pendingOnly: false)
         case .previous:
             model.selectPreviousComment()
+        case .nextPending:
+            model.selectNextComment(pendingOnly: true)
         case .approve:
             if let id = model.selectedCommentID { model.setStatus(.approved, for: id) }
         case .reject:
@@ -98,5 +102,5 @@ public enum TriageKeymap {
                                                    83: .major, 84: .minor, 85: .question, 86: .strength]
 
     /// The triage letters at their places on a US keyboard (kVK_ANSI_J…), for layouts whose letters are not Latin.
-    static let usLetterKeys: [UInt16: String] = [38: "j", 40: "k", 0: "a", 15: "r", 7: "x", 32: "u", 2: "d", 14: "e", 45: "n"]
+    static let usLetterKeys: [UInt16: String] = [38: "j", 40: "k", 35: "p", 0: "a", 15: "r", 7: "x", 32: "u", 2: "d", 14: "e", 45: "n"]
 }

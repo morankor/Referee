@@ -21,7 +21,54 @@ struct ShellSetupHint: Equatable {
 /// Grouping, order and wording of the provider rows.
 enum ShellProviderRows {
     static let experimentalWarning = "Experimental — not yet verified against the real CLI on this machine"
-    static let testPromptNote = "sends 'Reply with exactly: OK'; uses a few tokens"
+    static let startWithLocal = "Start with a local model: Ollama keeps manuscripts on this Mac."
+    /// The provider Settings ▸ Providers opens on when no provider is switched on (design review D21).
+    static let localStart: ProviderID = "ollama"
+
+    /// What Send Test Prompt does and costs, by kind of provider (D21).
+    static func testPromptNote(for descriptor: ProviderDescriptor) -> String {
+        switch descriptor.authMode {
+        case .apiKey: return "Sends “Reply with exactly: OK” to \(descriptor.destination); costs a few tokens."
+        case .subscriptionCLI: return "Runs \(ShellDestination.shortName(descriptor)) once with “Reply with exactly: OK”; uses one message of your plan."
+        case .local: return "Sends “Reply with exactly: OK” to the model on this Mac; costs nothing."
+        case .none: return "Sends “Reply with exactly: OK” to the built-in stand-in."
+        }
+    }
+
+    /// Send Test Prompt can be pressed only for a provider that is ready (D21): for one that is not installed, not
+    /// signed in or not running it could only fail, and it would cost a message of a plan to learn so.
+    static func canSendTestPrompt(_ availability: ProviderAvailability?) -> Bool {
+        if case .ready? = availability { return true }
+        return false
+    }
+
+    /// The tooltip of a Send Test Prompt that cannot be pressed: "Needs setup: Antigravity is not installed".
+    static func testPromptHelp(_ availability: ProviderAvailability?) -> String? {
+        guard !canSendTestPrompt(availability) else { return nil }
+        let status = status(availability)
+        return status.detail.map { "\(status.headline): \($0)" } ?? status.headline
+    }
+
+    /// A key is stored but the provider is still off: its status says so, with a Switch On button (D21).
+    static func keyWaitsForSwitch(_ descriptor: ProviderDescriptor, storedSecrets: Set<String>, settings: ProviderSettings?) -> Bool {
+        guard let key = secretKey(for: descriptor) else { return false }
+        return storedSecrets.contains(key) && settings?.enabled != true
+    }
+
+    /// "Switch on Anthropic API to use it."
+    static func switchOnNote(_ descriptor: ProviderDescriptor) -> String { "Switch on \(descriptor.displayName) to use it." }
+
+    /// No registered provider is switched on (D21): the pane offers the local start and opens on Ollama.
+    static func noneSwitchedOn(_ providers: [ProviderDescriptor], settings: AppSettings) -> Bool {
+        !providers.contains { settings.providers[$0.id]?.enabled == true }
+    }
+
+    /// The provider the pane shows: the one chosen, else Ollama while nothing is switched on, else the first.
+    static func shownProvider(in ordered: [ProviderDescriptor], chosen: ProviderID?, settings: AppSettings) -> ProviderDescriptor? {
+        if let chosen, let provider = ordered.first(where: { $0.id == chosen }) { return provider }
+        if noneSwitchedOn(ordered, settings: settings), let local = ordered.first(where: { $0.id == localStart }) { return local }
+        return ordered.first
+    }
 
     /// The three groups of section 9.6, and the built-in stand-ins last (present only in tests and snapshots).
     enum Group: Int, CaseIterable, Identifiable {

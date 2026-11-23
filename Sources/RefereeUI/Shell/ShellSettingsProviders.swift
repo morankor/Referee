@@ -5,6 +5,9 @@ import AppCore
 
 /// Settings ▸ Providers (plan.md section 9.6): the providers in three groups on the left, each with its status light
 /// and enable switch; the chosen provider's settings on the right; the default provider of each job underneath.
+///
+/// Design review D21: with no provider switched on, a box above the list says where to start, and the pane opens on
+/// Ollama (kept as the choice, so that switching it on does not move the pane to another provider).
 struct ShellProvidersPane: View {
     let model: SettingsModel
     let navigation: ShellSettingsNavigation
@@ -12,12 +15,33 @@ struct ShellProvidersPane: View {
     var body: some View {
         let groups = ShellProviderRows.grouped(model.providers)
         let ordered = groups.flatMap(\.providers)
-        let selected = ordered.first { $0.id == navigation.provider } ?? ordered.first
+        let selected = ShellProviderRows.shownProvider(in: ordered, chosen: navigation.provider, settings: model.settings)
+        let noneOn = ShellProviderRows.noneSwitchedOn(ordered, settings: model.settings)
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                ShellProviderList(model: model, groups: groups,
-                                  selection: Binding(get: { selected?.id }, set: { navigation.provider = $0 }))
-                    .frame(width: 270)
+                VStack(spacing: 0) {
+                    if noneOn {
+                        Label(ShellProviderRows.startWithLocal, systemImage: "laptopcomputer")
+                            .labelStyle(ShellLeadingIconLabelStyle())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(Color.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                            .padding([.horizontal, .top], 8)
+                    }
+                    ShellProviderList(model: model, groups: groups,
+                                      selection: Binding(get: { selected?.id }, set: { navigation.provider = $0 }))
+                }
+                .frame(width: 270)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .onChange(of: noneOn, initial: true) { _, isNoneOn in
+                    // Ollama becomes the choice, so that switching it on does not move the pane to the first provider.
+                    if isNoneOn, navigation.provider == nil, ordered.contains(where: { $0.id == ShellProviderRows.localStart }) {
+                        navigation.provider = ShellProviderRows.localStart
+                    }
+                }
                 Divider()
                 if let selected {
                     ShellProviderDetail(model: model, descriptor: selected)
@@ -59,27 +83,34 @@ struct ShellProviderList: View {
     }
 }
 
-/// One provider in the list: status light, name, "Experimental" while unverified, and the enable switch.
+/// One provider in the list: status light, name, "Experimental" while unverified, the model chosen for it under the
+/// name ("Example Large", "CLI default"), and the enable switch.
 struct ShellProviderListRow: View {
     let model: SettingsModel
     let descriptor: ProviderDescriptor
 
     var body: some View {
         let status = ShellProviderRows.status(model.availability[descriptor.id])
-        let experimental = ShellProviderRows.showsExperimentalWarning(descriptor, settings: model.settings.providers[descriptor.id])
+        let entry = model.settings.providers[descriptor.id]
+        let experimental = ShellProviderRows.showsExperimentalWarning(descriptor, settings: entry)
+        let chosenModel = ShellModelChoices.chosenModelLine(descriptor, entry: entry, listed: model.models[descriptor.id] ?? [])
         HStack(spacing: 8) {
-            ShellStatusDot(light: status.light)
-            Text(ShellProviderRows.listName(descriptor))
-                .lineLimit(1)
-                .truncationMode(.tail)
-            if experimental {
-                Text("Experimental")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Color.orange.opacity(0.15), in: Capsule())
-                    .fixedSize()
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 8) {
+                    ShellStatusDot(light: status.light)
+                    Text(ShellProviderRows.listName(descriptor))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if experimental {
+                        CommonTag("Experimental", color: .orange)              // design review D16
+                    }
+                }
+                Text(chosenModel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.leading, 17)                      // under the name, past the status light
             }
             Spacer(minLength: 4)
             Toggle("Enabled", isOn: ShellProviderBindings.enabled(model, descriptor.id))
@@ -89,7 +120,7 @@ struct ShellProviderListRow: View {
         }
         .help("\(descriptor.displayName): \(status.headline)" + (status.detail.map { " — " + $0 } ?? ""))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(descriptor.displayName), \(status.headline)\(experimental ? ", experimental" : "")"))
+        .accessibilityLabel(Text("\(descriptor.displayName), \(status.headline)\(experimental ? ", experimental" : ""), model \(chosenModel)"))
     }
 }
 
@@ -107,21 +138,53 @@ struct ShellProviderListRow: View {
         }
     }
 
+    /// The enable switch of a provider, through `setEnabled` (design review D5).
     static func enabled(_ model: SettingsModel, _ id: ProviderID) -> Binding<Bool> {
-        Binding(get: { entry(model, id).enabled }, set: { value in change(model, id) { $0.enabled = value } })
+        Binding(get: { entry(model, id).enabled }, set: { value in
+            let providers = model.providers
+            model.update { settings in setEnabled(value, id, in: &settings, providers: providers) }
+        })
     }
 
-    /// The provider's model; the job defaults that name this provider follow it, so that the model chosen here is the
-    /// one a review uses.
-    static func chooseModel(_ model: SettingsModel, _ id: ProviderID, _ modelID: String?) {
-        model.update { settings in
-            var entry = settings.providers[id] ?? ProviderSettings(enabled: false, inputMode: .auto)
-            entry.model = modelID
-            settings.providers[id] = entry
-            if settings.defaults.review?.providerID == id { settings.defaults.review?.model = modelID }
-            if settings.defaults.chat?.providerID == id { settings.defaults.chat?.model = modelID }
-            if settings.defaults.report?.providerID == id { settings.defaults.report?.model = modelID }
+    /// D5: a provider switched on while there is no review default becomes the review default; one that already
+    /// exists is never replaced. The review default switched off moves to another provider the referee has switched
+    /// on, a local one first, or to none; a chat or report default that named it goes back to "Same as Review". The
+    /// switch changes only the provider it belongs to: nothing else is ever switched on. `providers`: the registry, in
+    /// its order.
+    static func setEnabled(_ value: Bool, _ id: ProviderID, in settings: inout AppSettings, providers: [ProviderDescriptor]) {
+        var entry = settings.providers[id] ?? ProviderSettings(enabled: false, inputMode: .auto)
+        entry.enabled = value
+        settings.providers[id] = entry
+        if value {
+            if settings.defaults.review == nil { settings.defaults.review = ProviderRef(providerID: id, model: entry.model) }
+            return
         }
+        guard settings.defaults.review?.providerID == id else { return }
+        let others = providers.filter { $0.id != id && settings.providers[$0.id]?.enabled == true }
+        let next = others.first(where: \.isLocal) ?? others.first
+        settings.defaults.review = next.map { ProviderRef(providerID: $0.id, model: settings.providers[$0.id]?.model) }
+        if settings.defaults.chat?.providerID == id { settings.defaults.chat = nil }
+        if settings.defaults.report?.providerID == id { settings.defaults.report = nil }
+    }
+
+    /// The provider's model; the job defaults that name this provider with the model it had follow it, so that the
+    /// model chosen here is the one a review uses. A job default on "Default model" follows by itself; one given another
+    /// model of its own in the default bar keeps it.
+    static func chooseModel(_ model: SettingsModel, _ id: ProviderID, _ modelID: String?) {
+        model.update { settings in chooseModel(modelID, for: id, in: &settings) }
+    }
+
+    static func chooseModel(_ modelID: String?, for id: ProviderID, in settings: inout AppSettings) {
+        var entry = settings.providers[id] ?? ProviderSettings(enabled: false, inputMode: .auto)
+        let previous = entry.model
+        entry.model = modelID
+        settings.providers[id] = entry
+        func follow(_ ref: inout ProviderRef?) {
+            if ref?.providerID == id, let pinned = ref?.model, pinned == previous { ref?.model = modelID }
+        }
+        follow(&settings.defaults.review)
+        follow(&settings.defaults.chat)
+        follow(&settings.defaults.report)
     }
 }
 
@@ -228,6 +291,16 @@ struct ShellProviderDetail: View {
                 }
                 ForEach(hint.commands, id: \.self) { command in
                     ShellCommandBox(command: command)
+                }
+            }
+            // D21: a key saved while the provider is off does nothing until it is switched on.
+            if ShellProviderRows.keyWaitsForSwitch(descriptor, storedSecrets: model.storedSecrets, settings: model.settings.providers[id]) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(ShellProviderRows.switchOnNote(descriptor))
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Switch On") { ShellProviderBindings.enabled(model, id).wrappedValue = true }
+                        .controlSize(.small)
                 }
             }
         }
@@ -466,8 +539,10 @@ struct ShellProviderDetail: View {
 
     // ---- test prompt ----
 
+    /// Pressable only for a provider that is ready (D21); the note says what it does and costs for this kind of provider.
     private var testPrompt: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        let availability = model.availability[id]
+        return HStack(alignment: .firstTextBaseline, spacing: 10) {
             Button {
                 testing = true
                 testResult = nil
@@ -478,7 +553,8 @@ struct ShellProviderDetail: View {
             } label: {
                 Text("Send Test Prompt")
             }
-            .disabled(testing)
+            .disabled(testing || !ShellProviderRows.canSendTestPrompt(availability))
+            .help(ShellProviderRows.testPromptHelp(availability) ?? "")
             VStack(alignment: .leading, spacing: 2) {
                 if testing {
                     HStack(spacing: 6) {
@@ -497,8 +573,9 @@ struct ShellProviderDetail: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                Text(ShellProviderRows.testPromptNote)
+                Text(ShellProviderRows.testPromptNote(for: descriptor))
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .font(.caption)
         }
@@ -535,54 +612,88 @@ struct ShellProviderDetail: View {
 }
 
 /// The default provider of each job (section 9.6): Review, and Chat and Report, which default to "Same as Review".
+/// Each job's menu lists the providers switched on, each with its models (step 5b): "Default model (…)" follows the
+/// model chosen for the provider on this pane, any other model is the job's own.
 struct ShellTaskDefaultsBar: View {
     let model: SettingsModel
 
     enum Job { case review, chat, report }
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 14) {
             Text("Default provider")
                 .foregroundStyle(.secondary)
-            picker("Review", job: .review)
-            picker("Chat", job: .chat)
-            picker("Report", job: .report)
+            chooser("Review", job: .review)
+            chooser("Chat", job: .chat)
+            chooser("Report", job: .report)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
     }
 
-    private func picker(_ title: String, job: Job) -> some View {
-        let current = ref(job)?.providerID
-        let enabled = model.providers.filter { model.settings.providers[$0.id]?.enabled == true || $0.id == current }
-        return Picker(title, selection: Binding(get: { current }, set: { choose($0, for: job) })) {
-            Text(job == .review ? "None" : "Same as Review").tag(ProviderID?.none)
-            ForEach(enabled, id: \.id) { descriptor in
-                let on = model.settings.providers[descriptor.id]?.enabled == true
-                Text(on ? descriptor.displayName : "\(descriptor.displayName) (off)").tag(Optional(descriptor.id))
+    private func chooser(_ title: String, job: Job) -> some View {
+        let current = Self.ref(job, in: model.settings)
+        let selection = Binding<ProviderRef?>(get: { current }, set: { ref in model.update { Self.set(ref, for: job, in: &$0) } })
+        let candidates = model.providers.filter { model.settings.providers[$0.id]?.enabled == true || $0.id == current?.providerID }
+        return HStack(spacing: 6) {
+            Text(title)
+            Menu {
+                Picker(title, selection: selection) {
+                    Text(Self.noneTitle(job)).tag(ProviderRef?.none)
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+                ForEach(candidates, id: \.id) { descriptor in
+                    let on = model.settings.providers[descriptor.id]?.enabled == true
+                    Picker(selection: selection) {
+                        ForEach(ShellModelChoices.menu(for: descriptor.id, settings: model.settings, current: current, limit: nil).choices,
+                                id: \.self) { choice in
+                            Text(choice.title).tag(Optional(choice.ref))
+                        }
+                    } label: {
+                        Text(on ? descriptor.displayName : "\(descriptor.displayName) (off)")
+                    }
+                    .pickerStyle(.menu)
+                }
+            } label: {
+                Text(Self.label(current, job: job, providers: model.providers, settings: model.settings))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
+            .frame(maxWidth: 190)
+            .fixedSize(horizontal: false, vertical: true)
+            .help(Self.label(current, job: job, providers: model.providers, settings: model.settings))
         }
-        .fixedSize()
     }
 
-    private func ref(_ job: Job) -> ProviderRef? {
+    static func noneTitle(_ job: Job) -> String { job == .review ? "None" : "Same as Review" }
+
+    static func ref(_ job: Job, in settings: AppSettings) -> ProviderRef? {
         switch job {
-        case .review: return model.settings.defaults.review
-        case .chat: return model.settings.defaults.chat
-        case .report: return model.settings.defaults.report
+        case .review: return settings.defaults.review
+        case .chat: return settings.defaults.chat
+        case .report: return settings.defaults.report
         }
     }
 
-    /// A job's default names the provider and the model chosen for it on this pane.
-    private func choose(_ id: ProviderID?, for job: Job) {
-        model.update { settings in
-            let ref = id.map { ProviderRef(providerID: $0, model: settings.providers[$0]?.model) }
-            switch job {
-            case .review: settings.defaults.review = ref
-            case .chat: settings.defaults.chat = ref
-            case .report: settings.defaults.report = ref
-            }
+    /// A job's default: a provider with a model of its own, or with none ("Default model": the model chosen for the
+    /// provider on this pane), or nil ("None" for the review, "Same as Review" for the others).
+    static func set(_ ref: ProviderRef?, for job: Job, in settings: inout AppSettings) {
+        switch job {
+        case .review: settings.defaults.review = ref
+        case .chat: settings.defaults.chat = ref
+        case .report: settings.defaults.report = ref
         }
+    }
+
+    /// What the job's menu reads: "Ollama (local) · gemma4:e4b", "Claude Code · Default model", "Same as Review".
+    static func label(_ ref: ProviderRef?, job: Job, providers: [ProviderDescriptor], settings: AppSettings) -> String {
+        guard let ref else { return noneTitle(job) }
+        let descriptor = providers.first { $0.id == ref.providerID }
+        var name = descriptor.map(ShellProviderRows.listName) ?? ref.providerID
+        if settings.providers[ref.providerID]?.enabled != true { name += " (off)" }
+        let modelName = ref.model.map { ShellModelChoices.name(of: $0, in: settings.providers[ref.providerID]?.cachedModels ?? []) }
+        return "\(name) · \(modelName ?? ShellModelChoices.defaultModel)"
     }
 }

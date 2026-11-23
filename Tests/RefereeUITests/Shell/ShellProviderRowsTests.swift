@@ -65,7 +65,138 @@ import TestSupport
         #expect(!ShellProviderRows.showsExperimentalWarning(Sample.antigravity, settings: verified))
         #expect(!ShellProviderRows.showsExperimentalWarning(Sample.claude, settings: unverified))
         #expect(ShellProviderRows.experimentalWarning == "Experimental — not yet verified against the real CLI on this machine")
-        #expect(ShellProviderRows.testPromptNote == "sends 'Reply with exactly: OK'; uses a few tokens")
+    }
+
+    // ---- D21: Send Test Prompt ----
+
+    /// What the test prompt does and costs, by kind of provider.
+    @Test func theTestPromptsNoteFitsTheKindOfProvider() {
+        #expect(ShellProviderRows.testPromptNote(for: Sample.anthropic) == "Sends “Reply with exactly: OK” to api.anthropic.com; costs a few tokens.")
+        #expect(ShellProviderRows.testPromptNote(for: Sample.claude) == "Runs Claude Code once with “Reply with exactly: OK”; uses one message of your plan.")
+        #expect(ShellProviderRows.testPromptNote(for: Sample.ollama) == "Sends “Reply with exactly: OK” to the model on this Mac; costs nothing.")
+        let mock = SnapshotSupport.providers().map(\.descriptor).first { $0.id == "mock-offline" }
+        #expect(mock.map(ShellProviderRows.testPromptNote(for:)) == "Sends “Reply with exactly: OK” to the built-in stand-in.")
+    }
+
+    /// Pressable only for a ready provider; otherwise its tooltip says why not.
+    @Test func theTestPromptWaitsForAReadyProvider() {
+        #expect(ShellProviderRows.canSendTestPrompt(.ready(detail: "Key set")))
+        #expect(ShellProviderRows.testPromptHelp(.ready(detail: "Key set")) == nil)
+        #expect(!ShellProviderRows.canSendTestPrompt(.needsSetup(reason: "Antigravity is not installed", hint: "curl …")))
+        #expect(ShellProviderRows.testPromptHelp(.needsSetup(reason: "Antigravity is not installed", hint: "curl …"))
+                == "Needs setup: Antigravity is not installed")
+        #expect(ShellProviderRows.testPromptHelp(.unavailable(reason: "grok does not list an option")) == "Unavailable: grok does not list an option")
+        #expect(!ShellProviderRows.canSendTestPrompt(nil))
+        #expect(ShellProviderRows.testPromptHelp(nil) == "Checking…")
+    }
+
+    @Test func aStoredKeyOfAProviderThatIsOffAsksToSwitchItOn() {
+        let off = ProviderSettings(enabled: false, inputMode: .auto)
+        let on = ProviderSettings(enabled: true, inputMode: .auto)
+        #expect(ShellProviderRows.keyWaitsForSwitch(Sample.anthropic, storedSecrets: ["anthropic-api"], settings: off))
+        #expect(ShellProviderRows.keyWaitsForSwitch(Sample.anthropic, storedSecrets: ["anthropic-api"], settings: nil))
+        #expect(!ShellProviderRows.keyWaitsForSwitch(Sample.anthropic, storedSecrets: ["anthropic-api"], settings: on))
+        #expect(!ShellProviderRows.keyWaitsForSwitch(Sample.anthropic, storedSecrets: [], settings: off))
+        #expect(!ShellProviderRows.keyWaitsForSwitch(Sample.claude, storedSecrets: ["claude-cli"], settings: off))     // no key
+        #expect(ShellProviderRows.switchOnNote(Sample.anthropic) == "Switch on Anthropic API to use it.")
+    }
+
+    /// With nothing switched on, the pane starts at Ollama, under the box that says why.
+    @Test func withNothingOnThePaneStartsAtOllama() {
+        let providers = [Sample.anthropic, Sample.claude, Sample.ollama]
+        var settings = DefaultSettings.make()
+        for id in Array(settings.providers.keys) { settings.providers[id]?.enabled = false }
+        #expect(ShellProviderRows.noneSwitchedOn(providers, settings: settings))
+        #expect(ShellProviderRows.shownProvider(in: providers, chosen: nil, settings: settings)?.id == "ollama")
+        #expect(ShellProviderRows.shownProvider(in: providers, chosen: "claude-cli", settings: settings)?.id == "claude-cli")
+        settings.providers["claude-cli"]?.enabled = true
+        #expect(!ShellProviderRows.noneSwitchedOn(providers, settings: settings))
+        #expect(ShellProviderRows.shownProvider(in: providers, chosen: nil, settings: settings)?.id == "anthropic-api")
+        #expect(ShellProviderRows.startWithLocal == "Start with a local model: Ollama keeps manuscripts on this Mac.")
+    }
+
+    // ---- D5: switching a provider on or off ----
+
+    private static let registry = [Sample.anthropic, Sample.ollama, Sample.claude, Sample.xai]
+
+    private static func allOff() -> AppSettings {
+        var settings = DefaultSettings.make()
+        for id in Array(settings.providers.keys) { settings.providers[id]?.enabled = false }
+        return settings
+    }
+
+    @Test func switchingOnWithNoReviewDefaultMakesItTheDefault() {
+        var settings = Self.allOff()
+        settings.providers["ollama"]?.model = "gemma4:e4b"
+        ShellProviderBindings.setEnabled(true, "ollama", in: &settings, providers: Self.registry)
+        #expect(settings.providers["ollama"]?.enabled == true)
+        #expect(settings.defaults.review == ProviderRef(providerID: "ollama", model: "gemma4:e4b"))
+        // A second provider switched on leaves the default alone, and switches nothing else on.
+        ShellProviderBindings.setEnabled(true, "anthropic-api", in: &settings, providers: Self.registry)
+        #expect(settings.defaults.review == ProviderRef(providerID: "ollama", model: "gemma4:e4b"))
+        #expect(settings.providers.filter { $0.value.enabled }.map(\.key).sorted() == ["anthropic-api", "ollama"])
+    }
+
+    @Test func switchingOnNeverReplacesAnExistingDefault() {
+        var settings = Self.allOff()
+        settings.defaults.review = ProviderRef(providerID: "claude-cli", model: nil)       // off, but chosen: it stays
+        ShellProviderBindings.setEnabled(true, "anthropic-api", in: &settings, providers: Self.registry)
+        #expect(settings.defaults.review == ProviderRef(providerID: "claude-cli", model: nil))
+    }
+
+    @Test func switchingTheReviewDefaultOffMovesItToAnotherProviderLocalFirst() {
+        var settings = Self.allOff()
+        for id: ProviderID in ["anthropic-api", "ollama", "claude-cli"] { settings.providers[id]?.enabled = true }
+        settings.providers["ollama"]?.model = "phi4"
+        settings.defaults = TaskDefaults(review: ProviderRef(providerID: "claude-cli", model: nil),
+                                         chat: ProviderRef(providerID: "claude-cli", model: "sonnet"),
+                                         report: ProviderRef(providerID: "anthropic-api", model: "example-large"))
+        ShellProviderBindings.setEnabled(false, "claude-cli", in: &settings, providers: Self.registry)
+        #expect(settings.providers["claude-cli"]?.enabled == false)
+        #expect(settings.defaults.review == ProviderRef(providerID: "ollama", model: "phi4"))    // the local one, though listed after
+        #expect(settings.defaults.chat == nil)                                                  // "Same as Review"
+        #expect(settings.defaults.report == ProviderRef(providerID: "anthropic-api", model: "example-large"))
+        // Without another local provider, the first other one switched on; without any, none.
+        ShellProviderBindings.setEnabled(false, "ollama", in: &settings, providers: Self.registry)
+        #expect(settings.defaults.review == ProviderRef(providerID: "anthropic-api", model: nil))
+        ShellProviderBindings.setEnabled(false, "anthropic-api", in: &settings, providers: Self.registry)
+        #expect(settings.defaults.review == nil)
+        #expect(settings.defaults.report == nil)
+        #expect(!settings.providers.values.contains { $0.enabled })
+    }
+
+    @Test func switchingAnotherProviderOffLeavesTheDefaultsAlone() {
+        var settings = Self.allOff()
+        for id: ProviderID in ["anthropic-api", "ollama"] { settings.providers[id]?.enabled = true }
+        settings.defaults = TaskDefaults(review: ProviderRef(providerID: "ollama", model: nil))
+        ShellProviderBindings.setEnabled(false, "anthropic-api", in: &settings, providers: Self.registry)
+        #expect(settings.defaults == TaskDefaults(review: ProviderRef(providerID: "ollama", model: nil)))
+    }
+
+    /// The binding the switches use goes through the same rule, on a settings model.
+    @Test func theSwitchOfASettingsModelMakesTheFirstProviderTheDefault() throws {
+        let dependencies = AppDependencies(paperService: FakePaperService(paper: try makeSamplePaper()), matcherFactory: { FakeQuoteMatcher(paper: $0) },
+                                           citationIndexer: FakeCitationIndexer(), engine: ScriptedReviewEngine(plan: Sample.plan(pdf: false, tokens: 1, to: "")),
+                                           resolver: FakeResolver(), sessions: InMemorySessionStore(), settings: InMemorySettingsStore(),
+                                           providers: ProviderRegistry(SnapshotSupport.providers()), secrets: InMemorySecretStore())
+        let model = SettingsModel(dependencies: dependencies, settings: Self.allOff())
+        ShellProviderBindings.enabled(model, "ollama").wrappedValue = true
+        #expect(model.settings.providers["ollama"]?.enabled == true)
+        #expect(model.settings.defaults.review?.providerID == "ollama")
+    }
+
+    /// Choosing the provider's model moves the job defaults that had its old model, not one given a model of its own.
+    @Test func aJobDefaultWithAModelOfItsOwnKeepsIt() {
+        var settings = Self.allOff()
+        settings.providers["claude-cli"] = ProviderSettings(enabled: true, model: "opus", inputMode: .auto)
+        settings.defaults = TaskDefaults(review: ProviderRef(providerID: "claude-cli", model: "opus"),
+                                         chat: ProviderRef(providerID: "claude-cli", model: "haiku"),
+                                         report: ProviderRef(providerID: "claude-cli", model: nil))
+        ShellProviderBindings.chooseModel("sonnet", for: "claude-cli", in: &settings)
+        #expect(settings.providers["claude-cli"]?.model == "sonnet")
+        #expect(settings.defaults.review == ProviderRef(providerID: "claude-cli", model: "sonnet"))      // it followed the old choice
+        #expect(settings.defaults.chat == ProviderRef(providerID: "claude-cli", model: "haiku"))        // its own
+        #expect(settings.defaults.report == ProviderRef(providerID: "claude-cli", model: nil))          // "Default model" follows by itself
     }
 
     @Test func keysAndShowAllBelongToTheProvidersThatHaveThem() {

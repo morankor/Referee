@@ -17,11 +17,17 @@ import TestSupport
 // - design-consent-subscription-pdf: the consent card for a subscription CLI that receives the PDF itself.
 // - design-banner-provider-down: a local provider that fails at once: the banner, with the indicator still green.
 // - design-settings-first-run: Settings ▸ Providers with nothing switched on and no default provider.
+//
+// Added in step 5, as the review asks:
+// - design-review-split-destinations (D4): chat goes to Claude Code while the review stays on this Mac.
+// - design-review-provider-offline (D13): the chosen local provider reports that it is not running.
+// And for the user's request of step 5b ("let me also choose a model"):
+// - design-review-choose-model: the destination menu with a provider's models, the paper's one checked.
 
 @MainActor enum ShellDesignScenes {
     static var all: [SnapshotScene] {
         [welcomeFirstRun, welcomeMany, reviewNoProvider, reviewLongNames, reviewParts, consentSubscriptionPDF, bannerProviderDown,
-         settingsFirstRun]
+         settingsFirstRun, reviewSplitDestinations, reviewProviderOffline, reviewChooseModel]
     }
 
     /// An invented journal-system file name, longer than the toolbar can show.
@@ -31,7 +37,8 @@ import TestSupport
 
     // ---- welcome ----
 
-    /// First launch without Ollama: no recent reviews, "No AI provider set up".
+    /// First launch without Ollama: no recent reviews, no provider set up: "Set Up AI Provider…" and its sentence under
+    /// the drop hint, and no bottom line (D5).
     static var welcomeFirstRun: SnapshotScene {
         SnapshotScene(name: "design-welcome-first-run", kind: .welcome, prepare: { context in
             guard let hosting = context.window.contentViewController as? NSHostingController<WelcomeView> else { return }
@@ -48,24 +55,39 @@ import TestSupport
     }
 
     /// Fourteen recent reviews with long titles and journal-system file names, and the line "AI: Local · gemma4:e4b"
-    /// that a first launch with Ollama running gives.
+    /// that a first launch with Ollama running gives. D26: titles on two lines, only "12 pending" in orange; the blinded
+    /// submission's file is gone ("File not found").
     static var welcomeMany: SnapshotScene {
         SnapshotScene(name: "design-welcome-many", kind: .welcome, prepare: { context in
             guard let hosting = context.window.contentViewController as? NSHostingController<WelcomeView> else { return }
             let line = ShellDestination.welcomeLine(settings: ollamaSettings(), providers: SnapshotSupport.providers().map(\.descriptor))
-            hosting.rootView = WelcomeView(recent: manyRecentReviews(), open: { _ in }, providerLine: { line }, openSettings: {})
+            hosting.rootView = WelcomeView(recent: manyRecentReviews(), open: { _ in }, providerLine: { line }, openSettings: {},
+                                           missing: [missingReviewID])
         }, verify: { context in
             guard let hosting = context.window.contentViewController as? NSHostingController<WelcomeView> else {
                 return ["the window does not show a WelcomeView"]
             }
             var failures: [String] = []
-            if hosting.rootView.recent.count != 14 { failures.append("\(hosting.rootView.recent.count) recent reviews, expected 14") }
+            let recent = hosting.rootView.recent
+            if recent.count != 14 { failures.append("\(recent.count) recent reviews, expected 14") }
             if hosting.rootView.providerLine() != .configured("AI: Local · gemma4:e4b", isLocal: true) {
                 failures.append("the provider line is \(hosting.rootView.providerLine()), expected AI: Local · gemma4:e4b")
+            }
+            if let first = recent.first {
+                let parts = ShellRecentReviewRow.progressParts(first)
+                if parts.map(\.text) != ["25 comments", "12 pending"] || parts.map(\.standsOut) != [false, true] {
+                    failures.append("the first progress line is \(parts), expected only \"12 pending\" to stand out")
+                }
+            }
+            if hosting.rootView.missing != [missingReviewID] || !recent.contains(where: { $0.id == missingReviewID }) {
+                failures.append("the review whose file is gone is not the blinded submission")
             }
             return failures
         })
     }
+
+    /// The blinded submission of `manyRecentReviews`, whose file is gone (D26).
+    static let missingReviewID = String(format: "%064x", 12)
 
     /// The snapshot settings with Ollama switched on, gemma4:e4b chosen and made the review default, as
     /// `applyFirstRunDefaultsIfNeeded` leaves them when Ollama is running.
@@ -120,12 +142,16 @@ import TestSupport
             var failures = ShellSceneSupport.indicator(of: model, text: ShellDestination.noProvider, tint: .grey)
             if model.canStartReview { failures.append("Review is enabled without a provider") }
             if !model.selectableProviders.isEmpty { failures.append("\(model.selectableProviders.count) providers can be chosen, expected none") }
+            // D5: with nothing switched on, the indicator still opens Settings (not "Choose AI provider").
+            let state = ShellDestination.state(of: model)
+            if !state.opensSettings || state.symbol != "nosign" { failures.append("the indicator does not lead to Settings: \(state)") }
             return failures
         })
     }
 
     /// The longest texts the toolbar meets: a journal-system file name as the title, and an experimental subscription CLI
-    /// with a long model id that receives extracted text.
+    /// with a long model id that receives extracted text. D3: "Antigravity" over the detail, cut in the middle, at most
+    /// 260 points wide, so that Review, Report and the sidebar button stay in the toolbar at 1,000 points.
     static var reviewLongNames: SnapshotScene {
         SnapshotScene(name: "design-review-long-names", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -137,13 +163,15 @@ import TestSupport
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures = ShellSceneSupport.indicator(of: model, text: "Antigravity · \(longModel) · text only · experimental", tint: .orange)
+            failures += ShellSceneSupport.indicatorLines(of: model, title: "Antigravity", detail: "\(longModel) · text only · experimental")
             if context.window.title != longFileName { failures.append("the window's title is \(context.window.title)") }
             return failures
         })
     }
 
     /// A review read in parts, as phi4's 16,384 tokens read a 16-page paper (README): `mock-stall` with a context
-    /// window small enough for three parts of `ay_long.pdf`, stalled in the first. The toolbar shows the phase.
+    /// window small enough for three parts of `ay_long.pdf`, stalled in the first. The toolbar shows a gauge,
+    /// "Reading part 1 of 3 · 0:0x" and Stop (D9).
     static var reviewParts: SnapshotScene {
         SnapshotScene(name: "design-review-parts", kind: .review, fixturePDF: "ay_long.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -157,7 +185,12 @@ import TestSupport
         }, verify: { context in
             guard let model = context.model else { return ["a review scene without a model"] }
             var failures: [String] = []
-            if case .running(.review, .reading(_, let total)?, _) = model.runState, total > 1 {} else {
+            if case .running(.review, .reading(let part, let total)?, let startedAt) = model.runState, total > 1 {
+                let text = ShellReviewButton.progressText(kind: .review, phase: .reading(part: part, of: total),
+                                                          elapsed: Date().timeIntervalSince(startedAt))
+                if !text.hasPrefix("Reading part \(part) of \(total) · 0:0") { failures.append("the progress reads \(text)") }
+                if ShellReviewButton.gauge(kind: .review, phase: .reading(part: part, of: total)) == nil { failures.append("no gauge") }
+            } else {
                 failures.append("the review is not reading the paper in parts: \(model.runState)")
             }
             model.cancelRun()
@@ -165,8 +198,9 @@ import TestSupport
         })
     }
 
-    /// The consent card for a subscription CLI that receives the PDF file itself (Claude Code): the file's size and
-    /// pages, the request count, the retention line of a CLI. Answered "no" in `verify`; nothing is sent.
+    /// The consent card for a subscription CLI that receives the PDF file itself (Claude Code): what (the file, its size
+    /// and pages), to whom ("Anthropic, through Claude Code"), the requests, what is kept, and "Send to Anthropic" (D12).
+    /// Answered "no" in `verify`; nothing is sent.
     static var consentSubscriptionPDF: SnapshotScene {
         SnapshotScene(name: "design-consent-subscription-pdf", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
             guard let model = context.model else { return }
@@ -182,6 +216,12 @@ import TestSupport
             var failures: [String] = []
             if request.provider.id != "claude-cli" { failures.append("the card asks about \(request.provider.id)") }
             if !request.plan.sendsPDF { failures.append("the plan sends extracted text; the PDF case was expected") }
+            let text = ShellPlanText.consent(request: request, pageCount: model.paper?.ref.pageCount ?? 0, byteCount: model.paper?.ref.byteCount ?? 0)
+            failures += ShellSceneSupport.facts(text.facts, labels: ["What", "To", "Requests", "Kept"])
+            if text.facts.first?.value.hasPrefix("The PDF file · ") != true { failures.append("What reads \(text.facts.first?.value ?? "nothing")") }
+            if text.facts.dropFirst().first?.value != "Anthropic, through Claude Code" { failures.append("To reads \(text.facts.dropFirst().first?.value ?? "nothing")") }
+            if text.facts.last?.value != request.provider.retentionNote { failures.append("Kept is not Claude Code's retention note") }
+            if text.sendButton != "Send to Anthropic" { failures.append("the send button reads \(text.sendButton)") }
             if model.session?.runs.isEmpty != true { failures.append("a run was recorded before consent") }
             model.answerConsent(granted: false)
             return failures
@@ -206,13 +246,107 @@ import TestSupport
             if banner.style != .error { failures.append("the banner is not an error") }
             if banner.action != .retry { failures.append("the banner has no Retry") }
             if !banner.message.hasPrefix("Review stopped: ") { failures.append("the banner says \(banner.message)") }
+            // The snapshot graph's Ollama row answers "ready" to the status check of D13: the indicator stays green.
+            failures += ShellSceneSupport.indicator(of: model, text: "Local · gemma4:e4b", tint: .green)
             return failures
         })
     }
 
+    /// D4: the review stays with "mock" on this Mac while chat goes to Claude Code (`defaults.chat`, the paper having no
+    /// provider of its own). The indicator: "Local" over "mock · chat: Claude Code", orange; the destination menu open,
+    /// with "Chat questions go to Claude Code (subscription) (claude)." Claude Code is never asked for its status.
+    static var reviewSplitDestinations: SnapshotScene {
+        SnapshotScene(name: "design-review-split-destinations", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
+            guard let model = context.model else { return }
+            var settings = model.settings
+            settings.providers["claude-cli"] = ProviderSettings(enabled: true, inputMode: .auto)
+            settings.defaults.chat = ProviderRef(providerID: "claude-cli", model: nil)
+            model.reloadSettings(settings)
+            await ShellSceneSupport.wait { model.chatProvider?.id == "claude-cli" && model.sendPlan != nil }
+            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
+        }, verify: { context in
+            guard let model = context.model else { return ["a review scene without a model"] }
+            var failures = ShellSceneSupport.indicator(of: model, text: "Local · mock · chat: Claude Code", tint: .orange)
+            failures += ShellSceneSupport.indicatorLines(of: model, title: "Local", detail: "mock · chat: Claude Code")
+            if model.activeProvider?.id != "mock" { failures.append("the review goes to \(model.activeProvider?.id ?? "nothing")") }
+            if model.reportProvider?.id != "mock" { failures.append("the report goes to \(model.reportProvider?.id ?? "nothing")") }
+            if ShellDestinationMenu.otherJobLines(model) != ["Chat questions go to Claude Code (subscription) (claude)."] {
+                failures.append("the menu says \(ShellDestinationMenu.otherJobLines(model))")
+            }
+            if ShellSceneSupport.windowState(context)?.destinationMenuOpen != true { failures.append("the destination menu is not open") }
+            return failures
+        })
+    }
+
+    /// D13 (with O3's stand-in): `mock-offline`, a local provider whose status is "Ollama is not running", switched on and
+    /// chosen. The indicator: an orange triangle, "Local" over "Ollama is not running"; the destination menu open, its
+    /// row with the reason in orange and Check Again.
+    static var reviewProviderOffline: SnapshotScene {
+        SnapshotScene(name: "design-review-provider-offline", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
+            guard let model = context.model else { return }
+            var settings = model.settings
+            settings.providers["mock-offline"] = ProviderSettings(enabled: true, model: "mock", inputMode: .auto)
+            model.reloadSettings(settings)
+            await ShellSceneSupport.choose("mock-offline", in: model)
+            await ShellSceneSupport.wait { model.activeAvailability == offlineStatus }
+            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
+        }, verify: { context in
+            guard let model = context.model else { return ["a review scene without a model"] }
+            var failures = ShellSceneSupport.indicator(of: model, text: "Local · Ollama is not running", tint: .orange)
+            failures += ShellSceneSupport.indicatorLines(of: model, title: "Local", detail: "Ollama is not running")
+            let state = ShellDestination.state(of: model)
+            if state.symbol != "exclamationmark.triangle.fill" { failures.append("the indicator's symbol is \(state.symbol)") }
+            if state.help != "Ollama is not running. Start the Ollama app or run ollama serve." { failures.append("the tooltip reads \(state.help)") }
+            if model.activeAvailability != offlineStatus { failures.append("the provider's status is \(String(describing: model.activeAvailability))") }
+            if ShellSceneSupport.windowState(context)?.destinationMenuOpen != true { failures.append("the destination menu is not open") }
+            return failures
+        })
+    }
+
+    /// The status of O3's `mock-offline`.
+    static let offlineStatus = ProviderAvailability.needsSetup(reason: "Ollama is not running", hint: "Start the Ollama app or run `ollama serve`.")
+
+    /// Step 5b: Ollama's list as Settings keeps it, ten models (the snapshot graph's two and eight invented ones), and
+    /// the paper reviewed with phi4. The destination menu open: under Ollama's row "Default model (gemma4:e4b)", the
+    /// first eight models with phi4 checked, and "More in Settings…"; the indicator "Local" over "phi4". The menu reads
+    /// the list Settings keeps; nothing is asked of the provider.
+    static var reviewChooseModel: SnapshotScene {
+        SnapshotScene(name: "design-review-choose-model", kind: .review, fixturePDF: "ay_round_nolinks.pdf", prepare: { context in
+            guard let model = context.model else { return }
+            var settings = model.settings
+            settings.providers["ollama"] = ProviderSettings(enabled: true, model: "gemma4:e4b", inputMode: .auto, cachedModels: ollamaModels,
+                                                            cachedModelsAt: Date())
+            model.reloadSettings(settings)
+            model.setActiveProvider(ProviderRef(providerID: "ollama", model: "phi4"))
+            await ShellSceneSupport.wait { model.activeProvider?.id == "ollama" && model.activeModel == "phi4" && model.sendPlan != nil }
+            ShellSceneSupport.windowState(context)?.destinationMenuOpen = true
+        }, verify: { context in
+            guard let model = context.model else { return ["a review scene without a model"] }
+            var failures = ShellSceneSupport.indicator(of: model, text: "Local · phi4", tint: .green)
+            if model.session?.preferredProvider != ProviderRef(providerID: "ollama", model: "phi4") {
+                failures.append("the paper's choice is \(String(describing: model.session?.preferredProvider))")
+            }
+            let menu = ShellModelChoices.menu(for: "ollama", settings: model.settings, current: ShellDestinationMenu.appliedRef(model))
+            let titles = menu.choices.map(\.title)
+            if titles.first != "Default model (gemma4:e4b)" || titles.count != 9 { failures.append("the models offered are \(titles)") }
+            if menu.settingsRow != ShellModelChoices.moreInSettings { failures.append("the last row is \(menu.settingsRow ?? "missing")") }
+            let checked = menu.choices.filter { $0.ref == ShellDestinationMenu.appliedRef(model) }.map(\.title)
+            if checked != ["phi4"] { failures.append("checked: \(checked), expected phi4") }
+            if ShellSceneSupport.windowState(context)?.destinationMenuOpen != true { failures.append("the destination menu is not open") }
+            return failures
+        })
+    }
+
+    /// Ollama's list in `design-review-choose-model`: the snapshot graph's two models, then eight invented ones.
+    static let ollamaModels: [ModelInfo] = [
+        ModelInfo(id: "gemma4:e4b", displayName: "gemma4:e4b", contextWindow: 131_072, supportsPDFInput: false),
+        ModelInfo(id: "phi4", displayName: "phi4", contextWindow: 16_384, supportsPDFInput: false),
+    ] + (1...8).map { ModelInfo(id: "example-local-\($0)", displayName: "example-local-\($0)", contextWindow: 32_768, supportsPDFInput: false) }
+
     // ---- settings ----
 
-    /// Settings ▸ Providers on a first launch without Ollama: nothing switched on, no default provider, Ollama shown.
+    /// Settings ▸ Providers on a first launch without Ollama: nothing switched on, no default provider. D21: the box
+    /// "Start with a local model…" above the list, and the pane opens on Ollama by itself.
     static var settingsFirstRun: SnapshotScene {
         SnapshotScene(name: "design-settings-first-run", kind: .settings, prepare: { context in
             guard let model = context.settings else { return }
@@ -221,7 +355,6 @@ import TestSupport
                 settings.defaults = TaskDefaults()
             }
             ShellSceneSupport.navigation(context)?.tab = .providers
-            ShellSceneSupport.navigation(context)?.provider = "ollama"
             await model.refreshAvailability(of: nil)
         }, verify: { context in
             guard let model = context.settings else { return ["a settings scene without a settings model"] }
@@ -229,7 +362,8 @@ import TestSupport
             let enabled = model.settings.providers.filter { $0.value.enabled }.map(\.key).sorted()
             if !enabled.isEmpty { failures.append("providers switched on: \(enabled.joined(separator: ", "))") }
             if model.settings.defaults.review != nil { failures.append("a review default is set") }
-            if ShellSceneSupport.navigation(context)?.provider != "ollama" { failures.append("the pane does not show Ollama") }
+            if !ShellProviderRows.noneSwitchedOn(model.providers, settings: model.settings) { failures.append("the start box is not shown") }
+            if ShellSceneSupport.navigation(context)?.provider != ShellProviderRows.localStart { failures.append("the pane does not show Ollama") }
             return failures
         })
     }

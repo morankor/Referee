@@ -7,6 +7,10 @@ import AppCore
 /// One review window (plan.md sections 9.1, 9.4, 7.4): it owns the window's `ReviewSessionModel` and `ReaderController`,
 /// attaches the reader at once, opens the document, installs the triage key monitor, answers the menu commands of
 /// its window, and lets the model save and close when the window closes.
+///
+/// Design review: when the app becomes active, a local provider is asked for its status again (D13); a second review
+/// that would go to a provider not on this Mac asks first (D20); a review or report that ends while the app is in the
+/// background asks for attention in the Dock, with the number of new comments or "✓" on the icon (D32).
 @MainActor final class ShellReviewWindowController: NSWindowController, NSWindowDelegate, NSMenuItemValidation {
     let model: ReviewSessionModel
     let reader: ReaderController
@@ -15,7 +19,10 @@ import AppCore
     let documentHash: String?
     private weak var manager: ShellWindowManager?
     private var keyMonitor: Any?
+    private var activationObserver: NSObjectProtocol?
     private var exportFormatPicker: ShellExportFormatPicker?
+    /// The review-lane job under way, as the Dock sees it (D32).
+    private var runningJob: RunKind?
 
     static let defaultSize = NSSize(width: 1280, height: 800)
     static let minimumSize = NSSize(width: 1000, height: 640)
@@ -45,6 +52,12 @@ import AppCore
         window.delegate = self
         reader.attach()                             // right after the controller is made (section 7.4)
         installKeyMonitor()
+        windowState.requestReview = { [weak self] in self?.requestReview() }
+        activationObserver = NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil,
+                                                                    queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.model.refreshActiveAvailability() }     // D13: only a local provider is asked
+        }
+        followRunState()
     }
 
     required init?(coder: NSCoder) { nil }
@@ -70,6 +83,10 @@ import AppCore
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
         }
+        if let activationObserver {
+            NotificationCenter.default.removeObserver(activationObserver)
+            self.activationObserver = nil
+        }
         // The frame is kept for the next time; the name is let go now, so that the document can be opened again in a new
         // window while this one's model is still closing.
         if let window, !window.frameAutosaveName.isEmpty {
@@ -90,7 +107,8 @@ import AppCore
 
     /// Whether the key was a triage key of this window and was acted on. Keys reach triage only while this window is
     /// key and no text is being edited. While the consent card is up the window is blocked: Esc answers it "no" and the
-    /// other triage keys do nothing. Esc then closes the destination menu, and after that what `dismiss` lists.
+    /// other triage keys do nothing. Esc then closes the destination menu, and after that what `dismiss` lists. While
+    /// the destination menu is open, Return is the menu's: it chooses the highlighted provider (D24).
     func handleKeyDown(_ event: NSEvent) -> Bool {
         guard event.window === window, keysReachTriage else { return false }
         let intent = TriageKeymap.intent(characters: event.charactersIgnoringModifiers ?? "", keyCode: event.keyCode, modifiers: event.modifierFlags)
@@ -98,9 +116,12 @@ import AppCore
             if intent == .dismiss { model.answerConsent(granted: false) }
             return intent != nil
         }
-        if windowState.destinationMenuOpen && intent == .dismiss {
-            windowState.destinationMenuOpen = false
-            return true
+        if windowState.destinationMenuOpen {
+            if intent == .dismiss {
+                windowState.destinationMenuOpen = false
+                return true
+            }
+            if intent == .reveal { return false }
         }
         guard let intent else { return false }
         perform(intent)
@@ -166,7 +187,27 @@ import AppCore
         windowState.showSidebar = true
     }
 
-    @objc func shellRunReview(_ sender: Any?) { model.startReview() }
+    @objc func shellRunReview(_ sender: Any?) { requestReview() }
+
+    /// Review, Review Again and ⌘R. A second review that would go to a provider not on this Mac first asks, in a sheet,
+    /// with the tokens and the destination of the plan (D20): it costs the same again. A local provider does not ask.
+    func requestReview() {
+        guard model.canStartReview else { return }
+        guard let question = ShellReviewButton.reviewAgainQuestion(model), let window, window.attachedSheet == nil else {
+            model.startReview()
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = ShellPlanText.reviewAgainTitle
+        alert.informativeText = question
+        alert.addButton(withTitle: "Review Again")
+        alert.addButton(withTitle: "Cancel")
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn else { return }
+            MainActor.assumeIsolated { self?.model.startReview() }
+        }
+    }
+
     /// ⌘.: the review lane's job, or else the reply being written; also answers a consent card "no".
     @objc func shellCancel(_ sender: Any?) {
         if model.consentRequest != nil {
@@ -188,6 +229,7 @@ import AppCore
     @objc func shellEditComment(_ sender: Any?) { perform(.edit) }
     @objc func shellNextComment(_ sender: Any?) { perform(.next) }
     @objc func shellPreviousComment(_ sender: Any?) { perform(.previous) }
+    @objc func shellNextPendingComment(_ sender: Any?) { perform(.nextPending) }
     @objc func shellNewComment(_ sender: Any?) { perform(.newComment) }
 
     /// File ▸ Export Report…: a save panel with the four formats of section 6.10.
@@ -220,20 +262,44 @@ import AppCore
     /// File ▸ Delete Review Data…: after confirmation the review's folder goes, and the window closes (section 9.1).
     @objc func shellDeleteReviewData(_ sender: Any?) {
         guard let window else { return }
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = "Delete the review data of “\(url.lastPathComponent)”?"
-        alert.informativeText = "Its comments, discussions, questions, report and reference lookups are deleted from this Mac. "
-            + "The PDF itself is not changed. This cannot be undone."
-        let delete = alert.addButton(withTitle: "Delete")
-        delete.hasDestructiveAction = true
-        alert.addButton(withTitle: "Cancel")
+        let alert = ShellDeleteReviewData.alert(fileName: url.lastPathComponent)
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
             Task { @MainActor in
                 guard let self else { return }
                 await self.model.deleteReviewData()
                 self.window?.close()
+            }
+        }
+    }
+
+    // ---- the Dock (D32) ----
+
+    /// Follows the review lane: a job that starts is noted, and one that ends while the app is in the background asks
+    /// for attention. `withObservationTracking` reports one change, before it is made; the state is read after it.
+    private func followRunState() {
+        withObservationTracking {
+            _ = model.runState
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.runStateChanged()
+                self.followRunState()
+            }
+        }
+    }
+
+    private func runStateChanged() {
+        switch model.runState {
+        case .running(let kind, _, _):
+            if runningJob == nil { runningJob = kind }
+        case .idle:
+            guard let kind = runningJob else { return }
+            runningJob = nil
+            guard !NSApp.isActive else { return }
+            NSApp.requestUserAttention(.informationalRequest)
+            if let badge = ShellDockBadge.label(after: kind, session: model.session) {
+                NSApp.dockTile.badgeLabel = ShellDockBadge.combine(NSApp.dockTile.badgeLabel, with: badge)
             }
         }
     }
@@ -279,6 +345,8 @@ import AppCore
             return triage && model.selectedCommentID != nil
         case #selector(shellNextComment(_:)), #selector(shellPreviousComment(_:)):
             return triage && !model.visibleComments.isEmpty
+        case #selector(shellNextPendingComment(_:)):
+            return triage && model.visibleComments.contains { $0.status == .pending }
         case #selector(shellNewComment(_:)):
             return triage
         case #selector(shellExportReport(_:)):
@@ -288,6 +356,51 @@ import AppCore
         default:
             return true
         }
+    }
+}
+
+/// The confirmation of "Delete Review Data…", in the File menu and in the welcome window's list (design review D26).
+@MainActor enum ShellDeleteReviewData {
+    static func message(fileName: String) -> String { "Delete the review data of “\(fileName)”?" }
+    static let informative = "Its comments, discussions, questions, report and reference lookups are deleted from this Mac. "
+        + "The PDF itself is not changed. This cannot be undone."
+
+    /// "Delete" (destructive) and "Cancel".
+    static func alert(fileName: String) -> NSAlert {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = message(fileName: fileName)
+        alert.informativeText = informative
+        let delete = alert.addButton(withTitle: "Delete")
+        delete.hasDestructiveAction = true
+        alert.addButton(withTitle: "Cancel")
+        return alert
+    }
+}
+
+/// What the Dock icon says after a long job that ended in the background (D32): the number of comments the review
+/// added, or "✓" for a report or its voice revision that was written. Cleared when the app becomes active.
+enum ShellDockBadge {
+    /// nil: nothing to show (a review that added nothing, a report that failed, a job of the reply lane).
+    static func label(after kind: RunKind, session: ReviewSession?) -> String? {
+        guard let session else { return nil }
+        switch kind {
+        case .review:
+            guard let run = session.runs.last(where: { $0.kind == .review }) else { return nil }
+            let added = session.comments.filter { $0.origin == .ai(runID: run.id) }.count
+            return added > 0 ? "\(added)" : nil
+        case .report, .revise:
+            guard let run = session.runs.last(where: { $0.kind == kind }), run.status == .completed else { return nil }
+            return "✓"
+        case .discussion, .question:
+            return nil
+        }
+    }
+
+    /// Two reviews that ended in the background add up; otherwise the newest label wins.
+    static func combine(_ current: String?, with new: String) -> String {
+        if let current, let shown = Int(current), let added = Int(new) { return "\(shown + added)" }
+        return new
     }
 }
 

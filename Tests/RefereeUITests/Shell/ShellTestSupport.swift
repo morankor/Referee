@@ -61,6 +61,28 @@ enum ShellTestModels {
                                sessions: sessions, settings: InMemorySettingsStore(), providers: ProviderRegistry([]), secrets: InMemorySecretStore())
     }
 
+    /// A review model on fakes but with the snapshot graph's providers (the four mocks, the nine static rows and the two
+    /// stand-ins: none can send anything), with `ay_round_nolinks.pdf` open and a new session.
+    @MainActor static func openedOnTheSnapshotRegistry(settings: AppSettings, comments: [ReviewComment] = []) async throws -> ReviewSessionModel {
+        let paper = try makeSamplePaper()
+        let store = InMemorySessionStore()
+        if !comments.isEmpty {
+            var document = paper.ref
+            document.fileName = "ay_round_nolinks.pdf"
+            try await store.save(ReviewSession(schemaVersion: 1, id: UUID(), document: document, meta: ManuscriptMeta(reviewerNotes: ""),
+                                               comments: comments, createdAt: ShellTestData.date, updatedAt: ShellTestData.date))
+        }
+        let plan = SendPlan(sendsPDF: false, requestCount: 1, estimatedInputTokens: 18_000, destination: "this Mac", isLocal: true)
+        let dependencies = AppDependencies(paperService: FakePaperService(paper: paper), matcherFactory: { FakeQuoteMatcher(paper: $0) },
+                                           citationIndexer: FakeCitationIndexer(), engine: ScriptedReviewEngine(plan: plan), resolver: FakeResolver(),
+                                           sessions: store, settings: InMemorySettingsStore(),
+                                           providers: ProviderRegistry(SnapshotSupport.providers()), secrets: InMemorySecretStore())
+        let model = ReviewSessionModel(dependencies: dependencies, settings: settings)
+        await model.open(url: Fixtures.url("pdf/ay_round_nolinks.pdf"))
+        try #require(model.phase == .ready)
+        return model
+    }
+
     /// A review model on fakes, with `ay_round_nolinks.pdf` open and a stored session holding `comments`.
     @MainActor static func opened(with comments: [ReviewComment], autoAdvance: Bool = true) async throws -> ReviewSessionModel {
         let paper = try makeSamplePaper()
