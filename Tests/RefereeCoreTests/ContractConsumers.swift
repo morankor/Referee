@@ -303,6 +303,9 @@ private func callEveryRequirement(of dependencies: AppDependencies, builder: any
     #expect(ReplyEvent.notice("The PDF was refused.") != ReplyEvent.textDelta("The PDF was refused."))   // Gate 1
     #expect(ReportEvent.notice("The PDF was refused.") != ReportEvent.textDelta("The PDF was refused."))
     #expect(dependencies.engine.lint(reportMarkdown: "A robust effect.").map(\.rule) == ["banned-word"])
+    // Step 5, venues (G.9): a conformer that knows nothing of venues gets the default, its own journal check.
+    #expect(dependencies.engine.lint(reportMarkdown: "A robust effect.", venue: DefaultSettings.venues[3]).map(\.rule) == ["banned-word"])
+    #expect(context.venue == .unspecifiedJournal)
 
     // A.7
     var saved = await dependencies.settings.load()

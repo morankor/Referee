@@ -54,8 +54,10 @@ final class ReplyJob {
 
     private var task: String {
         switch subject {
-        case .discussion(let comment, let message): return PromptBuilder.discussionTask(comment: comment, message: message)
-        case .question(let conversation, let question): return PromptBuilder.questionTask(conversation: conversation, question: question)
+        case .discussion(let comment, let message):
+            return PromptBuilder.discussionTask(comment: comment, message: message, venue: context.venue, meta: context.meta)
+        case .question(let conversation, let question):
+            return PromptBuilder.questionTask(conversation: conversation, question: question, venue: context.venue, meta: context.meta)
         }
     }
 

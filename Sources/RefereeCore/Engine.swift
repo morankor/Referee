@@ -9,10 +9,11 @@ public struct EngineContext: Sendable, Equatable {
     public var rubric: [RubricCategory]
     public var meta: ManuscriptMeta
     public var paperDigest: String?          // ReviewSession.paperDigest; the paper context for replies and the report when the paper does not fit
+    public var venue: VenueProfile           // the paper's venue (AppSettings.venue(id: meta.venueID)); its kind, name and guidance shape every prompt
     public init(provider: ProviderRef, providerSettings: ProviderSettings, model: ModelInfo? = nil, prompts: PromptSet, rubric: [RubricCategory] = [],
-                meta: ManuscriptMeta, paperDigest: String? = nil) {
+                meta: ManuscriptMeta, paperDigest: String? = nil, venue: VenueProfile = .unspecifiedJournal) {
         self.provider = provider; self.providerSettings = providerSettings; self.model = model; self.prompts = prompts; self.rubric = rubric; self.meta = meta
-        self.paperDigest = paperDigest
+        self.paperDigest = paperDigest; self.venue = venue
     }
 }
 
@@ -82,7 +83,15 @@ public protocol ReviewEngineProtocol: Sendable {
     func ask(paper: LoadedPaper, conversation: Conversation, question: String, context: EngineContext) -> AsyncThrowingStream<ReplyEvent, Error>
     func generateReport(paper: LoadedPaper, session: ReviewSession, context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
     /// `draft` is the report being revised: the result is that draft with the new text, its recommendation parsed again
-    /// (the old one kept when the new text names none) and its comment ids and versions as they were.
+    /// (the old one kept when the new text names none) and its comment ids and versions as they were. For a conference
+    /// (`context.venue`) the same holds for `recommendationLabel`, and `recommendation` is nil.
     func reviseVoice(draft: ReportDraft, findings: [LintFinding], context: EngineContext) -> AsyncThrowingStream<ReportEvent, Error>
     func lint(reportMarkdown: String) -> [LintFinding]
+    /// The style check of a report written for `venue`: a conference's report has "Chance of acceptance" where a journal's
+    /// has "Publication probability", and its recommendation is a label of the venue's scale. Default: the journal rules.
+    func lint(reportMarkdown: String, venue: VenueProfile) -> [LintFinding]
+}
+
+extension ReviewEngineProtocol {
+    public func lint(reportMarkdown: String, venue: VenueProfile) -> [LintFinding] { lint(reportMarkdown: reportMarkdown) }
 }

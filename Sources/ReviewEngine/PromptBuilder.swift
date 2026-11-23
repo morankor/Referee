@@ -10,10 +10,21 @@ enum PromptBuilder {
 
     // ---- system prompts ----
 
-    /// `reviewSystem` + rubric block + `FORMAT_REVIEW`.
+    /// `reviewSystem` in the wording of the venue's kind + rubric block + `FORMAT_REVIEW`.
     static func reviewSystem(_ context: EngineContext) -> String {
-        [context.prompts.reviewSystem.trimmingCharacters(in: .whitespacesAndNewlines), rubricBlock(context.rubric), FormatSpec.review]
-            .joined(separator: "\n\n")
+        [venueWording(context.prompts.reviewSystem.trimmingCharacters(in: .whitespacesAndNewlines), kind: context.venue.kind),
+         rubricBlock(context.rubric), FormatSpec.review].joined(separator: "\n\n")
+    }
+
+    /// For a conference, the first occurrence of each journal phrase of `FormatSpec.conferenceWording` becomes its
+    /// conference phrase; a phrase the referee edited away is left alone. A journal's text is returned as it is.
+    static func venueWording(_ text: String, kind: VenueKind) -> String {
+        guard kind == .conference else { return text }
+        var result = text
+        for (journal, conference) in FormatSpec.conferenceWording {
+            if let range = result.range(of: journal) { result.replaceSubrange(range, with: conference) }
+        }
+        return result
     }
 
     /// The enabled categories as `- <id>: <name>. <guidance>`, under the header that tells the model to use those ids.
@@ -43,18 +54,20 @@ enum PromptBuilder {
 
     /// `TASK_REVIEW`, text mode, split at the line `{paper text}`: the introduction with the rendered paper (before the
     /// cache boundary) and the task (after it).
-    static func textModeReview(paper rendered: String, meta: ManuscriptMeta, existingTitles: [String]) -> (paper: String, task: String) {
-        (textIntroduction + trimmingTrailingNewlines(rendered), optionalLines(textModeTask, meta: meta, titles: existingTitles))
+    static func textModeReview(paper rendered: String, meta: ManuscriptMeta, venue: VenueProfile = .unspecifiedJournal,
+                               existingTitles: [String]) -> (paper: String, task: String) {
+        (textIntroduction + trimmingTrailingNewlines(rendered), optionalLines(textModeTask, meta: meta, venue: venue, titles: existingTitles))
     }
 
     /// `TASK_REVIEW`, PDF mode: what follows the `.pdf` part and the cache boundary.
-    static func pdfModeReviewTask(meta: ManuscriptMeta, existingTitles: [String]) -> String {
-        optionalLines(FormatSpec.taskReviewPDF, meta: meta, titles: existingTitles)
+    static func pdfModeReviewTask(meta: ManuscriptMeta, venue: VenueProfile = .unspecifiedJournal, existingTitles: [String]) -> String {
+        optionalLines(FormatSpec.taskReviewPDF, meta: meta, venue: venue, titles: existingTitles)
     }
 
     /// `TASK_PART`: one text with the part inside it. For the first part the notes lines go (FormatSpec's rule for
-    /// `{if i > 1:}`); later parts with no notes say "(none)".
-    static func partTask(part: Int, of count: Int, firstPage: Int, lastPage: Int, notes: String, text: String) -> String {
+    /// `{if i > 1:}`); later parts with no notes say "(none)". The venue lines follow the first paragraph.
+    static func partTask(part: Int, of count: Int, firstPage: Int, lastPage: Int, notes: String, text: String,
+                         venue: VenueProfile = .unspecifiedJournal, meta: ManuscriptMeta = ManuscriptMeta(reviewerNotes: "")) -> String {
         var lines = FormatSpec.taskPart.components(separatedBy: "\n")
         if let marker = lines.firstIndex(of: "{if i > 1:}") {
             if part == 1 {
@@ -66,15 +79,22 @@ enum PromptBuilder {
                 lines.remove(at: marker)
             }
         }
+        let venueText = venueLines(venue, meta: meta, site: .elsewhere).joined(separator: "\n")
+        if venueText.isEmpty, let line = lines.firstIndex(of: venueLine) { lines.remove(at: line) }
         return fill(lines.joined(separator: "\n"), [
             "i": String(part), "n": String(count), "a": String(firstPage), "b": String(lastPage),
-            "notes": notes.isEmpty ? "(none)" : notes, "text of the part": trimmingTrailingNewlines(text),
+            "notes": notes.isEmpty ? "(none)" : notes, "text of the part": trimmingTrailingNewlines(text), "venue": venueText,
         ])
     }
 
-    /// `TASK_WHOLE`.
-    static func wholeTask(notes: String, titles: [String]) -> String {
-        fill(FormatSpec.taskWhole, ["notes": notes.isEmpty ? "(none)" : notes, "titles": titleList(titles) ?? "none"])
+    /// `TASK_WHOLE`, the venue lines after the titles.
+    static func wholeTask(notes: String, titles: [String], venue: VenueProfile = .unspecifiedJournal,
+                          meta: ManuscriptMeta = ManuscriptMeta(reviewerNotes: "")) -> String {
+        var lines = FormatSpec.taskWhole.components(separatedBy: "\n")
+        let venueText = venueLines(venue, meta: meta, site: .elsewhere).joined(separator: "\n")
+        if venueText.isEmpty, let line = lines.firstIndex(of: venueLine) { lines.remove(at: line) }
+        return fill(lines.joined(separator: "\n"), ["notes": notes.isEmpty ? "(none)" : notes, "titles": titleList(titles) ?? "none",
+                                                    "venue": venueText])
     }
 
     /// `TASK_CONTINUE`.
@@ -110,7 +130,10 @@ enum PromptBuilder {
 
     // ---- discussion, question, report, voice revision ----
 
-    static func discussionTask(comment: ReviewComment, message: String) -> String {
+    /// The venue lines and a blank line (none for a venue that adds nothing here), then the comment, the transcript and
+    /// the new message.
+    static func discussionTask(comment: ReviewComment, message: String, venue: VenueProfile = .unspecifiedJournal,
+                               meta: ManuscriptMeta = ManuscriptMeta(reviewerNotes: "")) -> String {
         let location = comment.anchor.locationLabel.isEmpty ? "" : " (location: \(comment.anchor.locationLabel))"
         var lines = ["The comment under discussion\(location):", "kind: \(comment.kind.rawValue) | category: \(comment.category)"]
         if !comment.anchor.quote.isEmpty { lines.append("quote: \(comment.anchor.quote)") }
@@ -120,11 +143,17 @@ enum PromptBuilder {
         var text = lines.joined(separator: "\n")
         let transcript = transcriptLines(comment.thread, droppingTrailing: message)
         if !transcript.isEmpty { text += "\n\nDiscussion so far:\n" + transcript.joined(separator: "\n") }
-        return text + "\n\nReferee: " + message
+        let venueText = venueLines(venue, meta: meta, site: .elsewhere).joined(separator: "\n")
+        return (venueText.isEmpty ? "" : venueText + "\n\n") + text + "\n\nReferee: " + message
     }
 
-    static func questionTask(conversation: Conversation, question: String) -> String {
+    /// The venue lines (none for a venue that adds nothing here), the selected passage, the transcript and the question,
+    /// a blank line between each.
+    static func questionTask(conversation: Conversation, question: String, venue: VenueProfile = .unspecifiedJournal,
+                             meta: ManuscriptMeta = ManuscriptMeta(reviewerNotes: "")) -> String {
         var sections: [String] = []
+        let venueText = venueLines(venue, meta: meta, site: .elsewhere).joined(separator: "\n")
+        if !venueText.isEmpty { sections.append(venueText) }
         if let anchor = conversation.anchor, !anchor.quote.isEmpty {
             let location = anchor.locationLabel.isEmpty ? "" : " (\(anchor.locationLabel))"
             sections.append("Selected passage\(location): «\(anchor.quote)»")
@@ -135,9 +164,10 @@ enum PromptBuilder {
         return sections.joined(separator: "\n\n")
     }
 
-    /// The report's user turn (Appendix B.4), with the approved comments already in order.
-    static func reportTask(comments: [ReviewComment], meta: ManuscriptMeta, template: String) -> String {
-        let venue = meta.targetVenue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    /// The report's user turn (Appendix B.4), with the approved comments already in order: the venue lines, the
+    /// reviewer's notes, the comments, the template.
+    static func reportTask(comments: [ReviewComment], meta: ManuscriptMeta, template: String, venue: VenueProfile = .unspecifiedJournal) -> String {
+        let venueText = venueLines(venue, meta: meta, site: .report).joined(separator: "\n")
         let notes = meta.reviewerNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         var counters: [CommentKind: Int] = [:]
         let blocks = comments.map { comment -> String in
@@ -151,7 +181,7 @@ enum PromptBuilder {
             if let suggestion = comment.suggestion, !suggestion.isEmpty { lines.append("suggestion: \(suggestion)") }
             return lines.joined(separator: "\n")
         }
-        return "Target journal: \(venue.isEmpty ? "not specified" : venue)\nReviewer's notes: \(notes.isEmpty ? "none" : notes)\n\n"
+        return (venueText.isEmpty ? "" : venueText + "\n") + "Reviewer's notes: \(notes.isEmpty ? "none" : notes)\n\n"
             + "Approved comments:\n" + blocks.joined(separator: "\n\n") + "\n\nTemplate:\n" + template
     }
 
@@ -195,18 +225,20 @@ enum PromptBuilder {
     static var textIntroduction: String { textModeParts.introduction }
     private static var textModeTask: String { textModeParts.task }
 
-    /// The three optional lines of the review tasks: each becomes its text with the value after the first colon, or
-    /// goes, with its line break, when there is nothing to say.
-    static func optionalLines(_ template: String, meta: ManuscriptMeta, titles: [String]) -> String {
+    /// The optional lines and the venue line of the review tasks: an optional line becomes its text with the value after
+    /// the first colon, the venue line the venue lines; either goes, with its line break, when there is nothing to say.
+    static func optionalLines(_ template: String, meta: ManuscriptMeta, venue: VenueProfile = .unspecifiedJournal, titles: [String]) -> String {
         let notes = meta.reviewerNotes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let venue = meta.targetVenue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let values: [String: String?] = [
             "Reviewer's notes": notes.isEmpty ? nil : notes,
-            "Target journal": venue.isEmpty ? nil : venue,
             "Comments already made, do not repeat them": titleList(titles),
         ]
         var lines: [String] = []
         for line in template.components(separatedBy: "\n") {
+            if line == venueLine {
+                lines += venueLines(venue, meta: meta, site: .reviewTask)
+                continue
+            }
             guard line.hasPrefix("{"), line.hasSuffix("}"), let colon = line.firstIndex(of: ":") else {
                 lines.append(line)
                 continue
@@ -219,6 +251,54 @@ enum PromptBuilder {
             if let value { lines.append("\(key): \(value)") }
         }
         return lines.joined(separator: "\n")
+    }
+
+    // ---- venues (FormatSpec's rule for `{venue}`) ----
+
+    /// The line of the task texts that the venue lines replace.
+    static let venueLine = "{venue}"
+
+    /// Where the venue lines go: the one-pass review task, the report's request, or any other task (the parts, the
+    /// whole-paper pass, discussions and questions).
+    enum VenueSite { case reviewTask, report, elsewhere }
+
+    /// The lines of `FormatSpec.venue` whose every placeholder has a value, filled in. Journal (unspecified) names the
+    /// paper's target venue only where the prompts named it before venues: in the one-pass review task when there is
+    /// one, and in the report, "not specified" when there is none.
+    static func venueLines(_ venue: VenueProfile, meta: ManuscriptMeta, site: VenueSite) -> [String] {
+        let typed = meta.targetVenue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var values = ["kind": venue.kind.rawValue]
+        if venue.isUnspecified && venue.kind == .journal {
+            switch site {
+            case .reviewTask: if !typed.isEmpty { values["name"] = typed }
+            case .report: values["name"] = typed.isEmpty ? "not specified" : typed
+            case .elsewhere: break
+            }
+        } else {
+            let name = venue.isUnspecified ? typed : venue.displayName
+            values["name"] = name.isEmpty ? "not specified" : name
+        }
+        let guidance = venue.guidance.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !guidance.isEmpty { values["guidance"] = guidance }
+        if site == .report {
+            if venue.kind == .conference { values["scale"] = venue.scale.joined(separator: "; ") }
+            let instructions = venue.reportInstructions?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !instructions.isEmpty { values["report instructions"] = instructions }
+        }
+        return FormatSpec.venue.components(separatedBy: "\n").compactMap { line in
+            placeholders(in: line).allSatisfy { values[$0] != nil } ? fill(line, values) : nil
+        }
+    }
+
+    /// The names of the `{name}` placeholders of a line.
+    static func placeholders(in line: String) -> [String] {
+        var names: [String] = []
+        var rest = line[...]
+        while let open = rest.firstIndex(of: "{"), let close = rest[open...].firstIndex(of: "}") {
+            names.append(String(rest[rest.index(after: open)..<close]))
+            rest = rest[rest.index(after: close)...]
+        }
+        return names
     }
 
     /// Replaces each `{name}` of `values` in one pass, so that a value which itself contains braces (notes copied by a

@@ -53,10 +53,12 @@ import RefereeCore
         #expect(FormatSpec.revision.contains("@@WITHDRAW"))
         #expect(!FormatSpec.revision.contains("{"))
 
-        // The optional lines close both review tasks; the paper's place is marked in text mode only.
-        let optionalLines = "\n{Reviewer's notes: …}\n{Target journal: …}\n{Comments already made, do not repeat them: title; title; …}"
+        // The optional lines and the venue line (where "{Target journal: …}" stood before venues, Appendix G.9) close both
+        // review tasks; the paper's place is marked in text mode only.
+        let optionalLines = "\n{Reviewer's notes: …}\n{venue}\n{Comments already made, do not repeat them: title; title; …}"
         #expect(FormatSpec.taskReviewText.hasSuffix(optionalLines))
         #expect(FormatSpec.taskReviewPDF.hasSuffix(optionalLines))
+        #expect(!FormatSpec.taskReviewText.contains("Target journal"))
         #expect(FormatSpec.taskReviewText.contains("\n{paper text}\nWrite your referee comments on this manuscript in the required format.\n"))
         #expect(FormatSpec.taskReviewText.contains("Extraction leaves artefacts"))
         #expect(FormatSpec.taskReviewPDF.hasPrefix("The manuscript is the attached PDF."))
@@ -66,11 +68,22 @@ import RefereeCore
             #expect(FormatSpec.taskPart.contains(piece))
         }
         #expect(FormatSpec.taskWhole.contains("\n{notes}\n"))
-        #expect(FormatSpec.taskWhole.contains("Comments you already made: {titles}\n"))
+        #expect(FormatSpec.taskWhole.contains("Comments you already made: {titles}\n{venue}\n\n"))
+        #expect(FormatSpec.taskPart.contains("do not comment on them.\n{venue}\n\n{if i > 1:}\n"))
         #expect(FormatSpec.taskContinue.contains("(do not repeat them): {titles}\n"))
+        #expect(!FormatSpec.taskContinue.contains("{venue}"))
+
+        // The venue lines: one line per value, each kept only when its value is set.
+        #expect(FormatSpec.venue.components(separatedBy: "\n") == [
+            "Target {kind}: {name}", "What a review for this {kind} should weigh: {guidance}",
+            "Recommendation scale, most favourable first: {scale}", "Instructions for this report: {report instructions}",
+        ])
+        #expect(FormatSpec.conferenceWording.map(\.journal) == ["for a serious academic journal", "to help the editor decide"])
+        let reviewSystem = DefaultSettings.make().prompts.reviewSystem
+        #expect(FormatSpec.conferenceWording.allSatisfy { reviewSystem.components(separatedBy: $0.journal).count == 2 })   // once each
 
         let all = [FormatSpec.review, FormatSpec.revision, FormatSpec.taskReviewText, FormatSpec.taskReviewPDF, FormatSpec.taskPart,
-                   FormatSpec.taskWhole, FormatSpec.taskContinue]
+                   FormatSpec.taskWhole, FormatSpec.taskContinue, FormatSpec.venue]
         #expect(all.allSatisfy { !$0.hasSuffix("\n") && !$0.hasPrefix("\n") && !$0.contains("←") })
     }
 

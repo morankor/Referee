@@ -4,10 +4,11 @@ import RefereeCore
 /// The report (plan.md section 6.10) and the voice revision (Appendix B.5): `.started`, the text as `.textDelta`s,
 /// then `.finished(draft, run:)`; a `.notice` before a restart with text when the provider refused the PDF.
 ///
-/// On success the draft is the model's Markdown (an outer code fence removed) with the recommendation parsed from it.
-/// `versions` is the previous draft's history as it stands: the model pushes the old draft (section WP8b), so the engine
-/// does not. A revised draft keeps the revised one's comment ids and versions, and its recommendation when the new
-/// text names none. On a failure or a cancellation the draft is the one the job started from (the session's report,
+/// On success the draft is the model's Markdown (an outer code fence removed) with the recommendation parsed from it:
+/// for a conference (`context.venue`) a label of its scale, in `recommendationLabel`. The system prompt and the template
+/// are the ones of the venue's kind. `versions` is the previous draft's history as it stands: the model pushes the old
+/// draft (section WP8b), so the engine does not. A revised draft keeps the revised one's comment ids and versions, and
+/// its recommendation (or label) when the new text names none. On a failure or a cancellation the draft is the one the job started from (the session's report,
 /// or the draft given for revision), so a caller that stores it loses nothing; the run says what happened.
 final class ReportJob {
     enum Kind {
@@ -63,7 +64,8 @@ final class ReportJob {
                 guard let paper else { return finish(unchanged, .failed(Self.emptyAnswer)) }
                 let paperContext = PaperContext(paper: paper, context: context, descriptor: provider.descriptor, anchorPage: nil, job: .report,
                                                 dependencies: dependencies, forceText: forceText)
-                let task = PromptBuilder.reportTask(comments: approved, meta: session.meta, template: context.prompts.reportTemplate)
+                let task = PromptBuilder.reportTask(comments: approved, meta: session.meta, template: context.prompts.reportTemplate(for: context.venue.kind),
+                                                    venue: context.venue)
                 built = (paperContext.parts + [.cacheBoundary, .text(paperContext.taskPrefix + task)], paperContext.budget, paperContext.sendsPDF)
             case .voiceRevision(let draft, let findings):
                 let budget = TokenBudget(descriptor: provider.descriptor, settings: context.providerSettings, model: context.model, job: .report,
@@ -106,19 +108,27 @@ final class ReportJob {
 
     private var system: String {
         switch kind {
-        case .report: return context.prompts.reportSystem.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .report: return context.prompts.reportSystem(for: context.venue.kind).trimmingCharacters(in: .whitespacesAndNewlines)
         case .voiceRevision: return context.prompts.voiceRevisionSystem.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }
 
+    /// A journal's report gets `recommendation`; a conference's gets `recommendationLabel`, a label of the venue's scale,
+    /// and no `recommendation` (plan.md Appendix G.9). A revision keeps the old one when the new text names none.
     private func draft(_ markdown: String, approved: [ReviewComment]) -> ReportDraft {
+        let venue = context.venue
+        let conference = venue.kind == .conference
         switch kind {
         case .report(let session):
-            return ReportDraft(markdown: markdown, recommendation: ReportStructure.recommendation(in: markdown), generatedAt: Date(),
-                               provider: context.provider, basedOnCommentIDs: approved.map(\.id), userEdited: false,
+            return ReportDraft(markdown: markdown, recommendation: conference ? nil : ReportStructure.recommendation(in: markdown),
+                               recommendationLabel: conference ? ReportStructure.recommendationLabel(in: markdown, venue: venue) : nil,
+                               generatedAt: Date(), provider: context.provider, basedOnCommentIDs: approved.map(\.id), userEdited: false,
                                versions: session.report?.versions ?? [])
         case .voiceRevision(let revised, _):
-            return ReportDraft(markdown: markdown, recommendation: ReportStructure.recommendation(in: markdown) ?? revised.recommendation,
+            return ReportDraft(markdown: markdown,
+                               recommendation: conference ? nil : ReportStructure.recommendation(in: markdown) ?? revised.recommendation,
+                               recommendationLabel: conference ? ReportStructure.recommendationLabel(in: markdown, venue: venue) ?? revised.recommendationLabel
+                                   : revised.recommendationLabel,
                                generatedAt: Date(), provider: context.provider, basedOnCommentIDs: revised.basedOnCommentIDs, userEdited: false,
                                versions: revised.versions)
         }
