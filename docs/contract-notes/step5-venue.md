@@ -189,3 +189,73 @@ Final run at commit `0e22954`, after `rm -rf .build`, so that "no warning" cover
 Before that, at commit `86ca46f` (the same code but for the access level of two `DefaultSettings` constants): `scripts/build.sh` after `rm -rf .build` (`Build complete! (42.18s)`, no warning), `scripts/test.sh` (`test.sh: OK (1029 tests)`) and `scripts/e2e-ollama.sh` (`e2e-ollama.sh: OK (gemma4:e4b on ay_round_nolinks.pdf: 11 comments, 11 anchored, 1 requests, 92 s)`). During the work: `scripts/test.sh --filter 'RefereeCoreTests|ReviewEngineTests|AppCoreTests|PersistenceTests'` (`test.sh: OK (400 tests)`) and `scripts/test.sh --filter Venue` (`test.sh: OK (41 tests)`).
 
 No tracked file holds a home-directory path, a login name or an email address, and `Sources/` has no `#file`, `#filePath`, `fatalError`, `precondition`, `preconditionFailure` or `assertionFailure` (checked by hand and by `IntegrationTreeTests` in the full run). No network request went anywhere but the local Ollama server: the 16-token prompt of `scripts/test.sh` and the two runs of `scripts/e2e-ollama.sh`. No AI command-line tool or paid API was used, nothing was installed, the screen was never driven, and the app ran only in its `--ui-snapshot` mode.
+
+## Phase 2: the merge into `main` and the venue UI
+
+The coordinator's second brief: merge `s5/venue` into `main` and build the venue UI, working alone on `main`. Commits: the merge `2e6fa8f`, then `27c3abe` (the UI, its tests and the docs). The plan's record is the last rows of Appendix G.9.
+
+### The merge
+
+- `git merge --no-ff s5/venue` on `main` at `72c096c`. Only `plan.md` conflicted, in three places: §9.8 (`main`'s text kept, then rewritten in this phase), A.9 (both sides: `usesCustomProviders`, then the venue members) and Appendix G (step 5c's table, then G.9). `ReviewSessionModel.swift`, `Session.swift` and `ReplyJob.swift` merged on their own with both sides kept.
+- The A.4 block was copied again from `Session.swift`: one comment had drifted on `main` since step 5c ("(section 6.6, step 5c)" against the file's "(plan.md section 6.6, step 5c)"). Appendix A was then 8 of 8 identical.
+- After the merge, `scripts/build.sh` had no warning (`Build complete! (11.06s)`). `scripts/test.sh` ran 1150 tests in 150 suites with two failures, both timing tests outside the venue code, run while other agents were building (load average near 37): `LLMKitCancellationTests.cancellingTheConsumerCancelsTheRequestAndEndsTheStream` and `StubURLProtocolTests.cancellingTheConsumerStopsADelayedDelivery`. Run alone they passed (`test.sh: OK (14 tests)`).
+
+### The UI as built
+
+- **The toolbar's venue control** (`ShellVenueControl.swift`), in the principal item beside the destination indicator: the kind's symbol (`Theme.venueSymbol`: `book.closed`, `person.3`), the short name ("Journal", "JET", "EC"; else the full name, else "Venue") and a chevron, at most 120 pt wide. Its tooltip gives the full name and what the venue does; without a paper it is disabled. `ShellVenueState` derives all of it and is unit-tested.
+- **The venue menu**, drawn in the window under the toolbar like the destination menu: "Review this paper for", the caption "The venue decides what the review weighs and how the report is written.", "Journals" then "Conferences" in Settings' order, each row a check mark, the symbol, the full name and the short name at the trailing edge; choosing a row calls `setVenue(id:)`. "Edit Venues…" opens Settings ▸ Venues on the paper's venue. At most one of the two toolbar menus is open; Esc (the window's key monitor), a click outside or a consent card closes it.
+- **Settings ▸ Venues** (`ShellSettingsVenues.swift`), a tab after Prompts: the list with "Built in" and "Default" tags; "+" (Add Journal, Add Conference), Duplicate, "−" (not for a built-in; asks first), up and down arrows, and dragging. The editor: "Default for New Papers"; "Reset…" for a built-in (asks first; disabled while it is as shipped); Short name, Kind, Full name; "What a review for it weighs" with the note that the venue's guidelines for reviewers can be pasted there; for a conference the scale, one field per label with up, down and remove, "Add Label" and "Use Default Scale", under the caption "The labels of the venue's review form, most favourable first. The default scale is a stand-in: replace it with the scale of the venue's real review form."; and "Report instructions". Orange warnings name what the venue loses where it is used (no name; a blank, repeated or lone label; an empty scale).
+- **Settings ▸ Prompts**: "Conference report" and "Conference template" under "For a conference", each with its own "Reset" (disabled while the text is the default).
+- **The Report tab**: in "Venue and notes" the venue row (symbol, display name, kind, "Change…") replaces the free-text target venue field; the disclosure's title carries the short name, which stays in view when it is folded. The recommendation picker runs on the venue's scale (`recommendationScale`, `recommendationLabel`, `setRecommendation(label:)` for a conference); the mismatch warning uses `VenueProfile.recommendationMismatch(label:majorConcerns:)`. "Chance of acceptance" goes with the committee's copy, titled "Copy Confidential Comments to the Program Committee", and never with the authors'.
+
+### Decisions
+
+1. **The menu is drawn in the window, not a native `Menu`.** The snapshot mode cannot capture a native menu (a child window, plan §10.1), and the destination menu already sets the pattern; Esc goes through the window's key monitor.
+2. **The control sits in the principal item with the indicator and is at most 120 pt wide**, so that at 1,000 × 640 nothing of Review, Report or the sidebar toggle goes into the overflow (D3). `ShellSceneSupport.toolbarFits` compares `NSToolbar.visibleItems` with `items`; `design-venue-menu` and `design-review-long-names` run it. A mutation proved the check: with the control forced to 420 pt it reported Navigator, Review, Report and Sidebar in the overflow.
+3. **"Change…" reaches the menu through a new `UIActions.chooseVenue`.** A pane never reaches into the Shell (§9.1). Each review window sets the closure on top of the app's actions (`ReviewWindowView.windowActions`), so the action opens that window's own menu; the default does nothing, as for every other action.
+4. **Every edit in Settings ▸ Venues re-reads the venue from the model before `updateVenue(_:)`**, so two fields that hand on their text in turn never overwrite each other. Fields hand on at Return or when they lose the keyboard, text editors half a second after the last keystroke, as in Settings ▸ Prompts.
+5. **A journal turned into a conference with a blank scale gets the default scale**; a conference turned into a journal keeps its labels, unused, so switching back loses nothing.
+6. **The editor's scale warnings mirror `VenueProfile.scale`**, which drops blank and repeated labels and falls back to the default scale when none is left, and add one rule of their own: a single label leaves nothing to choose.
+7. **A target typed before venues is named on screen.** Phase 1 kept sending an old session's free text on an unspecified venue ("Target journal: …"), and the field that showed it is gone. The Report tab now reads "Journal, named “JET” in the prompts", and the control's tooltip "Journal (unspecified), with “JET” named as the target: …", until a venue is chosen. The same holds for a paper whose venue was deleted.
+8. **`reloadSettings(_:)` lints the open report again when the paper's venue changed with the settings.** This settles contract problem 3 above: an edit of the venue's kind or scale in Settings ▸ Venues updates the style check at once. A change that leaves the paper's venue as it was runs nothing.
+
+The core's three contract problems (above) are settled: the surface checks name every new member (1); the Report tab no longer writes free text into `meta.targetVenue`, and its picker sets the field of the venue's kind (2); and decision 8 (3).
+
+### Known limits
+
+- The venue menu has no arrow keys (the destination menu has ↑, ↓ and Return): a click chooses and Esc closes.
+- The consent card still says "Check the journal's policy on AI tools before sending a manuscript under review." for a paper reviewed for a conference.
+- **For the rename to "Human in the Loop"**, three new strings name the app: `ShellSettingsVenues.swift`, "Its names, kind, guidance, report instructions and scale go back to those Referee came with." and the help "Put back this venue as Referee came with it"; `ShellSettingsPrompts.swift`, the help "Put back the text Referee came with". The README's venue sections name it too.
+
+### Tests
+
+28 new tests: `ShellVenueControlTests` (11: the control's states and tooltips, no paper, fallback titles, a typed target, the menu's groups and rows, choosing a venue through a model, a new paper on the default venue, "Edit Venues…", at most one menu, `windowActions`), `ShellVenueEditorTests` (8: the tab, the list's rows, the name and scale checks, a change of kind, the scale edits, an edit and a reset through `SettingsModel`, the Prompts conference texts), `SidebarReportVenueTests` (6: the venue lines, a typed target, the mismatch on a conference's scale, the two copies and their titles, the picker through the model), one each in `ShellScenesTests` and `SidebarScenesTests` (the new scenes exist), and `ReviewSessionModelVenueTests.anEditOfThePapersVenueInSettingsChecksTheReportAgain`. `Tests/IntegrationTests/SurfaceCheck.swift` and `Tests/RefereeUITests/Common/CommonSurfaceCheck.swift` now name every public member venues added (contract problem 1 above), and the first switches over `VenueKind`.
+
+### Scenes
+
+- `design-venue-menu` (new, Shell): `ay_round_nolinks.pdf` on EC with the venue menu open; EC checked, its full name whole; `verify`: the menu open and the destination menu closed, the control "EC" with `person.3`, the groups, the toolbar without overflow.
+- `settings-venues` (new, Shell): Settings ▸ Venues on EC; the five labels of its stand-in scale, "Add Label" and "Use Default Scale" visible in 780 × 560.
+- `design-report-conference` (new, Sidebar): the Report tab of an EC paper (`Fixtures/sessions/design-sidebar-conference.json`), "Venue and notes EC", "Weak reject" on the scale, "Chance of acceptance", a clean style check; `verify`: the label, no journal recommendation, no finding, the committee's copy with the chance and the authors' without.
+- `design-review-long-names` (changed `verify`): the control reads "Journal" and is enabled; the toolbar has no overflow at 1,000 × 640.
+- Every review scene's toolbar now shows the venue control, the Report tab scenes show the venue row, and `settings-prompts` shows the "For a conference" section. The pictures looked at: the three new scenes in light, `--dark` and at 1,000 × 640, `design-review-long-names` at 1,000 × 640 and `settings-prompts`.
+
+### Acceptance
+
+Run at commit `27c3abe`, after `rm -rf .build`, so that "no warning" covers every file. This notes file, one README sentence and one wording of plan §9.8 were committed after these runs; no code changed.
+
+| Command | Result | Final line |
+| --- | --- | --- |
+| `scripts/build.sh` | exit 0; no line with "warning:" or "error:" | `Build complete! (43.40s)` |
+| `scripts/test.sh` | exit 0; no warning; 1178 tests in 153 suites (1150 after the merge, 28 new). Four skipped visibly: the real Keychain, the CLI smoke prompt, the delivery experiment and the live reference services; the two tests of `Fixtures/private` ran, since the main checkout has it. `LLMKitLiveOllamaTests` ran, with its one 16-token prompt to the local Ollama server, and passed | `test.sh: OK (1178 tests)` |
+| `scripts/snapshots.sh` (every scene) | exit 0; 60 scenes, each `"nonBlank":true,"failures":[]` | `…/welcome.png` (the script lists the PNGs) |
+| `scripts/snapshots.sh --dark` | exit 0; 60 scenes, each clean | `…/welcome.png` |
+| `scripts/snapshots.sh --size 1000x640` | exit 0; 60 scenes, each clean; no window grew, and the two scenes that check it found no toolbar item in the overflow | `…/welcome.png` |
+| `scripts/e2e-ollama.sh` (the default model) | exit 0. The plan was one request; the model's answer was cut off twice and continued (§6.5), hence three | `e2e-ollama.sh: OK (gemma4:e4b on ay_round_nolinks.pdf: 21 comments, 21 anchored, 3 requests, 214 s, reported model gemma4:e4b)` |
+| `scripts/bundle.sh && codesign --verify build/Referee.app` (with this commit's README, which the bundle carries) | exit 0 both; the script's own check printed "valid on disk" and "satisfies its Designated Requirement"; `codesign --verify` printed nothing | `Built build/Referee.app` |
+| Appendix A.1–A.8 against `Sources/RefereeCore/` (the script of phase 1, `cmp`) | identical | `8 of 8 identical` |
+| Appendix B against the prompt constants (a temporary test, not committed, as in phase 1) | identical, and no constant changed since phase 1 | `19 of 19 identical` |
+| `git status --porcelain \| wc -l` | after the last commit | `0` |
+
+During the work: `scripts/test.sh --filter 'ShellVenue|SidebarReportVenue|SidebarHosting|SidebarReport|ShellScenes|SidebarScenes'` (`test.sh: OK (69 tests)`) and `scripts/test.sh --filter 'ReviewSessionModelVenueTests|ReviewSessionModelProviderTests|ReviewSessionModelOpenTests'` (`test.sh: OK (37 tests)`). Every sweep was also run before the last changes of wording (60 scenes, clean in light, dark and at 1,000 × 640).
+
+No tracked file holds a home-directory path, a login name or an email address, and no file changed here put a `#file`, `#filePath`, `fatalError` or any of the `precondition` family into `Sources/` (checked by hand and by `IntegrationTreeTests` in the full run). No network request went anywhere but the local Ollama server: the 16-token prompt of `scripts/test.sh` and the run of `scripts/e2e-ollama.sh`. No AI command-line tool or paid API was used, nothing was installed, the screen was never driven, the app ran only in its `--ui-snapshot` mode, and no Referee process was signalled. `s5/brand` was not merged.

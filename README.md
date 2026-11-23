@@ -116,7 +116,7 @@ The toolbar shows the paper's venue next to the destination indicator: its short
 
 A new paper starts on the default venue of Settings ▸ Venues. The venue is saved with the paper. Changing it keeps the comments, discussions and report as they are: what you ask the model from then on is asked for the new venue, and a report already written stays as it is until you generate it again.
 
-A paper reviewed before Referee had venues is on Journal (unspecified), and the target journal you typed for it is still named in its prompts. The Report tab says so ("Journal, named “JET” in the prompts") until you choose a venue.
+A paper reviewed before Referee had venues is on Journal (unspecified). If you typed a target journal for it, its prompts still name that journal, and the Report tab says so ("Journal, named “JET” in the prompts") until you choose a venue.
 
 ### What a venue changes
 
