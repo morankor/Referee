@@ -192,8 +192,8 @@ import AppCore
     /// Review, Review Again and ⌘R. A second review that would go to a provider not on this Mac first asks, in a sheet,
     /// with the tokens and the destination of the plan (D20): it costs the same again. A local provider does not ask.
     func requestReview() {
-        guard model.canStartReview else { return }
-        guard let question = ShellReviewButton.reviewAgainQuestion(model), let window, window.attachedSheet == nil else {
+        guard model.canStartReview, let window, window.attachedSheet == nil else { return }
+        guard let question = ShellReviewButton.reviewAgainQuestion(model) else {
             model.startReview()
             return
         }

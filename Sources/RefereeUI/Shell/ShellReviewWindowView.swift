@@ -43,6 +43,7 @@ public struct ReviewWindowView: View {
                 if windowState.destinationMenuOpen {
                     ShellDestinationMenu(model: model, windowState: windowState, services: services)
                         .padding(.top, 6)
+                        .padding(.bottom, 12)                  // a menu taller than the window scrolls, and its end stays in view
                         .transition(.opacity)
                 }
             }

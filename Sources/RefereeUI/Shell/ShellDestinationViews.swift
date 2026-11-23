@@ -104,7 +104,12 @@ struct ShellDestinationMenu: View {
     var body: some View {
         ViewThatFits(in: .vertical) {
             content
-            ScrollView { content }                              // a short window: the menu scrolls instead of being cut off
+            ScrollViewReader { proxy in                         // a short window: the menu scrolls instead of being cut off
+                ScrollView { content }
+                    .onChange(of: highlighted) { _, row in
+                        if let row { withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(row) } }
+                    }
+            }
         }
         .padding(.vertical, 8)
         .frame(minWidth: 0, maxWidth: 420)                     // narrower than 420 in a narrow column, never clipped
@@ -122,7 +127,6 @@ struct ShellDestinationMenu: View {
         .onKeyPress(.return) { chooseHighlighted() }
         .onAppear {
             expanded = model.activeProvider?.id
-            highlighted = model.activeProvider.map { .provider($0.id) }
             focused = true
             model.refreshActiveAvailability()
         }
@@ -264,6 +268,7 @@ struct ShellDestinationMenu: View {
                 .padding(.bottom, 4)
             }
         }
+        .id(ShellMenuRowID.provider(provider.id))
     }
 
     /// The models of a provider, under its row: "Default model (…)", then its listed models, at most eight, the one in
@@ -293,6 +298,7 @@ struct ShellDestinationMenu: View {
             }
             .buttonStyle(ShellMenuRowButtonStyle(highlighted: highlighted == .model(choice.ref), compact: true))
             .accessibilityAddTraits(current == choice.ref ? .isSelected : [])
+            .id(ShellMenuRowID.model(choice.ref))
         }
         if let row = menu.settingsRow {
             Button {
@@ -337,13 +343,18 @@ struct ShellDestinationMenu: View {
         }
     }
 
-    /// ↑ and ↓ (D24): the highlight moves over the rows, from the chosen provider, and stops at either end.
+    /// ↑ and ↓ (D24): the first press puts the highlight on the chosen provider (as a menu opened by a click shows
+    /// none until a key is pressed); then it moves over the rows and stops at either end.
     private func moveHighlight(by step: Int) -> KeyPress.Result {
         let rows = Self.keyboardRows(providers: model.selectableProviders, expanded: expanded, settings: model.settings,
                                      current: Self.appliedRef(model))
         guard !rows.isEmpty else { return .ignored }
-        let start = highlighted.flatMap { rows.firstIndex(of: $0) } ?? (step > 0 ? -1 : rows.count)
-        highlighted = rows[min(max(start + step, 0), rows.count - 1)]
+        guard let current = highlighted, let position = rows.firstIndex(of: current) else {
+            let chosen = model.activeProvider.map { ShellMenuRowID.provider($0.id) }
+            highlighted = chosen.flatMap { rows.contains($0) ? $0 : nil } ?? (step > 0 ? rows.first : rows.last)
+            return .handled
+        }
+        highlighted = rows[min(max(position + step, 0), rows.count - 1)]
         return .handled
     }
 
