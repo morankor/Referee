@@ -70,6 +70,12 @@ import AppCore
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
         }
+        // The frame is kept for the next time; the name is let go now, so that the document can be opened again in a new
+        // window while this one's model is still closing.
+        if let window, !window.frameAutosaveName.isEmpty {
+            window.saveFrame(usingName: window.frameAutosaveName)
+            window.setFrameAutosaveName("")
+        }
         manager?.reviewWindowWillClose(self)
     }
 
@@ -97,8 +103,18 @@ import AppCore
             return true
         }
         guard let intent else { return false }
-        TriageKeymap.apply(intent, to: model)
+        perform(intent)
         return true
+    }
+
+    /// An intent, from a key or from the menu. The thread, the editor and a new comment live in the sidebar, which
+    /// opens for them if it is hidden.
+    private func perform(_ intent: TriageIntent) {
+        TriageKeymap.apply(intent, to: model)
+        switch intent {
+        case .discuss, .edit, .newComment: windowState.showSidebar = true
+        default: break
+        }
     }
 
     /// A text view or a field editor has the keyboard.
@@ -150,13 +166,13 @@ import AppCore
         show(.report)
     }
 
-    @objc func shellApprove(_ sender: Any?) { TriageKeymap.apply(.approve, to: model) }
-    @objc func shellReject(_ sender: Any?) { TriageKeymap.apply(.reject, to: model) }
-    @objc func shellDiscuss(_ sender: Any?) { TriageKeymap.apply(.discuss, to: model); windowState.showSidebar = true }
-    @objc func shellEditComment(_ sender: Any?) { TriageKeymap.apply(.edit, to: model); windowState.showSidebar = true }
-    @objc func shellNextComment(_ sender: Any?) { TriageKeymap.apply(.next, to: model) }
-    @objc func shellPreviousComment(_ sender: Any?) { TriageKeymap.apply(.previous, to: model) }
-    @objc func shellNewComment(_ sender: Any?) { TriageKeymap.apply(.newComment, to: model); windowState.showSidebar = true }
+    @objc func shellApprove(_ sender: Any?) { perform(.approve) }
+    @objc func shellReject(_ sender: Any?) { perform(.reject) }
+    @objc func shellDiscuss(_ sender: Any?) { perform(.discuss) }
+    @objc func shellEditComment(_ sender: Any?) { perform(.edit) }
+    @objc func shellNextComment(_ sender: Any?) { perform(.next) }
+    @objc func shellPreviousComment(_ sender: Any?) { perform(.previous) }
+    @objc func shellNewComment(_ sender: Any?) { perform(.newComment) }
 
     /// File ▸ Export Report…: a save panel with the four formats of section 6.10.
     @objc func shellExportReport(_ sender: Any?) {
@@ -208,11 +224,16 @@ import AppCore
 
     // ---- enabling the menu items ----
 
+    /// While a sheet is over the window (the export panel, the delete confirmation) only the view commands work: a
+    /// second sheet, a review behind a pending deletion or a key taken from the sheet's text field must not happen.
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         let blocked = model.consentRequest != nil
         let ready = model.phase == .ready && model.session != nil
         let triage = ready && !blocked && keysReachTriage
         let reviewLaneRunning: Bool = { if case .running = model.runState { return true } else { return false } }()
+        let viewCommands: Set<Selector> = [#selector(shellToggleNavigator(_:)), #selector(shellToggleSidebar(_:)),
+                                           #selector(shellShowComments(_:)), #selector(shellShowChat(_:)), #selector(shellShowReport(_:))]
+        if window?.attachedSheet != nil, let action = item.action, !viewCommands.contains(action) { return false }
         switch item.action {
         case #selector(shellFind(_:)), #selector(shellFindNext(_:)), #selector(shellFindPrevious(_:)),
              #selector(shellZoomIn(_:)), #selector(shellZoomOut(_:)), #selector(shellFitWidth(_:)):

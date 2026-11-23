@@ -45,15 +45,39 @@ import TestSupport
     }
 
     @Test func otherKeysHaveNoIntent() {
-        for characters in ["b", "z", "5", "0", " ", "?", "jj", ""] {
+        for characters in ["b", "z", "5", "0", " ", "?", "jj", "", "ב"] {
             #expect(TriageKeymap.intent(characters: characters, keyCode: 11, modifiers: []) == nil, "\(characters)")
         }
     }
 
-    /// The layout decides the letter: on a keyboard where the key with code 0 types "q", it is not Approve.
-    @Test func lettersFollowTheLayoutNotTheKeyCode() {
+    /// A Latin layout decides the letter: on AZERTY the key with code 0 types "q", so it is not Approve, and the key
+    /// that types "a" is.
+    @Test func latinLettersFollowTheLayoutNotTheKeyCode() {
         #expect(TriageKeymap.intent(characters: "q", keyCode: 0, modifiers: []) == nil)
         #expect(TriageKeymap.intent(characters: "a", keyCode: 12, modifiers: []) == .approve)
+        #expect(TriageKeymap.intent(characters: "j", keyCode: 8, modifiers: []) == .next)          // Dvorak and the like
+    }
+
+    /// With a Hebrew, Russian or Greek input source the keys type other letters; their places on a US keyboard decide.
+    @Test func lettersOfOtherScriptsCountByTheirKey() {
+        #expect(TriageKeymap.intent(characters: "ח", keyCode: 38, modifiers: []) == .next)         // Hebrew: J's key
+        #expect(TriageKeymap.intent(characters: "ל", keyCode: 40, modifiers: []) == .previous)     // Hebrew: K's key
+        #expect(TriageKeymap.intent(characters: "ש", keyCode: 0, modifiers: []) == .approve)       // Hebrew: A's key
+        #expect(TriageKeymap.intent(characters: "ר", keyCode: 15, modifiers: []) == .reject)       // Hebrew: R's key
+        #expect(TriageKeymap.intent(characters: "о", keyCode: 38, modifiers: []) == .next)         // Russian: J's key
+        #expect(TriageKeymap.intent(characters: "ψ", keyCode: 2, modifiers: []) == .discuss)       // Greek on D's key
+        #expect(TriageKeymap.intent(characters: "ג", keyCode: 3, modifiers: []) == nil)            // F's key: no intent
+        #expect(TriageKeymap.intent(characters: "ש", keyCode: 0, modifiers: .shift) == nil)
+    }
+
+    /// AZERTY's top row types "&", "é", "\"" and "'" without Shift; the key, not the character, gives the kind.
+    @Test func digitsCountByTheirKey() {
+        #expect(TriageKeymap.intent(characters: "&", keyCode: 18, modifiers: []) == .setKind(.major))
+        #expect(TriageKeymap.intent(characters: "é", keyCode: 19, modifiers: []) == .setKind(.minor))
+        #expect(TriageKeymap.intent(characters: "\"", keyCode: 20, modifiers: []) == .setKind(.question))
+        #expect(TriageKeymap.intent(characters: "'", keyCode: 21, modifiers: []) == .setKind(.strength))
+        #expect(TriageKeymap.intent(characters: "4", keyCode: 86, modifiers: .numericPad) == .setKind(.strength))
+        #expect(TriageKeymap.intent(characters: "5", keyCode: 23, modifiers: []) == nil)
     }
 
     // ---- applying intents to a model ----

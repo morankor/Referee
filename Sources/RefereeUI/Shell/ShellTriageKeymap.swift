@@ -9,9 +9,12 @@ import AppCore
 public enum TriageIntent: Equatable { case next, previous, approve, reject, resetStatus, discuss, edit, reveal, newComment, setKind(CommentKind), dismiss }
 
 public enum TriageKeymap {
-    /// Return (and the keypad's Enter) and Esc by key code; letters and digits by the characters they type, so the
-    /// letters follow the keyboard layout. Only plain keys: with Command, Control, Option or Shift held there is no
-    /// intent (those go through the menu). Caps Lock and the keypad do not count as modifiers.
+    /// Return (and the keypad's Enter) and Esc by key code. Letters by the characters they type, so that they follow a
+    /// Latin layout (on AZERTY the key that types "a" approves); a key that types a letter of another script (Hebrew,
+    /// Cyrillic, Greek…) counts as the letter at its position on a US keyboard, so triage works whatever the input
+    /// source. Digits by their key, so that the top row works on layouts where it types other characters unshifted
+    /// (AZERTY), and on the keypad. Only plain keys: with Command, Control, Option or Shift held there is no intent
+    /// (those go through the menu). Caps Lock and the keypad do not count as modifiers.
     ///
     /// J next · K previous · A approve · R or X reject · U back to pending · D discuss · E edit · Return reveal ·
     /// N new own comment · 1 2 3 4 major, minor, question, strength · Esc dismiss.
@@ -23,7 +26,20 @@ public enum TriageKeymap {
         case escapeKey: return .dismiss
         default: break
         }
-        switch characters.lowercased() {
+        if let kind = digitKeys[keyCode] { return .setKind(kind) }
+        let typed = characters.lowercased()
+        if typed.count == 1, let scalar = typed.unicodeScalars.first, scalar.isASCII {
+            return asciiIntent(typed)
+        }
+        if typed.count == 1, typed.first?.isLetter == true, let letter = usLetterKeys[keyCode] {
+            return asciiIntent(letter)                      // a letter of another script: its key's place decides
+        }
+        return nil
+    }
+
+    /// The intent of a key that typed `letter` (lower case, one ASCII character).
+    private static func asciiIntent(_ letter: String) -> TriageIntent? {
+        switch letter {
         case "j": return .next
         case "k": return .previous
         case "a": return .approve
@@ -76,4 +92,11 @@ public enum TriageKeymap {
     static let returnKey: UInt16 = 36
     static let keypadEnterKey: UInt16 = 76
     static let escapeKey: UInt16 = 53
+
+    /// The keys 1–4 of the top row and of the keypad (kVK_ANSI_1… and kVK_ANSI_Keypad1…).
+    static let digitKeys: [UInt16: CommentKind] = [18: .major, 19: .minor, 20: .question, 21: .strength,
+                                                   83: .major, 84: .minor, 85: .question, 86: .strength]
+
+    /// The triage letters at their places on a US keyboard (kVK_ANSI_J…), for layouts whose letters are not Latin.
+    static let usLetterKeys: [UInt16: String] = [38: "j", 40: "k", 0: "a", 15: "r", 7: "x", 32: "u", 2: "d", 14: "e", 45: "n"]
 }

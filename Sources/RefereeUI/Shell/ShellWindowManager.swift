@@ -24,6 +24,9 @@ import AppCore
     private var auxiliaryWindows: [ObjectIdentifier: (window: NSWindow, observer: NSObjectProtocol)] = [:]
     private var settingsObserver: NSObjectProtocol?
     private var lastSettingsChange: Date?
+    /// Bumped by every request for the welcome window and by every document opened: a welcome window whose recent
+    /// list arrives after a document was opened is not shown over it.
+    private var welcomeGeneration = 0
 
     init(dependencies: AppDependencies, settingsModel: SettingsModel) {
         self.dependencies = dependencies
@@ -84,7 +87,10 @@ import AppCore
         let file = url.standardizedFileURL
         guard !openingFiles.contains(file.path) else { return }
         openingFiles.insert(file.path)
+        welcomeGeneration += 1
         let hash = await ShellWindowManager.sha256(of: file)
+        // A window of this document that is still closing saves first; the new window then reads what it saved.
+        if let hash, let previous = closing.values.first(where: { $0.controller.documentHash == hash }) { await previous.task.value }
         openingFiles.remove(file.path)
         // From here to the window's registration nothing waits, so two copies of one document cannot both get a window.
         if let hash, let existing = reviewControllers.first(where: { $0.documentHash == hash }) {
@@ -120,9 +126,12 @@ import AppCore
         for entry in closing.values { await entry.task.value }
     }
 
-    /// Before the app quits: every open review saves now, closing ones finish, and a settings change made in the last
-    /// half second reaches the disk (`SettingsModel` saves 0.5 s after the last change and offers no public flush).
+    /// Before the app quits: every text field hands over what is typed in it (fields save on leaving them), every open
+    /// review saves now, closing ones finish, and a settings change made in the last half second reaches the disk
+    /// (`SettingsModel` saves 0.5 s after the last change and offers no public flush).
     func flushAll() async {
+        for window in NSApp.windows { window.makeFirstResponder(nil) }
+        try? await Task.sleep(for: .milliseconds(150))        // the views see the focus go and commit
         for controller in reviewControllers { await controller.model.flushPendingSave() }
         for entry in closing.values { await entry.task.value }
         if let lastSettingsChange {
@@ -191,8 +200,11 @@ import AppCore
 
     /// The welcome window (section 9.1), with the recent reviews as they are now.
     func showWelcome() {
+        welcomeGeneration += 1
+        let generation = welcomeGeneration
         Task { @MainActor in
             let recent = Array(await dependencies.sessions.listSessions().prefix(20))
+            guard generation == welcomeGeneration else { return }       // a document was opened meanwhile
             let view = WelcomeView(recent: recent, open: { [weak self] url in
                 if let url { self?.open(url) } else { self?.showOpenPanel() }
             }, providerLine: { [weak self] in

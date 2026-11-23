@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 import RefereeCore
 import AppCore
 
@@ -23,8 +24,9 @@ import AppCore
         super.init()
     }
 
-    /// The PDFs named on the command line ("scripts/run.sh paper.pdf", "open -n Referee.app --args paper.pdf"): the
-    /// arguments that are not options and name an existing file, relative paths read from the current directory.
+    /// The PDFs named on the command line ("scripts/run.sh paper.pdf"; "open -n Referee.app --args /path/to/paper.pdf",
+    /// whose path must be absolute because Launch Services starts the app in "/"): the arguments that are not options
+    /// and name an existing file, relative paths read from the current directory.
     nonisolated static func files(in arguments: [String], relativeTo directory: URL) -> [URL] {
         arguments.filter { !$0.hasPrefix("-") }.compactMap { argument in
             let url = argument.hasPrefix("/") ? URL(fileURLWithPath: argument) : URL(fileURLWithPath: argument, relativeTo: directory)
@@ -109,17 +111,20 @@ import AppCore
         NSDocumentController.shared.clearRecentDocuments(sender)
     }
 
-    /// File ▸ Open Recent, built when it opens: the system's list of recent documents, then "Clear Menu".
+    /// File ▸ Open Recent, built when it opens: the system's list of recent documents, then "Clear Menu". The icon is
+    /// the one of PDFs, not the file's own: asking for a file's icon touches the file, which can hang on a volume that
+    /// is gone.
     func menuNeedsUpdate(_ menu: NSMenu) {
         guard menu.identifier == ShellMainMenu.openRecentIdentifier else { return }
         menu.removeAllItems()
         let recent = NSDocumentController.shared.recentDocumentURLs
+        let icon = NSWorkspace.shared.icon(for: .pdf)
+        icon.size = NSSize(width: 16, height: 16)
         for url in recent {
             let item = NSMenuItem(title: url.lastPathComponent, action: #selector(shellOpenRecent(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = url
-            item.image = NSWorkspace.shared.icon(forFile: url.path)
-            item.image?.size = NSSize(width: 16, height: 16)
+            item.image = icon
             item.toolTip = (url.path as NSString).abbreviatingWithTildeInPath
             menu.addItem(item)
         }
@@ -127,6 +132,13 @@ import AppCore
         let clear = NSMenuItem(title: "Clear Menu", action: recent.isEmpty ? nil : #selector(shellClearRecent(_:)), keyEquivalent: "")
         clear.target = self
         menu.addItem(clear)
+    }
+
+    /// Open Recent has no key equivalents. Without this answer AppKit would build the menu on every key press to look
+    /// for one.
+    func menuHasKeyEquivalent(_ menu: NSMenu, for event: NSEvent, target: AutoreleasingUnsafeMutablePointer<AnyObject?>,
+                              action: UnsafeMutablePointer<Selector?>) -> Bool {
+        false
     }
 
     func validateMenuItem(_ item: NSMenuItem) -> Bool {

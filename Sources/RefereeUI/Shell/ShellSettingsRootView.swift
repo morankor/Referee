@@ -117,13 +117,14 @@ struct ShellCommitField: View {
 }
 
 /// A long text edited in place (the prompts): the draft is handed on half a second after the last keystroke, and at
-/// once when the editor goes away.
+/// once when the editor loses the keyboard or goes away.
 struct ShellLongTextEditor: View {
     let value: String
     var monospaced = false
     let commit: (String) -> Void
     @State private var draft: String
     @State private var pending: Task<Void, Never>?
+    @FocusState private var focused: Bool
 
     init(value: String, monospaced: Bool = false, commit: @escaping (String) -> Void) {
         self.value = value
@@ -135,17 +136,22 @@ struct ShellLongTextEditor: View {
     var body: some View {
         TextEditor(text: $draft)
             .font(monospaced ? .system(size: 12, design: .monospaced) : .system(size: 13))
+            .focused($focused)
             .scrollContentBackground(.hidden)
             .padding(6)
             .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .separatorColor)))
             .onChange(of: draft) { _, text in schedule(text) }
             .onChange(of: value) { _, newValue in if pending == nil, newValue != draft { draft = newValue } }
-            .onDisappear {
-                pending?.cancel()
-                pending = nil
-                if draft != value { commit(draft) }
-            }
+            .onChange(of: focused) { _, isFocused in if !isFocused { flush() } }
+            .onDisappear(perform: flush)
+    }
+
+    /// Hands the draft on now.
+    private func flush() {
+        pending?.cancel()
+        pending = nil
+        if draft != value { commit(draft) }
     }
 
     private func schedule(_ text: String) {
