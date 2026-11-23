@@ -13,7 +13,8 @@ import AppCore
 /// Design review D5: with no provider set up, "Set Up AI Provider…" and a sentence under the drop hint take the place
 /// of the bottom line; with one, the bottom line opens Settings ▸ Providers. D26: titles on two lines, only the
 /// pending count in orange, and a context menu to open a review, show its file in Finder or delete its data; a review
-/// whose file is gone says so, and a click on it asks for the file.
+/// whose file is gone says so, and a click on it asks for the file. Step 5's brand (docs/brand/brand.md 6.1): the
+/// app's tile, wordmark and tagline at the top; on a first run, with no review yet, "How it works" on the right.
 public struct WelcomeView: View {
     let recent: [SessionSummary]
     let open: (URL?) -> Void
@@ -44,6 +45,22 @@ public struct WelcomeView: View {
 
     static let setUpProvider = "Set Up AI Provider…"
     static let setUpExplanation = "Reviews need an AI provider. A local model through Ollama keeps the manuscript on this Mac."
+
+    /// The right column on a first run (no review yet): what the app does, and who decides.
+    static let howItWorksTitle = "How it works"
+    static let howItWorks: [(symbol: String, text: String)] = [
+        ("doc.text.magnifyingglass", "The AI reads the paper and drafts comments in the sidebar."),
+        ("person.crop.circle.badge.checkmark", "You approve, reject, discuss or edit each one, with single keys."),
+        ("doc.richtext", "The report is drafted from the comments you approved, for you to edit."),
+    ]
+    static let howItWorksPromise = "Nothing reaches the report until you approve it."
+
+    /// The welcome window's title, kept for the Window menu, Mission Control and VoiceOver but not shown: the wordmark
+    /// is the one name on screen. The window manager and the snapshot mode both call this.
+    static func dress(_ window: NSWindow) {
+        window.title = CommonBrand.welcomeItemTitle
+        window.titleVisibility = .hidden
+    }
 
     @State private var dropTargeted = false
 
@@ -78,16 +95,14 @@ public struct WelcomeView: View {
         let line = providerLine()
         return VStack(spacing: 14) {
             Spacer(minLength: 0)
-            ShellAppGlyph()
-                .frame(width: 84, height: 84)
-            VStack(spacing: 4) {
-                Text("Referee")
-                    .font(.largeTitle.weight(.semibold))
-                Text("Read a manuscript, triage AI comments, write the report.")
-                    .font(.callout)
+            CommonBrandMark(size: 72, style: .tile)
+            VStack(spacing: 6) {
+                Text(CommonBrand.wordmark(size: 24))
+                    .fixedSize()
+                    .accessibilityAddTraits(.isHeader)
+                Text(CommonBrand.tagline)
+                    .font(.title3)
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             VStack(spacing: 8) {
                 Button {
@@ -149,25 +164,18 @@ public struct WelcomeView: View {
         }
     }
 
-    // ---- right: recent reviews ----
+    // ---- right: recent reviews, or on a first run how it works ----
 
     private var recentList: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Recent reviews")
+            Text(recent.isEmpty ? WelcomeView.howItWorksTitle : "Recent reviews")
                 .font(.headline)
+                .accessibilityAddTraits(.isHeader)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
             if recent.isEmpty {
-                VStack(spacing: 6) {
-                    Image(systemName: "clock")
-                        .font(.title2)
-                        .foregroundStyle(.tertiary)
-                    Text("No reviews yet. Open a PDF to start one.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                howItWorks
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
@@ -185,6 +193,35 @@ public struct WelcomeView: View {
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))
+    }
+
+    /// Three steps, 14 points apart, each a symbol and a sentence; the promise 8 points under them, aligned with the
+    /// sentences.
+    private var howItWorks: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(Array(WelcomeView.howItWorks.enumerated()), id: \.offset) { _, step in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Image(systemName: step.symbol)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 22)
+                            .accessibilityHidden(true)
+                        Text(step.text)
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            Text(WelcomeView.howItWorksPromise)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 32)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
@@ -287,18 +324,3 @@ struct ShellRecentReviewRow: View {
     }
 }
 
-/// The app's mark, drawn: a page with a pen stroke, as the icon of scripts/make-icon.sh is a page-like square with an "R".
-struct ShellAppGlyph: View {
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(LinearGradient(colors: [Color(red: 0.16, green: 0.33, blue: 0.62), Color(red: 0.09, green: 0.2, blue: 0.42)],
-                                     startPoint: .top, endPoint: .bottom))
-            Text("R")
-                .font(.system(size: 52, weight: .semibold, design: .serif))
-                .foregroundStyle(.white)
-        }
-        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-        .accessibilityHidden(true)
-    }
-}

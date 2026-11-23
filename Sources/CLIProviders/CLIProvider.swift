@@ -68,10 +68,10 @@ final class CLIProvider: LLMProvider, @unchecked Sendable {
     func flagProblem(_ binary: ResolvedBinary) -> String? {
         let name = adapter.spec.name
         if let failure = binary.helpFailure {
-            return "\(name) \(binary.version) did not answer as expected (\(failure)), so Referee cannot run it safely"
+            return "\(name) \(binary.version) did not answer as expected (\(failure)), so the app cannot run it safely"
         }
         if let missing = CLIArguments.firstMissingFlag(adapter.protectedFlags, in: binary.helpText) {
-            return "\(name) \(binary.version) does not list the option \(missing), which Referee needs in order to run it safely"
+            return "\(name) \(binary.version) does not list the option \(missing), which the app needs in order to run it safely"
         }
         return nil
     }

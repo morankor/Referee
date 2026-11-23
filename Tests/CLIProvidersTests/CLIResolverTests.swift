@@ -165,7 +165,7 @@ struct SpecOverride: CLIAdapter {
         let adapter = try #require(allAdapters.first { $0.spec.name == cli })
         let provider = try harness.provider(adapter, ["FAKE_HELP": "missing-flag"])
         let flag = try #require(Self.missingFlag[cli])
-        let reason = "\(cli) \(Self.versions[cli]!) does not list the option \(flag), which Referee needs in order to run it safely"
+        let reason = "\(cli) \(Self.versions[cli]!) does not list the option \(flag), which the app needs in order to run it safely"
         #expect(await provider.availability() == .unavailable(reason: reason))
         let result = await collect(provider.stream(markedRequest()))
         #expect(result.error == .notConfigured(reason))

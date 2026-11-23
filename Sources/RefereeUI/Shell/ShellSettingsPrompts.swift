@@ -37,7 +37,7 @@ struct ShellPromptsPane: View {
                 Divider()
                 Button("Restore Defaults…") { confirmingRestore = true }
                     .padding(10)
-                    .help("Put back the prompts, rubric and quick questions Referee came with")
+                    .help("Put back the prompts, rubric and quick questions the app came with")
             }
             .frame(width: 190)
             .background(Color(nsColor: .controlBackgroundColor))
@@ -84,7 +84,7 @@ struct ShellPromptSectionView: View {
                     Spacer()
                     Button("Reset") { model.update { ShellPromptSectionView.reset(section, in: &$0.prompts) } }
                         .disabled(ShellPromptSectionView.isDefault(section, in: model.settings.prompts))
-                        .help("Put back the text Referee came with")
+                        .help("Put back the text the app came with")
                 }
             case .rubric:
                 ShellRubricEditor(model: model)

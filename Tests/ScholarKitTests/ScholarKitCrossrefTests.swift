@@ -26,7 +26,7 @@ import TestSupport
         #expect(crossref.queryNames == ["query.bibliographic", "rows", "select"])
         #expect(crossref.query == ["query.bibliographic": entry.rawText, "rows": "3", "select": "DOI,title,author,issued,container-title,score,type"])
         let agent = try #require(crossref.value(forHTTPHeaderField: "User-Agent"))
-        #expect(agent == "Referee/0.1.0")
+        #expect(agent == "HumanInTheLoop/0.1.0")
         #expect(!agent.contains("@") && !agent.contains("mailto"))
         #expect(requests.last?.url?.path == "/works/doi:10.1162/neco.1997.9.8.1735")
 
@@ -49,10 +49,10 @@ import TestSupport
         let crossref = try #require(requests.first { $0.url?.host == "api.crossref.org" })
         #expect(crossref.queryNames == ["query.bibliographic", "rows", "select", "mailto"])
         #expect(crossref.query["mailto"] == address)
-        #expect(crossref.value(forHTTPHeaderField: "User-Agent") == "Referee/0.1.0 (mailto:\(address))")
+        #expect(crossref.value(forHTTPHeaderField: "User-Agent") == "HumanInTheLoop/0.1.0 (mailto:\(address))")
         let openAlex = try #require(requests.first { $0.url?.host == "api.openalex.org" })
         #expect(openAlex.url?.absoluteString.contains("mailto") == false)
-        #expect(openAlex.value(forHTTPHeaderField: "User-Agent") == "Referee/0.1.0")
+        #expect(openAlex.value(forHTTPHeaderField: "User-Agent") == "HumanInTheLoop/0.1.0")
     }
 
     /// Each setting is put together from its parts, joined by "@".
@@ -66,7 +66,7 @@ import TestSupport
 
         let crossref = try #require(StubURLProtocol.recordedRequests.first)
         #expect(crossref.queryNames == ["query.bibliographic", "rows", "select"])
-        #expect(crossref.value(forHTTPHeaderField: "User-Agent") == "Referee/0.1.0")
+        #expect(crossref.value(forHTTPHeaderField: "User-Agent") == "HumanInTheLoop/0.1.0")
     }
 
     @Test func theQueryIsTheFirst300CharactersAndCannotAlterTheRequest() async throws {

@@ -130,7 +130,7 @@ public enum StoreError: RefereeError, Equatable {
     public var userMessage: String {
         switch self {
         case .corrupt(let p): return "The saved review at \(p) is damaged and has no usable backup."
-        case .newerSchema(let f, let s): return "This review was saved by a newer version of Referee (format \(f); this version reads up to \(s))."
+        case .newerSchema(let f, let s): return "This review was saved by a newer version of Human in the Loop (format \(f); this version reads up to \(s))."
         case .io(let m): return "Could not read or write review data (\(m))."
         }
     }

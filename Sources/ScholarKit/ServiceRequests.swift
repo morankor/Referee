@@ -1,7 +1,7 @@
 import Foundation
 
 /// The requests of plan.md section 8.7 and the headers they carry. A request carries the reference text or the
-/// identifier, `User-Agent: Referee/<version>`, and nothing else; the user's contact address goes to Crossref only,
+/// identifier, `User-Agent: HumanInTheLoop/<version>`, and nothing else; the user's contact address goes to Crossref only,
 /// and only when the user set one.
 enum ServiceRequests {
     static let crossrefSelect = "DOI,title,author,issued,container-title,score,type"
@@ -39,9 +39,10 @@ enum ServiceRequests {
         return request
     }
 
-    /// `Referee/<version>`, plus ` (mailto:<address>)` for Crossref when the user set an address.
+    /// `HumanInTheLoop/<version>` (the app's name without its spaces: a product token has none), plus ` (mailto:<address>)`
+    /// for Crossref when the user set an address.
     static func userAgent(contact: String?) -> String {
-        "Referee/\(appVersion)" + (contact.map { " (mailto:\($0))" } ?? "")
+        "HumanInTheLoop/\(appVersion)" + (contact.map { " (mailto:\($0))" } ?? "")
     }
 
     /// The version of the bundled app (`CFBundleShortVersionString`, set by `scripts/bundle.sh`); outside the app

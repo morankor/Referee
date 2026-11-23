@@ -12,7 +12,7 @@ struct AntigravityAdapter: CLIAdapter {
     var descriptor: ProviderDescriptor {
         ProviderDescriptor(id: Self.id, displayName: "Antigravity (Google AI plan)", vendor: "Google", authMode: .subscriptionCLI,
                            isLocal: false, destination: "agy", supportsNativePDF: false, streaming: .token, maxPromptBytes: Self.maxPromptBytes,
-                           retentionNote: "Runs through your Google account. Its tools cannot be switched off: Referee stops the run if it uses one. "
+                           retentionNote: "Runs through your Google account. Its tools cannot be switched off: the app stops the run if it uses one. "
                                + "The CLI may keep a local conversation record.",
                            isExperimental: true)
     }

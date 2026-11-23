@@ -28,7 +28,7 @@ enum ShellTestData {
     static let antigravity = ProviderDescriptor(id: "antigravity-cli", displayName: "Antigravity (Google AI plan)", vendor: "Google",
                                                 authMode: .subscriptionCLI, isLocal: false, destination: "agy", supportsNativePDF: false,
                                                 streaming: .token, maxPromptBytes: 4_000_000,
-                                                retentionNote: "Runs through your Google account. Its tools cannot be switched off: Referee stops the run if it uses one. The CLI may keep a local conversation record.",
+                                                retentionNote: "Runs through your Google account. Its tools cannot be switched off: the app stops the run if it uses one. The CLI may keep a local conversation record.",
                                                 isExperimental: true)
     static let xai = ProviderDescriptor(id: "xai-api", displayName: "xAI API", vendor: "xAI", authMode: .apiKey, isLocal: false,
                                         destination: "api.x.ai", supportsNativePDF: false, streaming: .token,

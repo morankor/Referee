@@ -6,7 +6,7 @@ import TestSupport
 
 /// Acceptance row "live" (plan.md section 11.4, WP7): only with REFEREE_LIVE_NET=1 (section 10.6). Two requests, one
 /// to api.crossref.org and one to api.openalex.org, carrying the public reference of a fixture and nothing else:
-/// no contact address, `User-Agent: Referee/0.1.0`.
+/// no contact address, `User-Agent: HumanInTheLoop/0.1.0`.
 @Suite struct ScholarKitLiveTests {
     static let enabled = ProcessInfo.processInfo.environment["REFEREE_LIVE_NET"] == "1"
 

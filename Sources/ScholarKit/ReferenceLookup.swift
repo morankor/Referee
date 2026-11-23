@@ -141,7 +141,7 @@ struct ReferenceLookup: Sendable {
         case "network", "not-http": return "\(service) could not be reached; check the connection and try again."
         case "cancelled": return "the lookup was cancelled."
         case "too-large": return "\(service) sent an answer that was too large to be a lookup."
-        case "unreadable": return "\(service) sent an answer Referee could not read."
+        case "unreadable": return "\(service) sent an answer the app could not read."
         default:
             if reason.hasPrefix("http-") { return "\(service) refused the request (HTTP \(reason.dropFirst(5)))." }
             return "\(service) did not answer as expected."

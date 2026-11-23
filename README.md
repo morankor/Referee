@@ -1,6 +1,11 @@
-# Referee
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/readme-hero-dark.png">
+    <img src="docs/brand/readme-hero.png" alt="Human in the Loop: AI drafts. You referee." width="662">
+  </picture>
+</h1>
 
-A Mac app for refereeing a paper. The manuscript sits in the middle of the window; an AI model drafts referee comments into a sidebar on the right, where you approve, reject, discuss, edit or add to them with single keys; you can ask about any passage you select; citations in the text open a card with the cited paper and, when one is free to read, its PDF; and at the end the app drafts a referee report from the comments you approved, which you edit and export.
+**Human in the Loop** is a PDF reader for refereeing papers with AI: the AI drafts, you decide. The manuscript sits in the middle of the window; an AI model drafts referee comments into a sidebar on the right, where you approve, reject, discuss, edit or add to them with single keys; you can ask about any passage you select; citations in the text open a card with the cited paper and, when one is free to read, its PDF; and at the end the app drafts a referee report from the comments you approved, which you edit and export.
 
 You choose which AI does the reading: a model that runs on your Mac (Ollama, nothing leaves the computer), an API account (Anthropic, OpenAI, Google Gemini, xAI), or a subscription you already pay for through its command-line tool (Claude Code, Codex). You choose it per paper, with the model, in the toolbar, which always shows where the text would go; the first time a document would leave your Mac the app asks you. Every comment and answer the AI writes says which provider and which model wrote it.
 
@@ -34,25 +39,27 @@ The app has no third-party code and builds without a network connection.
 In Terminal, from the folder that holds this README:
 
 ```bash
-scripts/bundle.sh              # builds the app in release mode, signs it, and puts it in build/Referee.app (a few minutes the first time)
-open build/Referee.app         # starts it
+scripts/bundle.sh                    # builds the app in release mode, signs it, and puts it in "build/Human in the Loop.app" (a few minutes the first time)
+open "build/Human in the Loop.app"   # starts it
 ```
 
-To keep it with your other apps, quit it and drag `build/Referee.app` into Applications in Finder (replace the old copy when asked), or in Terminal: `ditto build/Referee.app /Applications/Referee.app`. The app is built and signed on your own Mac ("ad hoc"), so macOS opens it without a warning.
+To keep it with your other apps, quit it and drag `build/Human in the Loop.app` into Applications in Finder (replace the old copy when asked), or in Terminal: `ditto "build/Human in the Loop.app" "/Applications/Human in the Loop.app"`. The app is built and signed on your own Mac ("ad hoc"), so macOS opens it without a warning.
+
+**The app used to be called Referee.** `scripts/bundle.sh` leaves an old `build/Referee.app` alone, since it may be running: once it is not, delete it, and an old `Referee.app` in Applications too. Both carry the identifier local.referee.app, so macOS might otherwise open the old one for a PDF. Your reviews, settings and API keys carry over: the first time Human in the Loop starts while the old app is not running, it moves `~/Library/Application Support/Referee` and `~/Library/Caches/Referee` to their new names. It never merges or deletes anything: if a folder of the new name already exists, the old one stays as it is.
 
 To update after a change of the source, run `scripts/bundle.sh` again and copy the new app over the old one. Your reviews and settings are kept: they live in your Library folder, not in the app (see [Privacy](#privacy-what-leaves-your-mac-and-when)). After each rebuild macOS may ask once for permission to read your saved API keys; [Troubleshooting](#the-keychain-asks-for-permission-after-every-rebuild) says why and how to stop it.
 
-You can also open a PDF directly: `open -a build/Referee.app paper.pdf`, or drag a PDF onto the app's icon or window.
+You can also open a PDF directly: `open -a "build/Human in the Loop.app" paper.pdf`, or drag a PDF onto the app's icon or window.
 
 ## First run
 
-The app opens with a welcome window: **Open PDF…**, a drop area for a PDF, and your recent reviews (none yet).
+The app opens with a welcome window: the app's mark, its name and the line "AI drafts. You referee." over **Open PDF…** and a drop area for a PDF; on the right your recent reviews or, before the first, three lines on how the app works.
 
-- If Ollama is running and has a model when you first start Referee, the app switches it on and makes it the default for reviews. The line at the bottom then reads "AI: Local · gemma4:e4b"; click it to change the provider in Settings.
+- If Ollama is running and has a model when you first start Human in the Loop, the app switches it on and makes it the default for reviews. The line at the bottom then reads "AI: Local · gemma4:e4b"; click it to change the provider in Settings.
 - If no provider is set up, the window shows **Set Up AI Provider…** with the note "Reviews need an AI provider. A local model through Ollama keeps the manuscript on this Mac." It opens Settings ▸ Providers. You can still open papers, read them, select passages, write your own comments and look up references; only the AI features wait for a provider.
-- If you start Ollama later, Referee notices the next time you open a window or come back to the app: with no default chosen yet, a provider on your Mac that is switched on and running becomes the default. It does this once per session, and never for a provider outside your Mac.
+- If you start Ollama later, the app notices the next time you open a window or come back to the app: with no default chosen yet, a provider on your Mac that is switched on and running becomes the default. It does this once per session, and never for a provider outside your Mac.
 
-Settings is **⌘,**. Help ▸ Referee Help lists the keys and commands and has a button that opens this README.
+Settings is **⌘,**. Help ▸ Human in the Loop Help shows the app's mark and tagline, lists the keys and commands and has a button that opens this README.
 
 ## Working on a paper
 
@@ -108,7 +115,7 @@ Everything is saved as you work (a second after each change). Reopening a paper 
 
 ## Venues: what a paper is reviewed for
 
-A review for a conference is not a review for a journal, and one journal looks for other things than another. Each paper is therefore reviewed for a **venue**: a journal or a conference, with a short name, a full name and a short text on what a review for it weighs. Referee comes with four: **Journal (unspecified)**, the default, which sends exactly what Referee sent before it had venues; **Conference (unspecified)**; the **Journal of Economic Theory (JET)**; and the **ACM Conference on Economics and Computation (EC)**. You can edit them and add your own.
+A review for a conference is not a review for a journal, and one journal looks for other things than another. Each paper is therefore reviewed for a **venue**: a journal or a conference, with a short name, a full name and a short text on what a review for it weighs. The app comes with four: **Journal (unspecified)**, the default, which sends exactly what the app sent before it had venues; **Conference (unspecified)**; the **Journal of Economic Theory (JET)**; and the **ACM Conference on Economics and Computation (EC)**. You can edit them and add your own.
 
 ### Choosing the venue of a paper
 
@@ -116,7 +123,7 @@ The toolbar shows the paper's venue next to the destination indicator: its short
 
 A new paper starts on the default venue of Settings ▸ Venues. The venue is saved with the paper. Changing it keeps the comments, discussions and report as they are: what you ask the model from then on is asked for the new venue, and a report already written stays as it is until you generate it again.
 
-A paper reviewed before Referee had venues is on Journal (unspecified). If you typed a target journal for it, its prompts still name that journal, and the Report tab says so ("Journal, named “JET” in the prompts") until you choose a venue.
+A paper reviewed before the app had venues is on Journal (unspecified). If you typed a target journal for it, its prompts still name that journal, and the Report tab says so ("Journal, named “JET” in the prompts") until you choose a venue.
 
 ### What a venue changes
 
@@ -127,18 +134,18 @@ A paper reviewed before Referee had venues is on Journal (unspecified). If you t
 
 ### Editing venues
 
-Open **Settings ▸ Venues** (or **Edit Venues…** in the venue menu). The list on the left shows each venue's short name over its full name; **Built in** marks the four that come with Referee, and **Default** the one new papers start on.
+Open **Settings ▸ Venues** (or **Edit Venues…** in the venue menu). The list on the left shows each venue's short name over its full name; **Built in** marks the four that come with the app, and **Default** the one new papers start on.
 
-- **+** adds a journal or a conference, the next button duplicates the selected venue, and **−** deletes it, after asking; papers on a deleted venue are reviewed for Journal (unspecified) from then on. The arrows, or dragging, reorder the list, which is the menu's order. A built-in venue can be edited but not deleted, and **Reset…** puts back what Referee came with.
+- **+** adds a journal or a conference, the next button duplicates the selected venue, and **−** deletes it, after asking; papers on a deleted venue are reviewed for Journal (unspecified) from then on. The arrows, or dragging, reorder the list, which is the menu's order. A built-in venue can be edited but not deleted, and **Reset…** puts back what the app came with.
 - **Default for New Papers** makes the selected venue the one new papers start on.
 - **Short name** (what the toolbar shows), **Full name** and **Kind** (journal or conference).
 - **What a review for it weighs**: sent with every prompt about a paper on this venue. You can paste the venue's own guidelines for reviewers here.
-- **Recommendation scale**, for a conference: the labels of the venue's review form, most favourable first. Edit a label in place; the arrows move it, ⊖ removes it, **Add Label** adds one. **The scale Referee comes with ("Accept", "Weak accept", "Borderline", "Weak reject", "Reject") is a stand-in, EC's included: replace it with the scale of the venue's real review form.** **Use Default Scale** puts the stand-in back. A blank or repeated label is left out, with a warning under the scale.
+- **Recommendation scale**, for a conference: the labels of the venue's review form, most favourable first. Edit a label in place; the arrows move it, ⊖ removes it, **Add Label** adds one. **The scale the app comes with ("Accept", "Weak accept", "Borderline", "Weak reject", "Reject") is a stand-in, EC's included: replace it with the scale of the venue's real review form.** **Use Default Scale** puts the stand-in back. A blank or repeated label is left out, with a warning under the scale.
 - **Report instructions** (optional): added to the report's request only, for example what the venue's review form asks for.
 
 A name or a label is saved when you press Return or leave the field, a longer text half a second after you stop typing. Every change applies at once to every paper on that venue, including the style check of an open report.
 
-The two texts of a conference's report, its prompt and its template, are in **Settings ▸ Prompts** under **For a conference** ("Conference report", "Conference template"); **Reset** beside each puts back the text Referee came with, and **Restore Defaults…** resets them with the other prompts.
+The two texts of a conference's report, its prompt and its template, are in **Settings ▸ Prompts** under **For a conference** ("Conference report", "Conference template"); **Reset** beside each puts back the text the app came with, and **Restore Defaults…** resets them with the other prompts.
 
 ## Setting up AI providers
 
@@ -167,7 +174,7 @@ Anthropic, OpenAI and Gemini receive the PDF itself, so equations and tables rea
 
 ### Subscriptions through an installed command-line tool: Claude Code, Codex
 
-These use the subscription you already pay for (Claude Pro or Max; a ChatGPT plan). Referee runs the vendor's own program, which signs in with its own credentials; Referee never sees or stores them. Install and sign in once in Terminal (Settings shows the same commands, with a Copy button):
+These use the subscription you already pay for (Claude Pro or Max; a ChatGPT plan). The app runs the vendor's own program, which signs in with its own credentials; the app never sees or stores them. Install and sign in once in Terminal (Settings shows the same commands, with a Copy button):
 
 | Provider | Install | Sign in |
 | --- | --- | --- |
@@ -176,21 +183,21 @@ These use the subscription you already pay for (Claude Pro or Max; a ChatGPT pla
 | Antigravity (Google AI plan), experimental | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | follow the tool's own sign-in |
 | Grok Build (xAI), experimental | `curl -fsSL https://x.ai/cli/install.sh \| bash` (the installer on xAI's own site) | `grok login` |
 
-xAI also lists an npm package, `@xai-official/grok`. When Referee was built, that package named no source repository or homepage, so it could not be confirmed as xAI's and was not installed; prefer the installer above.
+xAI also lists an npm package, `@xai-official/grok`. When the app was built, that package named no source repository or homepage, so it could not be confirmed as xAI's and was not installed; prefer the installer above.
 
-Then switch the provider on in Settings and press **Send Test Prompt**. Referee finds the program in the usual places (or set **Path** to point at it) and checks that the installed version still has the safety options it needs; if one is missing, the provider shows red with the reason, and stays off. Claude Code receives the PDF itself and Codex receives it as page images (both were tried with the invented fixture paper); Antigravity and Grok Build receive the extracted text.
+Then switch the provider on in Settings and press **Send Test Prompt**. The app finds the program in the usual places (or set **Path** to point at it) and checks that the installed version still has the safety options it needs; if one is missing, the provider shows red with the reason, and stays off. Claude Code receives the PDF itself and Codex receives it as page images (both were tried with the invented fixture paper); Antigravity and Grok Build receive the extracted text.
 
 Claude Code reports which model it ran, so its comments name it ("claude-sonnet-4-6"); Codex, Antigravity and Grok Build do not, so their comments name the model you chose, or "default model".
 
-These tools are AI agents that can normally run commands and edit files. Referee runs them with every tool switched off that the tool allows, in an empty temporary folder, and stops the run at once if the model tries to use a tool ([Privacy](#privacy-what-leaves-your-mac-and-when) has the details per tool). Using a subscription through a third-party app is governed by each vendor's terms; Referee only launches your own installed tool for your own work. Keep this to personal use.
+These tools are AI agents that can normally run commands and edit files. The app runs them with every tool switched off that the tool allows, in an empty temporary folder, and stops the run at once if the model tries to use a tool ([Privacy](#privacy-what-leaves-your-mac-and-when) has the details per tool). Using a subscription through a third-party app is governed by each vendor's terms; the app only launches your own installed tool for your own work. Keep this to personal use.
 
 ### What "experimental" means
 
-Antigravity and Grok Build are marked **experimental**. Their adapters were written from the vendors' documentation; neither program was installed on the Mac where Referee was built, so **neither has ever been run against the real program**. Settings shows "Experimental — not yet verified against the real CLI on this machine" in orange under the name, and the toolbar adds "· experimental". If the real program's options differ from the documentation, the provider will most likely show red with a reason ("does not list the option …"): that is the safe outcome, not a bug. Do not use them on a confidential manuscript until a test prompt has succeeded and you have tried a non-confidential paper.
+Antigravity and Grok Build are marked **experimental**. Their adapters were written from the vendors' documentation; neither program was installed on the Mac where the app was built, so **neither has ever been run against the real program**. Settings shows "Experimental — not yet verified against the real CLI on this machine" in orange under the name, and the toolbar adds "· experimental". If the real program's options differ from the documentation, the provider will most likely show red with a reason ("does not list the option …"): that is the safe outcome, not a bug. Do not use them on a confidential manuscript until a test prompt has succeeded and you have tried a non-confidential paper.
 
 ### The Send Test Prompt button
 
-**Send Test Prompt** sends the single message "Reply with exactly: OK" to the provider and shows the answer. Under the button Settings says what it costs: a few tokens on an API account, one message of your subscription through a command-line tool, nothing for a model on your Mac. It is available once the provider is ready (installed, signed in or with a key). When it succeeds, Referee records the date, and for an experimental provider the warning disappears. Use it once after setting up each provider. Nothing else in Settings sends a prompt; fetching a model list sends your key to its vendor and nothing of any paper.
+**Send Test Prompt** sends the single message "Reply with exactly: OK" to the provider and shows the answer. Under the button Settings says what it costs: a few tokens on an API account, one message of your subscription through a command-line tool, nothing for a model on your Mac. It is available once the provider is ready (installed, signed in or with a key). When it succeeds, the app records the date, and for an experimental provider the warning disappears. Use it once after setting up each provider. Nothing else in Settings sends a prompt; fetching a model list sends your key to its vendor and nothing of any paper.
 
 ### Choosing the provider and model for a paper
 
@@ -223,17 +230,17 @@ Check the journal's or conference's policy on AI tools before sending a manuscri
 
 With Ollama on your Mac and no citation clicked, the app connects to nothing but `127.0.0.1` (your own Mac). Checking whether Ollama is running is a request to your own Mac too; remote providers are never checked from a paper's window. File names are never logged and never sent: a provider receives the file as "manuscript.pdf". The app's log (`log show --predicate 'subsystem == "local.referee.app"'`) holds counts and identifiers, never manuscript text. The destination menu's **Sent so far** shows, for each paper, every provider that received something of it.
 
-**What the providers keep.** OpenAI and Gemini requests are sent with storage switched off; xAI's endpoint stores nothing; Anthropic's API keeps requests under your API account's data terms. Claude Code runs without saving a session; Codex runs with an ephemeral session, though Codex keeps its own log database under `~/.codex` whose contents were not examined. Antigravity may keep a local conversation record. Grok Build saves every conversation under `~/.grok` and may sync it to your xAI account; Referee deletes the local copy after each run but cannot undo a sync.
+**What the providers keep.** OpenAI and Gemini requests are sent with storage switched off; xAI's endpoint stores nothing; Anthropic's API keeps requests under your API account's data terms. Claude Code runs without saving a session; Codex runs with an ephemeral session, though Codex keeps its own log database under `~/.codex` whose contents were not examined. Antigravity may keep a local conversation record. Grok Build saves every conversation under `~/.grok` and may sync it to your xAI account; the app deletes the local copy after each run but cannot undo a sync.
 
-**What a manuscript can make a model do.** A manuscript is someone else's text and could contain instructions aimed at a model ("ignore your instructions and …"). Through an API key or Ollama the model can only return text: no tools are offered. Claude Code runs with no tools and no extensions at all, and Referee checks that on every run. Codex runs with its shell and agent tools removed and a read-only sandbox; one built-in code tool cannot be removed, and if the model uses any tool Referee stops the run, though it may learn of the tool only after it ran. Antigravity's tools cannot be switched off (they need approvals nobody gives, file writes stay inside an empty temporary folder, and Referee stops the run at the first tool step). Grok Build runs in its strictest sandbox with every permission denied. For Antigravity and Grok Build none of this has been tested against the real program. In every case the model's output is treated as untrusted text: nothing it writes is run, fetched or opened automatically, and links in comments are not clickable. The worst a successful injection can do through an API provider is distort comments that you then read and triage.
+**What a manuscript can make a model do.** A manuscript is someone else's text and could contain instructions aimed at a model ("ignore your instructions and …"). Through an API key or Ollama the model can only return text: no tools are offered. Claude Code runs with no tools and no extensions at all, and the app checks that on every run. Codex runs with its shell and agent tools removed and a read-only sandbox; one built-in code tool cannot be removed, and if the model uses any tool the app stops the run, though it may learn of the tool only after it ran. Antigravity's tools cannot be switched off (they need approvals nobody gives, file writes stay inside an empty temporary folder, and the app stops the run at the first tool step). Grok Build runs in its strictest sandbox with every permission denied. For Antigravity and Grok Build none of this has been tested against the real program. In every case the model's output is treated as untrusted text: nothing it writes is run, fetched or opened automatically, and links in comments are not clickable. The worst a successful injection can do through an API provider is distort comments that you then read and triage.
 
-**What stays on your Mac.** Each paper's review (comments with quotes from the manuscript, discussions, report, reference lookups, and a record of each run: provider, model, when, what was sent) is in `~/Library/Application Support/Referee/sessions/`, in a folder named after the file's fingerprint, not its name. Downloaded reference PDFs are in `~/Library/Caches/Referee/papers/`. File ▸ Delete Review Data… (or the welcome window's right-click menu) removes one paper's folder; Settings ▸ Privacy ▸ Delete all review data removes them all; Settings ▸ References clears the downloads. The command-line tools write their own files on their own account, outside Referee's control. Referee never modifies your PDF. It needs no special permissions (no Accessibility, Screen Recording or Full Disk Access).
+**What stays on your Mac.** Each paper's review (comments with quotes from the manuscript, discussions, report, reference lookups, and a record of each run: provider, model, when, what was sent) is in `~/Library/Application Support/Human in the Loop/sessions/`, in a folder named after the file's fingerprint, not its name. Downloaded reference PDFs are in `~/Library/Caches/Human in the Loop/papers/`. File ▸ Delete Review Data… (or the welcome window's right-click menu) removes one paper's folder; Settings ▸ Privacy ▸ Delete all review data removes them all; Settings ▸ References clears the downloads. The command-line tools write their own files on their own account, outside the app's control. The app never modifies your PDF. It needs no special permissions (no Accessibility, Screen Recording or Full Disk Access).
 
 ## Troubleshooting
 
 ### Codex shows "not installed", "unavailable" or fails at once
 
-On the Mac where Referee was built, the copy of Codex installed by Homebrew or npm at `/opt/homebrew/bin/codex` was broken: it exits with an error immediately. Referee tests every copy it finds and skips a broken one (it uses the copy inside the ChatGPT app if you have that). To repair the command-line copy:
+On the Mac where the app was built, the copy of Codex installed by Homebrew or npm at `/opt/homebrew/bin/codex` was broken: it exits with an error immediately. The app tests every copy it finds and skips a broken one (it uses the copy inside the ChatGPT app if you have that). To repair the command-line copy:
 
 ```bash
 npm install -g @openai/codex@latest
@@ -245,17 +252,19 @@ Then press the refresh button next to Codex's status in Settings ▸ Providers. 
 
 ### The Keychain asks for permission after every rebuild
 
-Each `scripts/bundle.sh` signs the app "ad hoc", which gives every build a new identity. macOS then asks whether Referee may read the Keychain item "local.referee.app" where your API keys are; answer **Always Allow** (it asks for your login password). Until you answer, the API providers show "The saved key could not be read from the Keychain", and Referee refuses to save a new key, so that the keys already stored cannot be overwritten by accident.
+Each `scripts/bundle.sh` signs the app "ad hoc", which gives every build a new identity. macOS then asks whether Human in the Loop may read the Keychain item "local.referee.app" where your API keys are; answer **Always Allow** (it asks for your login password). Until you answer, the API providers show "The saved key could not be read from the Keychain", and the app refuses to save a new key, so that the keys already stored cannot be overwritten by accident.
 
 To stop the question, sign the app with a certificate of your own, once:
 
 1. Open **Keychain Access**, then Keychain Access ▸ Certificate Assistant ▸ **Create a Certificate…**
-2. Name: `Referee Local Signing`; Identity Type: **Self-Signed Root**; Certificate Type: **Code Signing**; **Create**.
+2. Name: `Human in the Loop Local Signing`; Identity Type: **Self-Signed Root**; Certificate Type: **Code Signing**; **Create**.
 3. Build with it from now on:
 
    ```bash
-   REFEREE_SIGN_IDENTITY="Referee Local Signing" scripts/bundle.sh
+   REFEREE_SIGN_IDENTITY="Human in the Loop Local Signing" scripts/bundle.sh
    ```
+
+   A certificate made under the old name, `Referee Local Signing`, keeps working: pass its name instead.
 
 The first launch with the new signature asks one last time; later rebuilds keep the same identity and should not ask. (macOS may also ask whether `codesign` may use the certificate's key: Always Allow.) This option is reasoned from how macOS identifies signed apps and was not tried during the build.
 
@@ -264,21 +273,21 @@ The first launch with the new signature asks one last time; later rebuilds keep 
 - Start the Ollama app, or run `ollama serve` in Terminal. Check it with `curl http://127.0.0.1:11434/api/version` (it answers with a version number).
 - "No model": `ollama pull gemma4:e4b`, then choose the model in Settings ▸ Providers ▸ Ollama.
 - The toolbar checks whether Ollama is running when you choose it, when you come back to the app and when you open the destination menu: if it is not, the indicator turns orange and reads "Ollama is not running". After starting Ollama, press **Check Again** in the menu (or switch to another app and back). If a review was already under way, the banner says why it stopped; run it again with **Retry** on the banner or ⌘R.
-- If Ollama was not running when you first started Referee, nothing was chosen as the default. Starting it is enough: the next window you open, or your next return to the app, makes it the default.
+- If Ollama was not running when you first started the app, nothing was chosen as the default. Starting it is enough: the next window you open, or your next return to the app, makes it the default.
 - The first request after starting Ollama loads the model and can take a minute.
 
 ### Other messages
 
 - **"This PDF has no text layer"**: a scanned PDF. Comments can be tied to pages only, and only providers that receive the PDF itself (Anthropic, OpenAI, Gemini, Claude Code, Codex) can review it.
 - **"This PDF is protected"**: the text is readable, so reviews send the text, not the file.
-- **A CLI shows red: "… does not list the option …"**: the installed version lacks a safety option Referee requires. Update the tool (the install commands above install the latest version).
+- **A CLI shows red: "… does not list the option …"**: the installed version lacks a safety option the app requires. Update the tool (the install commands above install the latest version).
 - **"Remote providers are blocked by Local only"**: Settings ▸ Privacy ▸ Local only is on.
 - **A citation card says "No match in Crossref or OpenAlex."**: neither service knows the reference (common for working papers and books). Search Google Scholar is one click away on the card.
-- **A comment reads "Model not recorded"**: it was written by a review that an older version of Referee did not see to its end, so the review's record is missing. The comment itself is fine.
+- **A comment reads "Model not recorded"**: it was written by a review that an older version of the app did not see to its end, so the review's record is missing. The comment itself is fine.
 
 ## Checks that need your accounts
 
-These were **not** run while building Referee, because each needs your accounts or costs money. Everything else was tested: more than 1,100 automated tests, the app's own screenshots of every window state, and complete reviews with two local Ollama models. No paid API was ever called. The only prompts sent through a subscription were the ones plan §11.6 allows, through Claude Code and through Codex: the test prompt "Reply with exactly: OK" twice each (while the command-line support was built, and at the end of the build's third wave; `docs/contract-notes/wave3.md` has the results), and one run each of an experiment that handed them the invented four-page fixture paper, to learn whether they can read the PDF itself (they can).
+These were **not** run while building the app, because each needs your accounts or costs money. Everything else was tested: more than 1,100 automated tests, the app's own screenshots of every window state, and complete reviews with two local Ollama models. No paid API was ever called. The only prompts sent through a subscription were the ones plan §11.6 allows, through Claude Code and through Codex: the test prompt "Reply with exactly: OK" twice each (while the command-line support was built, and at the end of the build's third wave; `docs/contract-notes/wave3.md` has the results), and one run each of an experiment that handed them the invented four-page fixture paper, to learn whether they can read the PDF itself (they can).
 
 Use a non-confidential PDF for each, for example `Fixtures/pdf/ay_round_nolinks.pdf` from this folder (an invented four-page paper) or a published paper of your own:
 
@@ -295,7 +304,7 @@ For each review, check that comments arrive, that most of them are tied to the r
 
 ## Testing the text cleaning on journal-system PDFs
 
-Journal systems stamp review copies with line numbers in the margin, running headers ("Page 3 of 34", the journal's name), footers and watermarks ("For Peer Review"). Referee removes these before a model sees the text and still uses the line numbers for locations such as "p. 4, lines 14–16". It was built and tested on synthetic PDFs that imitate Editorial Manager and ScholarOne, but never on a real one.
+Journal systems stamp review copies with line numbers in the margin, running headers ("Page 3 of 34", the journal's name), footers and watermarks ("For Peer Review"). The app removes these before a model sees the text and still uses the line numbers for locations such as "p. 4, lines 14–16". It was built and tested on synthetic PDFs that imitate Editorial Manager and ScholarOne, but never on a real one.
 
 To check it on real ones, put a few non-confidential PDFs built by those systems (your own past submissions, for example) into `Fixtures/private/journal/`. That folder is never committed to git. Then:
 
@@ -323,7 +332,7 @@ Run them from the repository root. These are the only commands used in this proj
 | Run all tests | `scripts/test.sh` (run `scripts/build.sh` first: the integration tests run the built `referee-cli`) |
 | Run one test target | `scripts/test.sh --filter PaperTextTests` |
 | Run the app unbundled | `scripts/run.sh [PDF]` |
-| Assemble and sign the app | `scripts/bundle.sh`, which makes `build/Referee.app` (`REFEREE_SIGN_IDENTITY`, `REFEREE_VERSION` optional) |
+| Assemble and sign the app | `scripts/bundle.sh`, which makes `build/Human in the Loop.app` (`REFEREE_SIGN_IDENTITY`, `REFEREE_VERSION` optional) |
 | Render UI snapshots | `scripts/snapshots.sh [--out dir] [--scene name]… [--dark] [--size WxH]` |
 | Real local-LLM end-to-end | `scripts/e2e-ollama.sh [model] [pdf] [--expect-parts]` |
 | Regenerate fixture PDFs | `scripts/make-fixtures.sh` (needs MacTeX) |
@@ -340,7 +349,7 @@ Run them from the repository root. These are the only commands used in this proj
 - Never run bare `swift test`. Under the Command Line Tools it cannot find the Swift Testing framework; `scripts/test.sh` passes the flags it needs and fails when zero tests ran, so a mistyped `--filter` cannot look green.
 - Do not add flags, resources or dependencies to `Package.swift`. The test flags must stay on the command line: in the manifest they make the test run report success without running anything (plan §3.1).
 - Build only into the default `.build` folder of your checkout. Do not pass `--scratch-path` or `--build-path`, and do not run `swift package clean`, `reset` or `update`.
-- Tests never touch the Keychain, `~/Library/Application Support/Referee` or a vendor CLI's state; they set `REFEREE_HOME` to a temporary folder. The default run sends nothing to a subscription CLI or a paid API (it sends one short prompt to the smallest local Ollama model when Ollama is running). Opt-in only: `REFEREE_CLI_SMOKE=1` (one test prompt per signed-in CLI, plan §11.6), `REFEREE_LIVE_NET=1` (the public reference services), `REFEREE_TEST_KEYCHAIN=1` (a throwaway Keychain item); `REFEREE_CLI_EXPERIMENT` is for the coordinator only (plan §10.6).
+- Tests never touch the Keychain, `~/Library/Application Support/Human in the Loop` or a vendor CLI's state; they set `REFEREE_HOME` to a temporary folder. The default run sends nothing to a subscription CLI or a paid API (it sends one short prompt to the smallest local Ollama model when Ollama is running). Opt-in only: `REFEREE_CLI_SMOKE=1` (one test prompt per signed-in CLI, plan §11.6), `REFEREE_LIVE_NET=1` (the public reference services), `REFEREE_TEST_KEYCHAIN=1` (a throwaway Keychain item); `REFEREE_CLI_EXPERIMENT` is for the coordinator only (plan §10.6).
 - No `#file`, `#filePath`, `fatalError`, `precondition`, `preconditionFailure` or `assertionFailure` in `Sources/`: they put the source path into a release binary, which `scripts/bundle.sh` refuses (plan §3.7; a test checks).
 
 ### Layout

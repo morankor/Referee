@@ -27,10 +27,10 @@ import TestSupport
         #expect(CodexAdapter.delivery == .pageImages)
         #expect(descriptors[0].retentionNote == "Runs through your Claude Code login with its tools switched off; no session transcript is saved.")
         #expect(descriptors[1].retentionNote == "Runs through your ChatGPT plan with shell and agent tools switched off; session files are not kept.")
-        #expect(descriptors[2].retentionNote == "Runs through your Google account. Its tools cannot be switched off: Referee stops the run if it uses one. "
+        #expect(descriptors[2].retentionNote == "Runs through your Google account. Its tools cannot be switched off: the app stops the run if it uses one. "
                 + "The CLI may keep a local conversation record.")
         #expect(descriptors[3].retentionNote == "Runs through your xAI account with tools denied. The CLI saves each conversation in ~/.grok and may sync "
-                + "it to your account; Referee deletes the local copy after each run.")
+                + "it to your account; the app deletes the local copy after each run.")
     }
 
     /// Making the providers looks for nothing and starts nothing.

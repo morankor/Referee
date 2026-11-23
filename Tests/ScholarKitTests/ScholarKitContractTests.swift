@@ -23,7 +23,7 @@ import TestSupport
         ("server", "Crossref had a problem answering; try again later."),
         ("network", "Crossref could not be reached; check the connection and try again."),
         ("cancelled", "the lookup was cancelled."),
-        ("unreadable", "Crossref sent an answer Referee could not read."),
+        ("unreadable", "Crossref sent an answer the app could not read."),
         ("http-403", "Crossref refused the request (HTTP 403)."),
         ("something-new", "Crossref did not answer as expected."),
     ])

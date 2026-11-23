@@ -69,7 +69,7 @@ public enum SnapshotSupport {
     // ---- the nine real provider ids as static rows ----
 
     private static func staticProviders() -> [any LLMProvider] {
-        let unavailableGrok = "grok 0.1.0 does not list the option --disallowed-tools, which Referee needs in order to run it safely"
+        let unavailableGrok = "grok 0.1.0 does not list the option --disallowed-tools, which the app needs in order to run it safely"
         return [
             row("anthropic-api", "Anthropic API", "Anthropic", .apiKey, destination: "api.anthropic.com", pdf: true,
                 note: "Sent to Anthropic under your API account's data terms.",
@@ -101,12 +101,12 @@ public enum SnapshotSupport {
                 .needsSetup(reason: "Codex is not signed in with ChatGPT", hint: "Run `codex login`")),
             row("antigravity-cli", "Antigravity (Google AI plan)", "Google", .subscriptionCLI, destination: "agy", pdf: false,
                 maxPromptBytes: 4_000_000, experimental: true,
-                note: "Runs through your Google account. Its tools cannot be switched off: Referee stops the run if it uses one. "
+                note: "Runs through your Google account. Its tools cannot be switched off: the app stops the run if it uses one. "
                     + "The CLI may keep a local conversation record.",
                 .needsSetup(reason: "Antigravity is not installed", hint: "curl -fsSL https://antigravity.google/cli/install.sh | bash")),
             row("grok-cli", "Grok Build", "xAI", .subscriptionCLI, destination: "grok", pdf: false, maxPromptBytes: 4_000_000, experimental: true,
                 note: "Runs through your xAI account with tools denied. The CLI saves each conversation in ~/.grok and may sync "
-                    + "it to your account; Referee deletes the local copy after each run.",
+                    + "it to your account; the app deletes the local copy after each run.",
                 .unavailable(reason: unavailableGrok)),
         ]
     }

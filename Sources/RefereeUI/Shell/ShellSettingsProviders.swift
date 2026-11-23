@@ -443,7 +443,7 @@ struct ShellProviderDetail: View {
                     ShellProviderBindings.change(model, id) { $0.executablePath = path.isEmpty ? nil : path }
                 }
                 .frame(maxWidth: 340)
-                Text("Leave empty to use the copy Referee finds; the version found is shown in the status above.")
+                Text("Leave empty to use the copy the app finds; the version found is shown in the status above.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -500,7 +500,7 @@ struct ShellProviderDetail: View {
                             ShellProviderBindings.change(model, id) { $0.extraArguments = arguments }
                         }
                         .frame(maxWidth: 300)
-                        Text("Separated by spaces. The options Referee needs for safety are always kept.")
+                        Text("Separated by spaces. The options the app needs for safety are always kept.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

@@ -39,7 +39,7 @@ import TestSupport
             // Nothing but the reference text or identifier: no cookie, no credentials, no address, no name.
             #expect(request.httpMethod == "GET")
             #expect(request.httpBody == nil)
-            #expect(request.value(forHTTPHeaderField: "User-Agent") == "Referee/0.1.0")
+            #expect(request.value(forHTTPHeaderField: "User-Agent") == "HumanInTheLoop/0.1.0")
             #expect(request.value(forHTTPHeaderField: "Cookie") == nil)
             #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
         }

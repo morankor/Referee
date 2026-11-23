@@ -13,7 +13,7 @@ struct GrokBuildAdapter: CLIAdapter {
         ProviderDescriptor(id: Self.id, displayName: "Grok Build", vendor: "xAI", authMode: .subscriptionCLI, isLocal: false,
                            destination: "grok", supportsNativePDF: false, streaming: .token, maxPromptBytes: Self.maxPromptBytes,
                            retentionNote: "Runs through your xAI account with tools denied. The CLI saves each conversation in ~/.grok and may sync "
-                               + "it to your account; Referee deletes the local copy after each run.",
+                               + "it to your account; the app deletes the local copy after each run.",
                            isExperimental: true)
     }
 
@@ -188,7 +188,7 @@ struct GrokACPClient: Sendable {
         case "initialize":
             if let error { throw Self.classify(error) }
             if let version = JSONLine.int(result?["protocolVersion"]), version != 1 {
-                throw LLMError.malformedResponse("Grok Build answered with Agent Client Protocol version \(version); Referee speaks version 1")
+                throw LLMError.malformedResponse("Grok Build answered with Agent Client Protocol version \(version); the app speaks version 1")
             }
             let methods = (result?["authMethods"] as? [[String: Any]]) ?? []
             guard methods.contains(where: { ($0["id"] as? String) == "cached_token" }) else { throw LLMError.auth(Self.authHint) }

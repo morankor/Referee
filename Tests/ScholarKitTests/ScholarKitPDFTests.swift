@@ -28,7 +28,7 @@ import TestSupport
         #expect(allFiles(in: harness.papersDirectory) == [file.lastPathComponent])               // no partial file left
         let request = try #require(StubURLProtocol.recordedRequests.first)
         #expect(request.url?.absoluteString == Self.address)
-        #expect(request.value(forHTTPHeaderField: "User-Agent") == "Referee/0.1.0")
+        #expect(request.value(forHTTPHeaderField: "User-Agent") == "HumanInTheLoop/0.1.0")
 
         // Asked again: handed out from the cache.
         #expect(try await harness.resolver.fetchPDF(for: Self.reference(Self.address)) == file)

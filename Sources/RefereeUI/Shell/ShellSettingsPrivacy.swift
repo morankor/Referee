@@ -18,7 +18,7 @@ struct ShellPrivacyPane: View {
         + "or OpenAlex when you click it; API keys go only to their own vendor. Nothing else leaves this Mac: no telemetry, "
         + "update checks or crash reports."
     /// Section 12.5 in plain words.
-    static let whatProvidersCanDo = "API-key and local providers cannot act on your Mac. Command-line tools are agents: Referee "
+    static let whatProvidersCanDo = "API-key and local providers cannot act on your Mac. Command-line tools are agents: the app "
         + "switches their tools off where it can, runs them in an empty folder and stops them if they use a tool. For Antigravity "
         + "and Grok Build this is untested on this Mac until a test prompt succeeds."
 
@@ -32,7 +32,7 @@ struct ShellPrivacyPane: View {
                 Toggle(isOn: Binding(get: { model.settings.privacy.confirmFirstSendPerDocument },
                                      set: { value in model.update { $0.privacy.confirmFirstSendPerDocument = value } })) {
                     Text("Ask before the first send of each document")
-                    Text("Before a remote provider first receives a manuscript, Referee says what will be sent and asks.")
+                    Text("Before a remote provider first receives a manuscript, the app says what will be sent and asks.")
                 }
             }
             Section("Review data") {

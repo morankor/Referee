@@ -1,8 +1,9 @@
 import SwiftUI
 import AppKit
 
-/// Help ▸ Referee Help: the keys of section 9.4 and the commands of the menus, and a button that opens the README: in
-/// the app's resources, where `scripts/bundle.sh` puts it (Wave 3), or next to a build in the checkout.
+/// Help ▸ Human in the Loop Help: under the brand's header (docs/brand/brand.md 6.3), the keys of section 9.4 and the
+/// commands of the menus, and a button that opens the README: in the app's resources, where `scripts/bundle.sh` puts
+/// it (Wave 3), or next to a build in the checkout.
 struct ShellHelpView: View {
     let readme: URL?
 
@@ -28,6 +29,8 @@ struct ShellHelpView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            header
+            Divider()
             Text("Keys for triage")
                 .font(.headline)
             Text("They work while the PDF or the comment list has the keyboard, not while you type.")
@@ -48,6 +51,21 @@ struct ShellHelpView: View {
         }
         .padding(20)
         .frame(width: 460)
+    }
+
+    /// The mark at 36 points beside the wordmark at 20 and the tagline.
+    private var header: some View {
+        HStack(spacing: 12) {
+            CommonBrandMark(size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(CommonBrand.wordmark(size: 20))
+                    .fixedSize()
+                    .accessibilityAddTraits(.isHeader)
+                Text(CommonBrand.tagline)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     private func keyTable(_ rows: [(String, String)]) -> some View {

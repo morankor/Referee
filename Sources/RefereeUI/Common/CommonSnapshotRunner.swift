@@ -37,19 +37,19 @@ import TestSupport
         do {
             options = try SnapshotOptions(arguments: arguments)
         } catch {
-            say("Referee: \(error)\n\(SnapshotOptions.usage)")
+            say("ui-snapshot: \(error)\n\(SnapshotOptions.usage)")
             return 2
         }
 
         let all = ShellScenes.all + ReaderScenes.all + SidebarScenes.all + IntegrationScenes.all
         let unknown = options.sceneNames.filter { name in !all.contains { $0.name == name } }
         guard unknown.isEmpty else {
-            say("Referee: no scene named \(unknown.joined(separator: ", ")). Scenes: \(all.map(\.name).joined(separator: ", "))")
+            say("ui-snapshot: no scene named \(unknown.joined(separator: ", ")). Scenes: \(all.map(\.name).joined(separator: ", "))")
             return 1
         }
         let scenes = options.sceneNames.isEmpty ? all : all.filter { options.sceneNames.contains($0.name) }
         guard !scenes.isEmpty else {
-            say("Referee: there is no scene to capture")
+            say("ui-snapshot: there is no scene to capture")
             return 1
         }
 
@@ -59,7 +59,7 @@ import TestSupport
         do {
             try FileManager.default.createDirectory(at: options.outDirectory, withIntermediateDirectories: true)
         } catch {
-            say("Referee: the output directory could not be created")
+            say("ui-snapshot: the output directory could not be created")
             return 1
         }
 
@@ -128,7 +128,7 @@ import TestSupport
             let reviewModel = ReviewSessionModel(dependencies: dependencies, settings: settings)
             let reader = ReaderController(model: reviewModel)
             fixedSize = options.size ?? NSSize(width: 1280, height: 800)
-            window = makeWindow(ReviewWindowView(model: reviewModel, reader: reader), title: scene.fixturePDF ?? "Referee",
+            window = makeWindow(ReviewWindowView(model: reviewModel, reader: reader), title: scene.fixturePDF ?? CommonBrand.name,
                                 size: fixedSize, isDocumentWindow: true, dark: options.dark)
             reader.attach()
             context = SnapshotContext(window: window, model: reviewModel, reader: reader)
@@ -140,8 +140,9 @@ import TestSupport
                                 isDocumentWindow: false, dark: options.dark)
             context = SnapshotContext(window: window, settings: settingsModel)
         case .welcome:
-            window = makeWindow(WelcomeView(recent: sampleRecentReviews(), open: { _ in }), title: "Referee", size: nil,
-                                isDocumentWindow: false, dark: options.dark)
+            window = makeWindow(WelcomeView(recent: sampleRecentReviews(), open: { _ in }), title: CommonBrand.welcomeItemTitle,
+                                size: nil, isDocumentWindow: false, dark: options.dark)
+            WelcomeView.dress(window)                   // as the window manager dresses it: the title kept, not shown
             context = SnapshotContext(window: window)
         case .referenceViewer:
             guard let fixturePDF else {

@@ -25,7 +25,7 @@ import AppCore
         super.init()
     }
 
-    /// The PDFs named on the command line ("scripts/run.sh paper.pdf"; "open -n Referee.app --args /path/to/paper.pdf",
+    /// The PDFs named on the command line ("scripts/run.sh paper.pdf"; `open -n "Human in the Loop.app" --args /path/to/paper.pdf`,
     /// whose path must be absolute because Launch Services starts the app in "/"): the arguments that are not options
     /// and name an existing file, relative paths read from the current directory.
     nonisolated static func files(in arguments: [String], relativeTo directory: URL) -> [URL] {
@@ -55,6 +55,9 @@ import AppCore
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // A build run from the checkout (scripts/run.sh) has no bundle and so no icon: the Dock and the About panel
+        // show the mark instead of a blank application icon (docs/brand/brand.md 6.2).
+        if Bundle.main.bundleIdentifier == nil, let icon = ShellAppDelegate.unbundledIcon() { NSApp.applicationIconImage = icon }
         Task { @MainActor in await self.start() }
         NSApp.activate()
     }
@@ -122,6 +125,44 @@ import AppCore
     @objc func shellShowWelcome(_ sender: Any?) { windowManager?.showWelcome() }
     @objc func shellShowHelp(_ sender: Any?) { windowManager?.showHelp() }
 
+    /// About Human in the Loop: the standard panel with the brand's name, the version without a build number, and
+    /// the tagline over what the app is (docs/brand/brand.md 6.2).
+    @objc func shellShowAbout(_ sender: Any?) {
+        NSApp.orderFrontStandardAboutPanel(options: ShellAppDelegate.aboutPanelOptions(bundle: .main))
+        NSApp.activate()
+    }
+
+    /// The About panel's options. The bundle's own icon is used; a build without a bundle shows the mark.
+    static func aboutPanelOptions(bundle: Bundle) -> [NSApplication.AboutPanelOptionKey: Any] {
+        var options: [NSApplication.AboutPanelOptionKey: Any] = [
+            .applicationName: CommonBrand.name,
+            .applicationVersion: (bundle.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "0.1.0",
+            .version: "",                                    // no "(0.1.0)" build number after the version
+            .credits: aboutCredits,
+        ]
+        if bundle.bundleIdentifier == nil, let icon = unbundledIcon() { options[.applicationIcon] = icon }
+        return options
+    }
+
+    /// The panel's credits, centred: the tagline in 13-point semibold, then what the app is in 11 points, secondary.
+    static var aboutCredits: NSAttributedString {
+        let centred = NSMutableParagraphStyle()
+        centred.alignment = .center
+        let credits = NSMutableAttributedString(string: CommonBrand.tagline + "\n", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: NSColor.labelColor, .paragraphStyle: centred])
+        credits.append(NSAttributedString(string: CommonBrand.descriptor + ".", attributes: [
+            .font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: centred]))
+        return credits
+    }
+
+    /// The icon of a build without a bundle: the mark's tile at 103 points in 128, the margin of a macOS icon.
+    static func unbundledIcon() -> NSImage? {
+        let renderer = ImageRenderer(content: CommonBrandMark(size: 103, style: .tile).frame(width: 128, height: 128))
+        renderer.scale = 2
+        guard let image = renderer.cgImage else { return nil }
+        return NSImage(cgImage: image, size: NSSize(width: 128, height: 128))
+    }
+
     @objc func shellOpenRecent(_ sender: NSMenuItem) {
         guard let url = sender.representedObject as? URL else { return }
         windowManager?.open(url)
@@ -162,6 +203,6 @@ import AppCore
     }
 
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
-        windowManager != nil || item.action == #selector(shellClearRecent(_:))
+        windowManager != nil || item.action == #selector(shellClearRecent(_:)) || item.action == #selector(shellShowAbout(_:))
     }
 }

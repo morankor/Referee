@@ -227,8 +227,8 @@ import TestSupport
 
     @Test func theDataFolderIsShownWithoutTheHomeFolder() {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let shown = ShellPrivacyPane.displayPath(home.appendingPathComponent("Library/Application Support/Referee"))
-        #expect(shown == "~/Library/Application Support/Referee")
+        let shown = ShellPrivacyPane.displayPath(home.appendingPathComponent("Library/Application Support/Human in the Loop"))
+        #expect(shown == "~/Library/Application Support/Human in the Loop")
         #expect(ShellPrivacyPane.displayPath(nil) == "Not known")
     }
 

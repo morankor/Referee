@@ -175,7 +175,7 @@ struct ShellVenueEditor: View {
             .confirmationDialog("Reset “\(ShellVenueEditing.listTitle(venue))”?", isPresented: $confirmingReset) {
                 Button("Reset Venue", role: .destructive) { model.resetVenue(id: venue.id) }
             } message: {
-                Text("Its names, kind, guidance, report instructions and scale go back to those Referee came with.")
+                Text("Its names, kind, guidance, report instructions and scale go back to those the app came with.")
             }
         }
     }
@@ -204,7 +204,7 @@ struct ShellVenueEditor: View {
                 Button("Reset…") { confirmingReset = true }
                     .controlSize(.small)
                     .disabled(ShellVenueEditing.isAsShipped(venue))
-                    .help("Put back this venue as Referee came with it")
+                    .help("Put back this venue as the app came with it")
             }
         }
     }

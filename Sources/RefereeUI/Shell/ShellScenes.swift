@@ -18,6 +18,7 @@ import TestSupport
                 return document.pageCount == 4 ? [] : ["the display document has \(document.pageCount) pages, expected 4"]
             }),
             welcome,
+            help,
             reviewEmpty,
             consent,
             bannerError,
@@ -47,11 +48,31 @@ import TestSupport
             guard let hosting = context.window.contentViewController as? NSHostingController<WelcomeView> else {
                 return ["the window does not show a WelcomeView"]
             }
-            var failures: [String] = []
+            var failures = ShellSceneSupport.welcomeWindowIsDressed(context)
             if hosting.rootView.recent.count != 2 { failures.append("\(hosting.rootView.recent.count) recent reviews, expected 2") }
             if hosting.rootView.providerLine() != .configured("AI: Local · mock", isLocal: true) {
                 failures.append("the provider line is \(hosting.rootView.providerLine()), expected AI: Local · mock")
             }
+            return failures
+        })
+    }
+
+    /// Help ▸ Human in the Loop Help (step 5's brand, docs/brand/brand.md 6.3): the mark, the wordmark and the
+    /// tagline over the keys and commands. The runner has no kind of scene for the Help window, so this one puts the
+    /// Help view into the welcome scene's window, with the Help window's title, at the size the view asks for.
+    static var help: SnapshotScene {
+        SnapshotScene(name: "help", kind: .welcome, prepare: { context in
+            let hosting = NSHostingController(rootView: ShellHelpView(readme: ShellHelpView.findReadme()))
+            context.window.contentViewController = hosting
+            context.window.title = CommonBrand.helpItemTitle
+            context.window.titleVisibility = .visible
+            context.window.setContentSize(hosting.view.fittingSize)
+        }, verify: { context in
+            var failures: [String] = []
+            if !(context.window.contentViewController is NSHostingController<ShellHelpView>) {
+                failures.append("the window does not show the Help view")
+            }
+            if context.window.title != CommonBrand.helpItemTitle { failures.append("the window's title is \(context.window.title)") }
             return failures
         })
     }
@@ -294,6 +315,15 @@ import TestSupport
 
 /// Helpers of the scenes.
 @MainActor enum ShellSceneSupport {
+    /// Step 5's brand: the welcome window's title is "Welcome to Human in the Loop", kept for the Window menu and
+    /// VoiceOver but not shown (`WelcomeView.dress`).
+    static func welcomeWindowIsDressed(_ context: SnapshotContext) -> [String] {
+        var failures: [String] = []
+        if context.window.title != CommonBrand.welcomeItemTitle { failures.append("the window's title is \(context.window.title)") }
+        if context.window.titleVisibility != .hidden { failures.append("the welcome window shows its title") }
+        return failures
+    }
+
     /// Lets the main actor run until the condition holds, or until `seconds` have passed.
     static func wait(seconds: Double = 3, until condition: () -> Bool) async {
         let clock = ContinuousClock()

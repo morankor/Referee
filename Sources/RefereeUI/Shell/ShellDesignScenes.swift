@@ -45,7 +45,7 @@ import TestSupport
     // ---- welcome ----
 
     /// First launch without Ollama: no recent reviews, no provider set up: "Set Up AI Provider…" and its sentence under
-    /// the drop hint, and no bottom line (D5).
+    /// the drop hint, and no bottom line (D5); on the right "How it works" (step 5's brand).
     static var welcomeFirstRun: SnapshotScene {
         SnapshotScene(name: "design-welcome-first-run", kind: .welcome, prepare: { context in
             guard let hosting = context.window.contentViewController as? NSHostingController<WelcomeView> else { return }
@@ -54,7 +54,7 @@ import TestSupport
             guard let hosting = context.window.contentViewController as? NSHostingController<WelcomeView> else {
                 return ["the window does not show a WelcomeView"]
             }
-            var failures: [String] = []
+            var failures = ShellSceneSupport.welcomeWindowIsDressed(context)
             if !hosting.rootView.recent.isEmpty { failures.append("\(hosting.rootView.recent.count) recent reviews, expected none") }
             if hosting.rootView.providerLine() != .notSetUp { failures.append("the provider line is \(hosting.rootView.providerLine())") }
             return failures
@@ -74,7 +74,7 @@ import TestSupport
             guard let hosting = context.window.contentViewController as? NSHostingController<WelcomeView> else {
                 return ["the window does not show a WelcomeView"]
             }
-            var failures: [String] = []
+            var failures = ShellSceneSupport.welcomeWindowIsDressed(context)
             let recent = hosting.rootView.recent
             if recent.count != 14 { failures.append("\(recent.count) recent reviews, expected 14") }
             if hosting.rootView.providerLine() != .configured("AI: Local · gemma4:e4b", isLocal: true) {

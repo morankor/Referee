@@ -1,5 +1,7 @@
 # Referee — implementation plan
 
+> **The app is now called Human in the Loop** (step 5, Appendix G.10; the brand is `docs/brand/brand.md`). Everything a user sees says so: the menus and windows, `build/Human in the Loop.app` and the executable in it, the data folders `~/Library/Application Support/Human in the Loop` and `~/Library/Caches/Human in the Loop` (the `Referee` folders move there once), the User-Agent `HumanInTheLoop/<version>`, the README. Internal identifiers keep "Referee": the modules and targets (`RefereeCore`, `RefereeUI`, the `Referee` product, `referee-cli`), the bundle identifier, Keychain service and log subsystem `local.referee.app`, the `REFEREE_*` variables, the log's event names and the repository. Elsewhere this plan's prose still says "Referee" for the app as it was planned; "referee" the person and "referee report" are unchanged.
+
 A macOS PDF reader for peer review: the manuscript on the left, AI-drafted referee comments in a sidebar to approve, reject, discuss or add to, questions about any highlighted passage, clickable citations that open the cited paper, and a generated referee report to edit and export. Works with Anthropic, OpenAI, Google, xAI and Ollama, by API key or through the vendor's own command-line tool for subscription plans.
 
 Plan date: 2026-11-22, second version: revised after an independent review (`docs/plan-review.md`). Appendix G lists every change by review finding. Target machine: macOS 26.6.1, Apple silicon, 24 GiB memory, Command Line Tools only (no Xcode).
@@ -256,7 +258,7 @@ Referee/
     private/      git-ignored; real PDFs: public papers fetched by scripts/fetch-optional-fixtures.sh; journal-system PDFs the user adds go in private/journal/
   Sources/<Target>/…
   Tests/<Target>Tests/…          (a test target may keep its own data files under Tests/<Target>Tests/Fixtures/, excluded in the manifest: §3.7)
-  build/          git-ignored output: Referee.app, snapshots, icon
+  build/          git-ignored output: Human in the Loop.app, snapshots, icon
 ```
 
 `.gitignore`: `.build/`, `build/`, `Fixtures/private/`, `*.local.json`, `.env`, `.DS_Store`, `*.xcuserstate`, `.swiftpm/`, `__pycache__/`.
@@ -270,7 +272,7 @@ Referee/
 | Run all tests | `scripts/test.sh` |
 | Run one test target | `scripts/test.sh --filter PaperTextTests` |
 | Run the app unbundled | `scripts/run.sh [app arguments]` |
-| Assemble and sign the app | `scripts/bundle.sh` → `build/Referee.app`; then `open build/Referee.app` |
+| Assemble and sign the app | `scripts/bundle.sh` → `build/Human in the Loop.app`; then `open "build/Human in the Loop.app"` |
 | Render UI snapshots | `scripts/snapshots.sh [--out dir] [--scene name]…` |
 | Real local-LLM end-to-end | `scripts/e2e-ollama.sh [model] [pdf] [--expect-parts]` |
 | Regenerate fixture PDFs | `scripts/make-fixtures.sh` (needs MacTeX) |
@@ -335,25 +337,33 @@ exec "$(swift build --show-bin-path)/Referee" "$@"
 
 ```bash
 #!/bin/bash
+# Assembles and signs "build/Human in the Loop.app" (plan.md section 3.4; the names are docs/brand/brand.md's, section
+# 7.1). The SwiftPM product keeps its internal name, Referee; the bundle, the executable inside it and the name Finder
+# and the menu bar show are "Human in the Loop". A build/Referee.app of an earlier build is never touched, since it may
+# be running: delete it by hand once it is not.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${REFEREE_VERSION:-0.1.0}"
+NAME="Human in the Loop"
 scripts/build.sh -c release --product Referee
 BIN="$(swift build -c release --show-bin-path)/Referee"
-APP="build/Referee.app"
+APP="build/$NAME.app"
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/Referee"
-[[ -f build/AppIcon.icns ]] || scripts/make-icon.sh || echo "bundle.sh: no icon (continuing)"
+cp "$BIN" "$APP/Contents/MacOS/$NAME"
+# The icon is drawn again when it is missing or older than the script that draws it.
+if [[ ! -f build/AppIcon.icns || scripts/make-icon.sh -nt build/AppIcon.icns ]]; then
+  scripts/make-icon.sh || echo "bundle.sh: no icon (continuing)"
+fi
 [[ -f build/AppIcon.icns ]] && cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-cp README.md "$APP/Contents/Resources/README.md"      # Help ▸ Referee Help opens it from here
+cp README.md "$APP/Contents/Resources/README.md"      # Help ▸ Human in the Loop Help opens it from here
 cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>CFBundleIdentifier</key><string>local.referee.app</string>
-  <key>CFBundleName</key><string>Referee</string>
-  <key>CFBundleDisplayName</key><string>Referee</string>
-  <key>CFBundleExecutable</key><string>Referee</string>
+  <key>CFBundleName</key><string>${NAME}</string>
+  <key>CFBundleDisplayName</key><string>${NAME}</string>
+  <key>CFBundleExecutable</key><string>${NAME}</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
   <key>CFBundleVersion</key><string>${VERSION}</string>
@@ -373,7 +383,7 @@ cat > "$APP/Contents/Info.plist" <<EOF
 </dict></plist>
 EOF
 plutil -lint "$APP/Contents/Info.plist"
-if strings -a "$APP/Contents/MacOS/Referee" | grep -q "$HOME/"; then
+if strings -a "$APP/Contents/MacOS/$NAME" | grep -q "$HOME/"; then
   echo "bundle.sh: the binary contains a path under your home directory (a #filePath or #file in a release build?). Remove it before the app is shared." >&2
   exit 1
 fi
@@ -382,7 +392,7 @@ codesign --verify --verbose=1 "$APP"
 echo "Built $APP"
 ```
 
-`scripts/make-icon.sh` renders a 1024-pixel PNG with a small Swift script run through `swift -` (CoreGraphics: a rounded square and a serif "R"), resizes it with `sips` into `build/AppIcon.iconset/` at the ten standard sizes and runs `iconutil -c icns`. The bundle works without it.
+`scripts/make-icon.sh` draws the icon with a small Swift script run through `swift -` (CoreGraphics; step 5: the mark of `docs/brand/brand.md`, a loop closed by a dot on an indigo rounded square): each of the ten images of `build/AppIcon.iconset/` at its own pixel size, the 16- and 32-pixel ones with a heavier loop and a wider gap; then `iconutil -c icns`. `scripts/bundle.sh` runs it when `build/AppIcon.icns` is missing or older than the script. The bundle works without it.
 
 `scripts/snapshots.sh` (verified as written: `--scene x` alone no longer becomes the output directory [V])
 
@@ -418,7 +428,7 @@ ls -1 "$OUT"/*.png
 | Live CLI | one-line smoke prompt through each installed, signed-in subscription CLI | only with `REFEREE_CLI_SMOKE=1`, and only at the two moments §11.6 names |
 | UI | what the screen looks like, and three behaviours (document loads, citation click, triage keys) | `--ui-snapshot` PNGs that the agent opens and inspects, and scenes with a `verify` step (§10.1); pure UI helpers unit-tested |
 
-Rules: tests never read or write the user's Keychain item, `~/Library/Application Support/Referee`, or real CLIs' state; they set `REFEREE_HOME` to a temporary directory. The default test run never sends a prompt to a subscription CLI or a paid API; §11.6 lists the only real prompts allowed in this project and who may send them. No prompt ever contains a file of the user's. A test that needs something absent (Ollama, a key, an optional fixture) must skip visibly (`try #require` on a condition with a clear comment, or `.enabled(if:)`), not pass silently.
+Rules: tests never read or write the user's Keychain item, `~/Library/Application Support/Human in the Loop` (or the former `…/Referee`), or real CLIs' state; they set `REFEREE_HOME` to a temporary directory. The default test run never sends a prompt to a subscription CLI or a paid API; §11.6 lists the only real prompts allowed in this project and who may send them. No prompt ever contains a file of the user's. A test that needs something absent (Ollama, a key, an optional fixture) must skip visibly (`try #require` on a condition with a clear comment, or `.enabled(if:)`), not pass silently.
 
 ### 3.6 Fixtures
 
@@ -478,12 +488,12 @@ All types are in Appendix A (they compile as printed [V]). The ones that are per
 ### 4.2 Where things are stored, and why
 
 ```
-~/Library/Application Support/Referee/        (or $REFEREE_HOME when set: tests, CLI, snapshots)
+~/Library/Application Support/Human in the Loop/        (or $REFEREE_HOME when set: tests, CLI, snapshots)
     settings.json
     sessions/<sha256>/session.json
     sessions/<sha256>/session.json.bak        previous good version
     sessions/<sha256>/references.json         reference lookups made for this manuscript (written by ScholarKit)
-~/Library/Caches/Referee/papers/<sha256(url)>.pdf     downloaded open-access PDFs (LRU, default cap 500 MB)
+~/Library/Caches/Human in the Loop/papers/<sha256(url)>.pdf     downloaded open-access PDFs (LRU, default cap 500 MB)
 Keychain: one generic-password item, service "local.referee.app", account "secrets-v1"
 ```
 
@@ -1546,9 +1556,9 @@ Open-access PDF links come from OpenAlex and, by construction, from arXiv ids. C
 | api.crossref.org | 1 request/s, 1 at a time; with `mailto` 3 requests/s, 3 at a time | public pool: `x-rate-limit-limit: 1`, `x-rate-limit-interval: 1s`, `x-concurrency-limit: 1` [V]; polite pool [D] |
 | api.openalex.org | 5 requests/s | 10/s without a key [D] |
 
-A 429 or 5xx is retried once after `Retry-After` (or 2 s); a second failure makes the lookup `failed`. `User-Agent: Referee/<version>`; the address is appended as `(mailto:<address>)` only when the user set one. No request carries anything but the reference text or identifier.
+A 429 or 5xx is retried once after `Retry-After` (or 2 s); a second failure makes the lookup `failed`. `User-Agent: HumanInTheLoop/<version>` (the app's name without spaces, step 5); the address is appended as `(mailto:<address>)` only when the user set one. No request carries anything but the reference text or identifier.
 
-**Fetching the PDF** (`fetchPDF`): `https` only (an `http` URL is offered as "Open in Browser" instead); follow redirects; stop at 100 MB; accept only if the body starts with `%PDF-`; store as `~/Library/Caches/Referee/papers/<sha256(url)>.pdf`; evict least-recently-used files beyond the cache limit. arXiv's terms allow retrieving e-prints for personal use and forbid re-serving them [D]; the cache is local and private.
+**Fetching the PDF** (`fetchPDF`): `https` only (an `http` URL is offered as "Open in Browser" instead); follow redirects; stop at 100 MB; accept only if the body starts with `%PDF-`; store as `~/Library/Caches/Human in the Loop/papers/<sha256(url)>.pdf`; evict least-recently-used files beyond the cache limit. arXiv's terms allow retrieving e-prints for personal use and forbid re-serving them [D]; the cache is local and private.
 
 **Manual fallback**: `searchURL(for:)` = `https://scholar.google.com/scholar?q=<percent-encoded title, or first 200 characters of rawText>`, opened in the default browser. No API involved. On an actor it is declared `nonisolated` (the protocol requirement is synchronous).
 
@@ -1603,15 +1613,16 @@ The shell sets real closures with `.environment(\.uiActions, …)` on every wind
 
 | Menu | Items (key) | Calls |
 |---|---|---|
-| Referee | About, Settings… (⌘,), Hide, Quit (⌘Q) | `WindowManager.showSettings()` |
+| Human in the Loop | About Human in the Loop, Settings… (⌘,), Hide Human in the Loop, Hide Others, Show All, Quit Human in the Loop (⌘Q) | `ShellAppDelegate.shellShowAbout(_:)`; `WindowManager.showSettings()` |
 | File | Open… (⌘O), Open Recent ▸, Close (⌘W), Export Report… (⇧⌘E), Delete Review Data… | `openReview(url:)`; `model.exportReport`; after confirmation `model.deleteReviewData()`, then the window closes |
 | Edit | Undo, Redo, Cut, Copy, Paste, Select All (standard selectors, so text fields work); Find… (⌘F), Find Next (⌘G), Find Previous (⇧⌘G); the find keys are in the menu only while a review window is key | `reader.showFind()`, `findNext()`, `findPrevious()` of the key window |
 | Review | Run Review (⌘R), Stop (⌘.), Generate Report (⇧⌘R), Approve, Reject, Discuss, Edit, Next Comment, Previous Comment, Next Pending Comment (P), New Comment (the single-key shortcuts of §9.4 are shown as hints but handled by the key monitor) | model methods |
 | View | Comments (⌘1), Chat (⌘2), Report (⌘3), Hide/Show Navigator (⌃⌘S), Hide/Show Sidebar (⌥⌘0), Zoom In (⌘+, also ⌘=), Zoom Out (⌘−), Fit Width (⌘0); the zoom keys are in the menu only while a review window is key | `model.sidebarTab`; `reader.zoom(_:)` |
 | Window | standard | |
-| Help | Referee Help: the keys and commands (with the rows "P" and "Esc in a text field"; "⌘." reads "Stop the running job"), and a button that opens the README (`scripts/bundle.sh` copies it to `Contents/Resources/README.md`) | |
+| Help | Human in the Loop Help: under the brand's header (the mark at 36 pt, the wordmark at 20 pt, the tagline), the keys and commands (with the rows "P" and "Esc in a text field"; "⌘." reads "Stop the running job"), and a button that opens the README (`scripts/bundle.sh` copies it to `Contents/Resources/README.md`) | |
 
-- **Welcome window** (shown at launch when no document is opened): "Open PDF…" button, drop target, list of recent reviews from `SessionStoring.listSessions()` (title on up to two lines, file name, date, "12 comments · 3 pending" with only "3 pending" in orange). With a review default set up, a borderless line at the bottom, "AI: Local · gemma4:e4b", opens Settings ▸ Providers ("Change the provider in Settings ▸ Providers"). Without one (D5): under the drop hint, "Set Up AI Provider…" (cpu, bordered, large; opens Settings ▸ Providers) and "Reviews need an AI provider. A local model through Ollama keeps the manuscript on this Mac.", and no bottom line. A recent review's context menu (D26): "Open", "Show in Finder" (disabled when the file is gone), "Delete Review Data…" (the File menu's alert; the paper's window closes first). A file that is gone shows "File not found" under its name, and a click opens the open panel; which files are gone is found off the main actor before the list is shown.
+- **Welcome window** (shown at launch when no document is opened; titled "Welcome to Human in the Loop", the title kept for the Window menu and VoiceOver but not shown): at the top of the left column the app's tile (`CommonBrandMark`, 72 pt), the wordmark (24 pt) and the tagline "AI drafts. You referee." (step 5, G.10); "Open PDF…" button, drop target, list of recent reviews from `SessionStoring.listSessions()` (title on up to two lines, file name, date, "12 comments · 3 pending" with only "3 pending" in orange). With a review default set up, a borderless line at the bottom, "AI: Local · gemma4:e4b", opens Settings ▸ Providers ("Change the provider in Settings ▸ Providers"). Without one (D5): under the drop hint, "Set Up AI Provider…" (cpu, bordered, large; opens Settings ▸ Providers) and "Reviews need an AI provider. A local model through Ollama keeps the manuscript on this Mac.", and no bottom line. A recent review's context menu (D26): "Open", "Show in Finder" (disabled when the file is gone), "Delete Review Data…" (the File menu's alert; the paper's window closes first). A file that is gone shows "File not found" under its name, and a click opens the open panel; which files are gone is found off the main actor before the list is shown. With no review yet the right column is "How it works": three lines, each with a symbol (`doc.text.magnifyingglass` "The AI reads the paper and drafts comments in the sidebar.", `person.crop.circle.badge.checkmark` "You approve, reject, discuss or edit each one, with single keys.", `doc.richtext` "The report is drafted from the comments you approved, for you to edit."), and under them "Nothing reaches the report until you approve it."
+- **About panel** (step 5, G.10): the standard panel with "Human in the Loop", "Version 0.1.0" without a build number, and as credits the tagline (13 pt semibold) over "A PDF reader for refereeing papers with AI." (11 pt, secondary). A build without a bundle (`scripts/run.sh`) shows the mark as its icon, in the panel and in the Dock.
 
 ### 9.2 Review window
 
@@ -1733,7 +1744,7 @@ Modified keys go through the menu: ⌘R, ⌘., ⇧⌘R, ⌘F, ⌘G, ⌘1–3, �
 
 - **Providers.** Three groups: *API key* (Anthropic, OpenAI, Gemini, xAI), *Subscription through an installed CLI* (Claude Code, Codex, Antigravity, Grok Build), *Local* (Ollama). Each row: enable switch; status from `availability()` with a coloured dot (green ready, yellow needs setup with the hint, red unavailable with the reason, which for a CLI can be a missing safety flag, §5.6.1); for API providers a secure key field that only accepts input ("•••• stored" when set, Replace, Remove; a Keychain failure shows `secretErrors[key]` under the field); model picker filled from `listModels()` with a refresh button, "Show all" where a filter applies (OpenAI and Gemini: `refreshModels(of:includeHidden: true)`), and "Custom…" for a typed id; for CLIs the version (in the status detail, "Logged in · claude 2.1.330"), a path override field (`executablePath`), the install command with a Copy button and the sign-in command to run in Terminal (both are the hint of a `.needsSetup` status). The detected path is not shown in v1: no API reports it. An experimental provider with no `verifiedAt` shows, in orange under its name, "Experimental — not yet verified against the real CLI on this machine" (an "Experimental" `CommonTag` in the list). Advanced disclosure per provider: base URL, context window override, max output tokens, input mode (Automatic / Text / PDF), extra arguments (CLI) or extra body JSON (API; for Ollama it holds `{"think": false}` by default). "Send Test Prompt" is enabled only while the status is `.ready` (tooltip "{headline}: {detail}", "Needs setup: Antigravity is not installed"), with a note by kind (D21): API key "Sends “Reply with exactly: OK” to {destination}; costs a few tokens."; CLI "Runs {short name} once with “Reply with exactly: OK”; uses one message of your plan."; local "Sends “Reply with exactly: OK” to the model on this Mac; costs nothing."; built in "Sends “Reply with exactly: OK” to the built-in stand-in."; success stores `verifiedAt` and removes the experimental warning. A provider whose key is stored but which is off adds "Switch on {display name} to use it." and "Switch On". Each row shows its chosen model under its name ("gemma4:e4b", "CLI default", "Not chosen"); Copy buttons read "Copied". With nothing switched on, a green box above the list says "Start with a local model: Ollama keeps manuscripts on this Mac." and the pane opens on Ollama. **Switching** (`ShellProviderBindings.setEnabled`, D5): switching a provider on while there is no review default makes it the review default, with its model (an existing default is never replaced); switching the review default's provider off moves the default to another provider that is on, a local one first, else to none, and a chat or report default that named it goes back to "Same as Review"; the switch never turns another provider on. While no review default is set, a local provider that is on and ready becomes it once per run of the app (§9.1, `adoptReadyLocalProviderIfNeeded`, step 5c). Below the list: the default for Review, Chat and Report, one menu each ("None" for Review, "Same as Review" for the others, then each provider that is on, or the one in force, as a submenu with "Default model (…)" and every listed model); the label reads "{provider} · {model}" ("Ollama (local) · gemma4:e4b", "Claude Code · Default model"). These are what a document in Custom uses (§9.7). Choosing a model in a provider's detail moves only the job defaults that had its previous model.
 - **Prompts.** Editors for `reviewSystem`, `discussionSystem`, `questionSystem`, `reportSystem`, `reportTemplate`, `voiceRevisionSystem`; under "For a conference" (step 5, G.9), "Conference report" and "Conference template", the editors of `conferenceReportSystem` and `conferenceReportTemplate`, which show `reportSystem(for: .conference)` and `reportTemplate(for: .conference)` while the stored value is nil, each with a "Reset" of its own (disabled while the text is the default); the rubric table (enabled, id, name, guidance; add, remove); the quick questions list; the fixed output-format text (`FormatSpec.review`) shown read-only with the note "The app parses this format; it cannot be edited"; "Restore defaults".
-- **Venues** (step 5, G.9; `ShellSettingsVenues.swift`), after Prompts: both shape what is sent. On the left a list 236 pt wide in the order of `settings.venues`, which is the venue menu's order: each row the kind's symbol, the short name (else the full name, else "Untitled venue") with a "Built in" tag (secondary) and a "Default" tag (accent), and under it the full name (the kind when the full name would repeat the title). Under the list: "+", a menu of "Add Journal" and "Add Conference" (`addVenue(kind:)`; the new venue is selected); Duplicate (`duplicateVenue(id:)`); "−", disabled for a built-in, which asks "Delete “{name}”?" with "Papers reviewed for it are reviewed for Journal (unspecified) from then on." before `deleteVenue(id:)`; and up and down arrows. Dragging rows reorders them too (`moveVenues(fromOffsets:toOffset:)`). On the right the selected venue (the first when none is chosen; `ShellSettingsNavigation.venue`, which "Edit Venues…" sets): its short title with the "Built in" tag; "Default for New Papers" (`setDefaultVenue(id:)`), or the label "Default for new papers" with a check mark when it is the default; for a built-in "Reset…", disabled while the venue is as shipped, which asks first ("Its names, kind, guidance, report instructions and scale go back to those Referee came with."; `resetVenue(id:)`). Then "Short name" and "Kind" (segmented, Journal and Conference) on one row and "Full name" under them, with "Give the venue a short or a full name: the prompts name it." in orange when both are blank; "What a review for it weighs", captioned "Sent with every prompt about a paper on this venue. You can paste the venue's own guidelines for reviewers here.", over a text editor; for a conference the recommendation scale; and "Report instructions", captioned "Optional. Added to the report's request only, for example what the venue's review form asks for." (blank is none). The scale is captioned "The labels of the venue's review form, most favourable first. The default scale is a stand-in: replace it with the scale of the venue's real review form."; one numbered field per label with up, down and remove buttons, then "Add Label" ("New label", "New label 2", …) and "Use Default Scale" (disabled while the scale is the default), and in orange what the scale loses where it is used: "A blank label is left out.", "“{label}” is on the scale twice; the second is left out.", "The scale has no label, so the default scale is used.", "A scale needs at least two labels to choose between." A journal turned into a conference with a blank scale gets the default scale; a conference turned into a journal keeps its labels, unused. A field hands its text on at Return or when it loses the keyboard, a text editor half a second after the last keystroke; each edit goes through `updateVenue(_:)` applied to the venue as the model holds it at that moment (`ShellVenueEditing`), so two fields never overwrite each other. In `settings-venues` the five labels of EC's scale and its buttons fit in the 780 × 560 window.
+- **Venues** (step 5, G.9; `ShellSettingsVenues.swift`), after Prompts: both shape what is sent. On the left a list 236 pt wide in the order of `settings.venues`, which is the venue menu's order: each row the kind's symbol, the short name (else the full name, else "Untitled venue") with a "Built in" tag (secondary) and a "Default" tag (accent), and under it the full name (the kind when the full name would repeat the title). Under the list: "+", a menu of "Add Journal" and "Add Conference" (`addVenue(kind:)`; the new venue is selected); Duplicate (`duplicateVenue(id:)`); "−", disabled for a built-in, which asks "Delete “{name}”?" with "Papers reviewed for it are reviewed for Journal (unspecified) from then on." before `deleteVenue(id:)`; and up and down arrows. Dragging rows reorders them too (`moveVenues(fromOffsets:toOffset:)`). On the right the selected venue (the first when none is chosen; `ShellSettingsNavigation.venue`, which "Edit Venues…" sets): its short title with the "Built in" tag; "Default for New Papers" (`setDefaultVenue(id:)`), or the label "Default for new papers" with a check mark when it is the default; for a built-in "Reset…", disabled while the venue is as shipped, which asks first ("Its names, kind, guidance, report instructions and scale go back to those the app came with."; `resetVenue(id:)`). Then "Short name" and "Kind" (segmented, Journal and Conference) on one row and "Full name" under them, with "Give the venue a short or a full name: the prompts name it." in orange when both are blank; "What a review for it weighs", captioned "Sent with every prompt about a paper on this venue. You can paste the venue's own guidelines for reviewers here.", over a text editor; for a conference the recommendation scale; and "Report instructions", captioned "Optional. Added to the report's request only, for example what the venue's review form asks for." (blank is none). The scale is captioned "The labels of the venue's review form, most favourable first. The default scale is a stand-in: replace it with the scale of the venue's real review form."; one numbered field per label with up, down and remove buttons, then "Add Label" ("New label", "New label 2", …) and "Use Default Scale" (disabled while the scale is the default), and in orange what the scale loses where it is used: "A blank label is left out.", "“{label}” is on the scale twice; the second is left out.", "The scale has no label, so the default scale is used.", "A scale needs at least two labels to choose between." A journal turned into a conference with a blank scale gets the default scale; a conference turned into a journal keeps its labels, unused. A field hands its text on at Return or when it loses the keyboard, a text editor half a second after the last keystroke; each edit goes through `updateVenue(_:)` applied to the venue as the model holds it at that moment (`ShellVenueEditing`), so two fields never overwrite each other. In `settings-venues` the five labels of EC's scale and its buttons fit in the 780 × 560 window.
 - **Privacy.** "Local only" switch; "Ask before the first send of each document" (on); the data folder path (`SettingsModel.dataDirectory`) with Reveal in Finder; "Delete all review data…" (after confirmation the window manager closes every review window, then calls `deleteAllReviewData()`); a plain-language summary of §12.3 and §12.5.
 - **References.** "Look up references only when I click them" (on); Crossref contact email (empty; note: "optional; gives faster lookups"); PDF cache size (`pdfCacheBytes`, after `refreshPDFCacheSize()`) and Clear (`clearPDFCache()`).
 - **Advanced.** "Remove margin line numbers from extracted text: Automatic / Never" (applies to documents opened afterwards); "Advance to the next comment after a decision"; "Show highlights of rejected comments".
@@ -1783,7 +1794,7 @@ Check the journal's policy on AI tools before sending a manuscript under review.
 
 `ShellConsentText` keeps the one-sentence `what` (VoiceOver's label of the grid, and the tests) and has `facts` and `sendButton`. "Send to {vendor}" is prominent and orange and has no default key; "Don't Send" is the cancel action (Esc). VoiceOver starts on the title (D22). A CLI is named "to {vendor} through {short name}" ("to OpenAI through Codex"; it was the binary's name). Send records a `ConsentRecord` (unless "Ask again" is ticked: `answerConsent(granted: true, askAgain: true)` sends without recording, so the next job asks again) and starts the job; Don't Send leaves everything untouched. With "Local only" on, non-local providers cannot be selected and any job addressed to one fails immediately with a banner.
 
-`retentionNote` texts: Anthropic API "Sent to Anthropic under your API account's data terms."; OpenAI "Sent with store=false; not kept for retrieval by the API."; Gemini "Sent with store=false."; xAI "Sent to an endpoint that does not store requests."; Ollama "Processed on this Mac; nothing is sent." (or "Sent to <host> on your network." for a non-loopback base URL); Claude Code "Runs through your Claude Code login with its tools switched off; no session transcript is saved."; Codex "Runs through your ChatGPT plan with shell and agent tools switched off; session files are not kept."; Antigravity "Runs through your Google account. Its tools cannot be switched off: Referee stops the run if it uses one. The CLI may keep a local conversation record."; Grok Build "Runs through your xAI account with tools denied. The CLI saves each conversation in ~/.grok and may sync it to your account; Referee deletes the local copy after each run."
+`retentionNote` texts: Anthropic API "Sent to Anthropic under your API account's data terms."; OpenAI "Sent with store=false; not kept for retrieval by the API."; Gemini "Sent with store=false."; xAI "Sent to an endpoint that does not store requests."; Ollama "Processed on this Mac; nothing is sent." (or "Sent to <host> on your network." for a non-loopback base URL); Claude Code "Runs through your Claude Code login with its tools switched off; no session transcript is saved."; Codex "Runs through your ChatGPT plan with shell and agent tools switched off; session files are not kept."; Antigravity "Runs through your Google account. Its tools cannot be switched off: the app stops the run if it uses one. The CLI may keep a local conversation record."; Grok Build "Runs through your xAI account with tools denied. The CLI saves each conversation in ~/.grok and may sync it to your account; the app deletes the local copy after each run."
 
 ### 9.8 Report tab
 
@@ -1810,6 +1821,8 @@ The banner (`BannerView`, Shell) sits above the PDF in the detail column, one at
 ### 9.10 Shared theme (`RefereeUI/Common/CommonTheme.swift`, written in Wave 0, frozen; with `CommonTag.swift`, amended in step 5)
 
 Kind colours: major red, minor brown, question purple, strength teal (minor was grey until step 5, design review D16: a minor comment is a live concern, and its grey badge looked like the muted badge of a rejected comment). Status colours: pending yellow, approved green, rejected grey, own blue. Highlight colours and alphas as in §7.3. Card corner radius 8, card padding 10, list spacing 10, sidebar padding 10. Fonts: system; card title `.headline`, body `.callout`, quote `.callout.italic()`, metadata `.caption`, tag `.caption2.weight(.semibold)`. Feedback time 1.5 s: how long a control shows that it acted ("Copied" after Copy) before its label returns. Small tags ("You", "verify", "Revision proposed", "Open access", "Experimental", the style check's count, "Built in" and "Default" in Settings ▸ Venues) are one view in every pane, `CommonTag(text, color:)`: the text in the tag font and the colour, 6 points of padding either side and 1 above and below, on a capsule of the colour at 15% opacity, at its own size (it neither wraps nor truncates). A venue's kind has one symbol in every pane, `Theme.venueSymbol(_:)`: `book.closed` for a journal, `person.3` (a program committee) for a conference (step 5, G.9). The sidebar's kind badge uses the tag font too, on a rounded rectangle rather than a capsule, which tells a kind from a tag. Light and dark appearance both supported through semantic colours. The public surface of `Theme` and `CommonTag` is printed in §11.3.
+
+**The brand** (step 5, G.10; `docs/brand/brand.md`; `CommonBrand.swift` and `CommonBrandMark.swift`, internal): the name's forms, the tagline, the wordmark (`CommonBrand.wordmark(size:)`: "Human" and "Loop" in SF Pro Semibold at −1% tracking, "in the" in New York Italic, secondary) and the mark (`CommonBrandMark(size:style:)`: `.glyph` in indigo ink, paper in dark; `.tile` the icon's rounded square). They appear only in the welcome window, the About panel and the Help window, never in a review window; the brand's indigo is used on the mark and the icon only, at least 15° of hue from every colour above, and controls keep the system accent colour.
 
 ---
 
@@ -1850,7 +1863,8 @@ Required scenes:
 | Scene | Owner | Shows |
 |---|---|---|
 | `placeholder` | Shell | Wave 0's check of the runner, kept as it is in every wave (a test in `Tests/RefereeUITests/Common` checks it): `ay_round_nolinks.pdf` in the review window; `verify`: the display document has 4 pages |
-| `welcome` | Shell | welcome window with two recent reviews |
+| `welcome` | Shell | welcome window with two recent reviews; the app's tile, wordmark and tagline (step 5); `verify`: the title "Welcome to Human in the Loop", not shown |
+| `help` | Shell | step 5: Help ▸ Human in the Loop Help, the brand's header over the keys; the runner has no kind for it, so the scene puts the Help view into a welcome scene's window |
 | `review-empty` | Shell | `ay_round_nolinks.pdf` open, no comments, destination indicator "Local · mock" |
 | `consent` | Shell | `setActiveProvider("mock-remote")`, `startReview()`: the consent card, with the text-only sentence |
 | `banner-error` | Shell | `setActiveProvider("mock-fail")`, review: banner "Review stopped: …" with Retry, two comments kept |
@@ -2189,8 +2203,14 @@ public actor ReferenceResolver: ReferenceResolving {
 
 // ====== Persistence (WP8a) ============================================================================================
 public enum AppPaths {                                   // honours REFEREE_HOME: data = $REFEREE_HOME, caches = $REFEREE_HOME/Caches
+    public static let folderName: String                 // "Human in the Loop" (step 5, G.10): the folders' name in the Library
+    public static let formerFolderName: String           // "Referee": folders of this name move once
     public static func dataDirectory(environment: [String: String]) -> URL
     public static func cacheDirectory(environment: [String: String]) -> URL
+    /// At launch: the former folders moved (never with REFEREE_HOME; never while another copy runs; a failed move keeps the former).
+    public static func directoriesMovingFormerFolders(environment: [String: String], otherCopyRunning: () -> Bool,
+                                                      applicationSupport: URL? = nil, caches: URL? = nil) -> (data: URL, caches: URL)
+    public static func moveFormerFolder(_ former: URL, to current: URL, otherCopyRunning: () -> Bool) -> URL
 }
 public actor FileSessionStore: SessionStoring { public init(directory: URL) }     // <dataDirectory>/sessions
 public actor FileSettingsStore: SettingsStoring { public init(fileURL: URL) }     // <dataDirectory>/settings.json
@@ -2320,6 +2340,7 @@ public enum TriageKeymap {
 
 ```swift
 import Foundation
+import AppKit
 import RefereeCore
 import TestSupport
 import PaperText
@@ -2360,8 +2381,9 @@ struct EnvironmentSecretStore: SecretStoring {
 
 public enum LiveDependencies {
     public static func make(environment: [String: String] = ProcessInfo.processInfo.environment) async -> AppDependencies {
-        let data = AppPaths.dataDirectory(environment: environment)
-        let caches = AppPaths.cacheDirectory(environment: environment)
+        // The folders of the app's former name move to its new name once, before any store opens (plan section 4.2);
+        // never with REFEREE_HOME set, which the snapshot mode, the tests and referee-cli always set.
+        let (data, caches) = AppPaths.directoriesMovingFormerFolders(environment: environment, otherCopyRunning: anotherCopyIsRunning)
         let snapshot = environment["REFEREE_SNAPSHOT"] == "1"      // snapshot mode: no process, no connection, no Keychain
 
         let fileStore = FileSettingsStore(fileURL: data.appendingPathComponent("settings.json"))
@@ -2395,6 +2417,15 @@ public enum LiveDependencies {
         return AppDependencies(paperService: paperService, matcherFactory: matcherFactory, citationIndexer: CitationIndexer(), engine: engine,
                                resolver: resolver, sessions: FileSessionStore(directory: data.appendingPathComponent("sessions")),
                                settings: settings, providers: registry, secrets: secrets, dataDirectory: data)
+    }
+
+    /// Whether another copy of the app is running: a process with the app's bundle identifier other than this one,
+    /// such as a former Referee.app, which has the same identifier. Its data folder is not moved from under it. An
+    /// unbundled build (`scripts/run.sh`) asks about the bundled app's identifier.
+    static func anotherCopyIsRunning() -> Bool {
+        let identifier = Bundle.main.bundleIdentifier ?? "local.referee.app"
+        let me = ProcessInfo.processInfo.processIdentifier
+        return NSRunningApplication.runningApplications(withBundleIdentifier: identifier).contains { $0.processIdentifier != me }
     }
 
     /// The one URLSession for providers and reference lookups (section 5.3).
@@ -2431,7 +2462,7 @@ Acceptance:
 ```
 scripts/build.sh                                         # no errors, no warnings
 scripts/test.sh                                          # OK, at least 12 tests
-scripts/bundle.sh && codesign --verify build/Referee.app
+scripts/bundle.sh && codesign --verify "build/Human in the Loop.app"
 git status --porcelain | wc -l                           # 0
 ```
 
@@ -2458,7 +2489,7 @@ scripts/test.sh --filter RefereeCoreTests                # round-trip of the §4
                                                          # StubURLProtocol chunking; SnapshotSupport ids; every fixture PDF and raw dump present and decodable
 "$(swift build --show-bin-path)"/referee-cli dump-raw Fixtures/pdf/ay_nolinks.pdf | head -c 200
 scripts/snapshots.sh --scene placeholder                 # exit 0, PNG non-blank; open it: three columns and a PDF page are visible
-scripts/bundle.sh && codesign --verify build/Referee.app # bundle.sh now also fails if the binary contains a home-directory path
+scripts/bundle.sh && codesign --verify "build/Human in the Loop.app" # bundle.sh now also fails if the binary contains a home-directory path
 git status --porcelain | wc -l                           # 0
 ```
 
@@ -2812,8 +2843,8 @@ Acceptance:
 scripts/build.sh
 scripts/test.sh --filter RefereeUITests
 scripts/snapshots.sh                        # all scenes that exist in this worktree; exit 0
-scripts/bundle.sh && codesign --verify build/Referee.app
-build/Referee.app/Contents/MacOS/Referee --ui-snapshot build/snapshots-bundle --scene review-empty     # the bundled binary also works
+scripts/bundle.sh && codesign --verify "build/Human in the Loop.app"
+"build/Human in the Loop.app/Contents/MacOS/Human in the Loop" --ui-snapshot build/snapshots-bundle --scene review-empty     # the bundled binary also works
 ```
 
 and, by looking at the PNGs: three columns with toolbar, the Review button showing its word; the indicator text and colour for local and remote mock providers; the consent card wording of §9.7 including the text-only sentence; the error banner with Retry above the PDF; each settings pane complete and unclipped, one provider row with the experimental warning. Describe each scene in your notes file.
@@ -2823,7 +2854,7 @@ and, by looking at the PNGs: three columns with toolbar, the Review button showi
 1. Merge the three UI branches; `scripts/build.sh` after each, `scripts/test.sh` after the last. Read their notes; resolve "Contract problems" as Gate 1 did.
 2. Write the three integration scenes of §10.1 (`check-document-loaded`, `check-citation-click`, `check-triage-keys`) in `CommonIntegrationScenes.swift`.
 3. `scripts/snapshots.sh`: every scene, exit 0, no failures; look at every PNG now that all panes are real.
-4. `scripts/e2e-ollama.sh`; `scripts/bundle.sh`; launch `build/Referee.app` once with `open -n --env REFEREE_HOME=<a new temporary folder> --env REFEREE_NO_KEYCHAIN=1 build/Referee.app --args <absolute path of the fixture pdf>` and confirm from `/usr/bin/log show --info --last 1m --predicate 'subsystem == "local.referee.app"'` that the document reached `.ready`: the line `shell.review.ready document=bool(true) pages=int(4)` (`Log.event` writes at info level, which `log show` leaves out without `--info`; in zsh `log` is a builtin, hence the full path). The path must be absolute because Launch Services starts the app in "/"; the temporary folder and `REFEREE_NO_KEYCHAIN` keep the user's data and Keychain untouched (as Wave 3 ran it). End the process with `kill`, remove the folder, and run the bundled binary's snapshot mode.
+4. `scripts/e2e-ollama.sh`; `scripts/bundle.sh`; launch `build/Human in the Loop.app` once with `open -n --env REFEREE_HOME=<a new temporary folder> --env REFEREE_NO_KEYCHAIN=1 "build/Human in the Loop.app" --args <absolute path of the fixture pdf>` and confirm from `/usr/bin/log show --info --last 1m --predicate 'subsystem == "local.referee.app"'` that the document reached `.ready`: the line `shell.review.ready document=bool(true) pages=int(4)` (`Log.event` writes at info level, which `log show` leaves out without `--info`; in zsh `log` is a builtin, hence the full path). The path must be absolute because Launch Services starts the app in "/"; the temporary folder and `REFEREE_NO_KEYCHAIN` keep the user's data and Keychain untouched (as Wave 3 ran it). End the process with `kill`, remove the folder, and run the bundled binary's snapshot mode.
 5. The smoke prompts of §11.6: `REFEREE_CLI_SMOKE=1 scripts/test.sh --filter CLIProvidersTests`. Record which CLIs ran and the result.
 6. Final `README.md`: install, first run, provider set-up (including what "experimental" means and the test-prompt button), privacy summary (§12.3, §12.5), troubleshooting (Codex reinstall, the Keychain prompt after a rebuild and the self-signed identity that removes it, Ollama not running), and a checklist of checks that need the user's accounts and are not run unasked: one real review per configured API provider and per installed CLI on a non-confidential PDF.
 
@@ -2875,8 +2906,8 @@ Provider-side retention is reduced where the API offers a switch: `store: false`
 
 ### 12.4 Local data
 
-- Review data: `~/Library/Application Support/Referee/sessions/<hash>/`. It contains quotes from the manuscript, the reviewer's comments, and the reference lookups made for it. "Delete Review Data…" removes one review's folder; Settings ▸ Privacy removes all.
-- Downloaded papers: `~/Library/Caches/Referee/papers/`, clearable in Settings.
+- Review data: `~/Library/Application Support/Human in the Loop/sessions/<hash>/`. It contains quotes from the manuscript, the reviewer's comments, and the reference lookups made for it. "Delete Review Data…" removes one review's folder; Settings ▸ Privacy removes all.
+- Downloaded papers: `~/Library/Caches/Human in the Loop/papers/`, clearable in Settings.
 - Temporary files: the per-run CLI working directory (the system prompt file; in the delivery modes of §5.6.6 a copy of the manuscript or its page images), mode 0700, removed after each run and on next launch if a crash left one.
 - What the vendors' CLIs write on their own account is outside the app's control and not fully known: Codex keeps a log database under `~/.codex` whose contents were not examined; Grok Build keeps sessions under `~/.grok` (deleted by the adapter); Antigravity keeps conversations that can be resumed by id. The README says this.
 - The app is not sandboxed (it must launch CLIs and read PDFs anywhere). It requests no entitlements, no Accessibility, no Screen Recording, no Full Disk Access.
@@ -3969,7 +4000,7 @@ public enum StoreError: RefereeError, Equatable {
     public var userMessage: String {
         switch self {
         case .corrupt(let p): return "The saved review at \(p) is damaged and has no usable backup."
-        case .newerSchema(let f, let s): return "This review was saved by a newer version of Referee (format \(f); this version reads up to \(s))."
+        case .newerSchema(let f, let s): return "This review was saved by a newer version of Human in the Loop (format \(f); this version reads up to \(s))."
         case .io(let m): return "Could not read or write review data (\(m))."
         }
     }
@@ -5759,3 +5790,26 @@ The user's request in step 5: "add an option to choose a venue on the main scree
 | One symbol per kind | `Theme.venueSymbol(_:)`: `book.closed` for a journal, `person.3` for a conference | §9.10, §11.3 |
 | The style check follows an edit of the venue | `reloadSettings(_:)` lints the open report again when the paper's venue changed with the settings (contract problem 3 of the core's notes) | A.9 |
 | Scenes and tests | `design-venue-menu`, `settings-venues` and `design-report-conference`: sixty scenes. Unit tests of the control's states, the menu, the editor's checks and edits, the Prompts texts and the Report tab's venue facts; both surface checks name every public member the venues added | §10.1 |
+
+### G.10 Rename and brand
+
+The user's request in step 5: "I want it to be called 'human in the loop' reader. also fashion a modern style sleek logo and vibe". One agent designed the brand on `s5/brand` (`docs/brand/brand.md`, the spec, with the three concepts explored and Apple's macOS 26 icon guidelines as read); the same agent merged it into `main` and applied the rename and the brand. Notes: `docs/contract-notes/step5-brand.md`.
+
+| Decision | What changed | Where |
+|---|---|---|
+| The name | "Human in the Loop" wherever a user reads the app's name; no short form ("HITL" never); `HumanInTheLoop` only where a space cannot go; in running text "the app", never the name as a subject ("Human in the Loop stops the run" reads as if a person did); the role word "referee" unchanged ("referee report", the prompts' `Referee:` label) | the note at the top; `CommonBrand` |
+| Tagline and descriptor | "AI drafts. You referee."; "A PDF reader for refereeing papers with AI" | `CommonBrand.tagline`, `.descriptor` |
+| The mark and the icon | The bead: a loop open at the upper right, closed by a dot (chosen over a page with a passage circled and a pen nib closing the loop, which do not survive 16 px). The icon: the mark in near-white on an indigo rounded square, a flat `.icns` shaped to the macOS template so that macOS 26 masks it rather than setting it on a grey background, no shadow drawn in; each of the ten images drawn at its own pixel size, a heavier loop and wider gap at 16 and 32 px | §3.4; `scripts/make-icon.sh`, `CommonBrandMark`, `docs/brand/` |
+| The palette | The brand's indigo on the mark and the icon only, at least 15° of hue from every colour that carries a meaning (tested); controls keep the system accent colour | §9.10; `CommonBrandTests` |
+| The type | System fonts. Wordmark: "Human" and "Loop" in SF Pro Semibold at −1%, "in the" in New York Italic, secondary; never below 20 pt | §9.10; `CommonBrand.wordmark(size:)` |
+| The menus | The application menu "Human in the Loop": About Human in the Loop, Hide Human in the Loop, Quit Human in the Loop; Window ▸ Welcome to Human in the Loop; Help ▸ Human in the Loop Help | §9.1; `ShellMainMenu` |
+| The About panel | The standard panel with the name, the version without a build number, and the tagline over the descriptor; a build without a bundle shows the mark, in the panel and the Dock | §9.1; `ShellAppDelegate.shellShowAbout(_:)`, `aboutPanelOptions(bundle:)`, `unbundledIcon()` |
+| The welcome window | Title "Welcome to Human in the Loop", kept but not shown (`WelcomeView.dress`); the tile (72 pt), the wordmark (24 pt) and the tagline replace the "R" glyph, the name and the old subtitle; with no review yet, "How it works" on the right | §9.1; `ShellWelcomeView` |
+| The Help window | Title "Human in the Loop Help"; a header with the mark (36 pt), the wordmark (20 pt) and the tagline | §9.1; `ShellHelpView` |
+| No brand elsewhere | Review windows, the toolbar and the empty states are unchanged; no motion | brand.md §6 |
+| Words in the app | Every sentence that made the app its subject says "the app": Settings ▸ Privacy, Prompts (two), Venues (two, step 5's), Providers (two); the CLI texts (Antigravity's and Grok Build's notes, the missing safety option, the unexpected answer, Grok's protocol version); the lookup's unreadable answer. "This review was saved by a newer version of Human in the Loop" names it | §9.6, §9.7, A.7 |
+| The bundle | `build/Human in the Loop.app`; `CFBundleName`, `CFBundleDisplayName` and `CFBundleExecutable` "Human in the Loop"; the identifier `local.referee.app` unchanged, so the Keychain item and the settings stay the app's; the icon drawn again when `scripts/make-icon.sh` is newer than `build/AppIcon.icns`; a former `build/Referee.app` never touched (it may be running; the user deletes it) | §3.4; `scripts/bundle.sh` |
+| The data folders | `Application Support/Human in the Loop` and `Caches/Human in the Loop`. At launch, before any store opens, each former `Referee` folder moves to the new name: only when the new one does not exist (never merged), never with `REFEREE_HOME` set, and not while another copy with the app's identifier runs (a former Referee.app); a failed move keeps the former folder in use for that launch. Nothing is deleted | §4.2, §11.3; `AppPaths.directoriesMovingFormerFolders(environment:otherCopyRunning:applicationSupport:caches:)`, `moveFormerFolder(_:to:otherCopyRunning:)`, `folderName`, `formerFolderName`; `LiveDependencies` |
+| What the app sends or writes | User-Agent `HumanInTheLoop/<version>` (Crossref, OpenAlex, PDF downloads); the debug transcript's first line "Human in the Loop debug transcript"; the snapshot mode's messages begin "ui-snapshot:" (its usage line still names the SwiftPM executable, `Referee`) | §8.7, §10.5, §10.1 |
+| Unchanged | Modules and targets, the SwiftPM products `Referee` and `referee-cli`, `local.referee.app` (bundle identifier, Keychain service, log subsystem, settings notification), `REFEREE_*`, the log's event names (`shell.review.ready`), window frame names, the repository and its folders | the note at the top |
+| Scenes and tests | The `help` scene; the three welcome scenes check the window's title. Tests of the brand (tokens, geometry, colours, wordmark width, the icon script's numbers), the menus and the About panel, the welcome window's strings, and the folder migration on temporary folders; the strings of the scholar, CLI and Shell tests | §10.1 |

@@ -246,7 +246,7 @@ import AppCore
             } else {
                 let window = NSWindow(contentViewController: NSHostingController(rootView: view))
                 window.styleMask = [.titled, .closable, .miniaturizable]
-                window.title = "Referee"
+                WelcomeView.dress(window)
                 window.isReleasedWhenClosed = false
                 window.isRestorable = false
                 window.center()
@@ -289,12 +289,12 @@ import AppCore
         if welcomeWindow?.isVisible == true { showWelcome() }
     }
 
-    /// Help ▸ Referee Help: the keys and where things are, and the README when it can be found.
+    /// Help ▸ Human in the Loop Help: the keys and where things are, and the README when it can be found.
     func showHelp() {
         if helpWindow == nil {
             let window = NSWindow(contentViewController: NSHostingController(rootView: ShellHelpView(readme: ShellHelpView.findReadme())))
             window.styleMask = [.titled, .closable, .miniaturizable]
-            window.title = "Referee Help"
+            window.title = CommonBrand.helpItemTitle
             window.isReleasedWhenClosed = false
             window.isRestorable = false
             window.center()

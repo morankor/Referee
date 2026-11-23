@@ -251,12 +251,14 @@ the card scrolled to the top (D7), the pulse of a streaming draft, "Copied" (D16
 
 ## 7. Rename plan
 
+Applied on `main` in phase 2: `docs/contract-notes/step5-brand.md` lists the rename as applied, with current line numbers. The line numbers below are those of the branch point (`c1c6ee3`), and two decisions changed when the rename was applied (7.1 and 7.2).
+
 ### 7.1 Bundle: `scripts/bundle.sh`
 
 | Line | Now | Becomes |
 | --- | --- | --- |
 | 5–6 | `--product Referee`, `…/Referee` | Unchanged: the SwiftPM product keeps its name |
-| 7 | `APP="build/Referee.app"` | `APP="build/Human in the Loop.app"`; also delete a leftover `build/Referee.app` |
+| 7 | `APP="build/Referee.app"` | `APP="build/Human in the Loop.app"`. A former `build/Referee.app` is never touched: it may be running. The user deletes it. |
 | 9 | `cp "$BIN" "$APP/Contents/MacOS/Referee"` | `…/Contents/MacOS/Human in the Loop` |
 | 12 | comment "Help ▸ Referee Help" | "Help ▸ Human in the Loop Help" |
 | 17 | `CFBundleIdentifier` `local.referee.app` | **Unchanged** |
@@ -265,7 +267,7 @@ the card scrolled to the top (D7), the pulse of a streaming draft, "Copied" (D16
 | 20 | `CFBundleExecutable` `Referee` | `Human in the Loop`, as Apple names its own executables after the app, so crash reports and Console show the name. `ps -c` and `top` cut process names at 16 characters ("Human in the Loo"), which only developers see. |
 | 40 | `strings -a "$APP/Contents/MacOS/Referee"` | The new executable's path, quoted |
 
-`make-icon.sh` keeps its contract; `bundle.sh` calls it unchanged.
+`make-icon.sh` keeps its contract. `bundle.sh` runs it when `build/AppIcon.icns` is missing or older than the script, so a checkout that still has the old "R" icon gets the new one.
 
 ### 7.2 Data and cache folders: `Sources/Persistence/AppPaths.swift`
 
@@ -279,13 +281,15 @@ the card scrolled to the top (D7), the pulse of a streaming draft, "Copied" (D16
 runs only when `REFEREE_HOME` is unset and not in snapshot mode. For each pair, data and caches:
 
 1. If the new folder exists, do nothing: never merge, never touch the old one.
-2. Else, if the old folder exists, move it with `FileManager.moveItem`, a rename within `~/Library` that is atomic and
+2. Else, if another copy with the app's identifier is running (a former Referee.app has the same one), use the old folder for this launch, so that it is not moved from under that copy; a later launch moves it.
+3. Else, if the old folder exists, move it with `FileManager.moveItem`, a rename within `~/Library` that is atomic and
    instant.
-3. If the move fails, log `paths.migrate.failed` and use the old folder for this launch, so no review seems lost.
+4. If the move fails, log `paths.migrate.failed` and use the old folder for this launch, so no review seems lost.
    The next launch tries again.
 
-A new `AppPaths.migrateFormerFolders(applicationSupport:caches:)` takes the two Library folders as parameters, so
-that tests run it in a temporary folder. Nothing inside needs rewriting: sessions are found by file fingerprint,
+As applied: `AppPaths.directoriesMovingFormerFolders(environment:otherCopyRunning:applicationSupport:caches:)` takes the two
+Library folders as parameters, so that tests run it in a temporary folder; `moveFormerFolder(_:to:otherCopyRunning:)` is
+the rule for one folder. Nothing inside needs rewriting: sessions are found by file fingerprint,
 and the downloaded PDFs by hash, under the folder in use. The Keychain item is not in the folder.
 
 ### 7.3 What the app sends or writes

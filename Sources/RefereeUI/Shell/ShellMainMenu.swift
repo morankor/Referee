@@ -48,18 +48,18 @@ import AppKit
     // ---- the menus ----
 
     private static func applicationMenu(_ delegate: ShellAppDelegate, services: NSMenu) -> NSMenu {
-        let menu = NSMenu(title: "Referee")
-        menu.addItem(item("About Referee", #selector(NSApplication.orderFrontStandardAboutPanel(_:))))
+        let menu = NSMenu(title: CommonBrand.name)
+        menu.addItem(item(CommonBrand.aboutItemTitle, #selector(ShellAppDelegate.shellShowAbout(_:)), target: delegate))
         menu.addItem(.separator())
         menu.addItem(item("Settings…", #selector(ShellAppDelegate.shellShowSettings(_:)), ",", target: delegate))
         menu.addItem(.separator())
         menu.addItem(submenu(services, title: "Services"))
         menu.addItem(.separator())
-        menu.addItem(item("Hide Referee", #selector(NSApplication.hide(_:)), "h"))
+        menu.addItem(item(CommonBrand.hideItemTitle, #selector(NSApplication.hide(_:)), "h"))
         menu.addItem(item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", modifiers: [.command, .option]))
         menu.addItem(item("Show All", #selector(NSApplication.unhideAllApplications(_:))))
         menu.addItem(.separator())
-        menu.addItem(item("Quit Referee", #selector(NSApplication.terminate(_:)), "q"))
+        menu.addItem(item(CommonBrand.quitItemTitle, #selector(NSApplication.terminate(_:)), "q"))
         return menu
     }
 
@@ -140,7 +140,7 @@ import AppKit
         menu.addItem(item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m"))
         menu.addItem(item("Zoom", #selector(NSWindow.performZoom(_:))))
         menu.addItem(.separator())
-        menu.addItem(item("Welcome to Referee", #selector(ShellAppDelegate.shellShowWelcome(_:)), "1", modifiers: [.command, .shift], target: delegate))
+        menu.addItem(item(CommonBrand.welcomeItemTitle, #selector(ShellAppDelegate.shellShowWelcome(_:)), "1", modifiers: [.command, .shift], target: delegate))
         menu.addItem(.separator())
         menu.addItem(item("Bring All to Front", #selector(NSApplication.arrangeInFront(_:))))
         return menu
@@ -148,7 +148,7 @@ import AppKit
 
     private static func helpMenu(_ delegate: ShellAppDelegate) -> NSMenu {
         let menu = NSMenu(title: "Help")
-        menu.addItem(item("Referee Help", #selector(ShellAppDelegate.shellShowHelp(_:)), "?", target: delegate))
+        menu.addItem(item(CommonBrand.helpItemTitle, #selector(ShellAppDelegate.shellShowHelp(_:)), "?", target: delegate))
         return menu
     }
 

@@ -102,6 +102,12 @@ func surfaceCheckOfTheLibraries(raw: RawDocument, paper: PaperText, loaded: Load
     // ---- Persistence (WP8a) ----
     let _: URL = AppPaths.dataDirectory(environment: ["REFEREE_HOME": folder.path])
     let _: URL = AppPaths.cacheDirectory(environment: ["REFEREE_HOME": folder.path])
+    let _: String = AppPaths.folderName + AppPaths.formerFolderName                         // step 5, G.10
+    let _: (data: URL, caches: URL) = AppPaths.directoriesMovingFormerFolders(environment: ["REFEREE_HOME": folder.path],
+                                                                              otherCopyRunning: { false })    // REFEREE_HOME: nothing moves
+    let _: URL = AppPaths.moveFormerFolder(folder.appendingPathComponent("former", isDirectory: true),
+                                           to: folder.appendingPathComponent("current", isDirectory: true),
+                                           otherCopyRunning: { false })                    // no former folder: nothing moves
     let _: any SessionStoring = FileSessionStore(directory: folder.appendingPathComponent("sessions", isDirectory: true))
     let _: any SettingsStoring = FileSettingsStore(fileURL: folder.appendingPathComponent("settings.json"))
     isActor(FileSessionStore.self)

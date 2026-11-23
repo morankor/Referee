@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import RefereeCore
 import TestSupport
 import PaperText
@@ -39,8 +40,9 @@ struct EnvironmentSecretStore: SecretStoring {
 
 public enum LiveDependencies {
     public static func make(environment: [String: String] = ProcessInfo.processInfo.environment) async -> AppDependencies {
-        let data = AppPaths.dataDirectory(environment: environment)
-        let caches = AppPaths.cacheDirectory(environment: environment)
+        // The folders of the app's former name move to its new name once, before any store opens (plan section 4.2);
+        // never with REFEREE_HOME set, which the snapshot mode, the tests and referee-cli always set.
+        let (data, caches) = AppPaths.directoriesMovingFormerFolders(environment: environment, otherCopyRunning: anotherCopyIsRunning)
         let snapshot = environment["REFEREE_SNAPSHOT"] == "1"      // snapshot mode: no process, no connection, no Keychain
 
         let fileStore = FileSettingsStore(fileURL: data.appendingPathComponent("settings.json"))
@@ -74,6 +76,15 @@ public enum LiveDependencies {
         return AppDependencies(paperService: paperService, matcherFactory: matcherFactory, citationIndexer: CitationIndexer(), engine: engine,
                                resolver: resolver, sessions: FileSessionStore(directory: data.appendingPathComponent("sessions")),
                                settings: settings, providers: registry, secrets: secrets, dataDirectory: data)
+    }
+
+    /// Whether another copy of the app is running: a process with the app's bundle identifier other than this one,
+    /// such as a former Referee.app, which has the same identifier. Its data folder is not moved from under it. An
+    /// unbundled build (`scripts/run.sh`) asks about the bundled app's identifier.
+    static func anotherCopyIsRunning() -> Bool {
+        let identifier = Bundle.main.bundleIdentifier ?? "local.referee.app"
+        let me = ProcessInfo.processInfo.processIdentifier
+        return NSRunningApplication.runningApplications(withBundleIdentifier: identifier).contains { $0.processIdentifier != me }
     }
 
     /// The one URLSession for providers and reference lookups (section 5.3).

@@ -24,7 +24,7 @@ struct DebugDump: Sendable {
 
     func write(request: LLMRequest, provider: ProviderRef, output: String, outcome: String) {
         guard let directory else { return }
-        var text = "Referee debug transcript\npurpose: \(request.purpose.rawValue)\nprovider: \(provider.providerID)\n"
+        var text = "Human in the Loop debug transcript\npurpose: \(request.purpose.rawValue)\nprovider: \(provider.providerID)\n"
         text += "model: \(request.model ?? "(provider default)")\noutcome: \(outcome)\n"
         if let window = request.contextWindow { text += "context window: \(window)\n" }
         if let maximum = request.maxOutputTokens { text += "max output tokens: \(maximum)\n" }

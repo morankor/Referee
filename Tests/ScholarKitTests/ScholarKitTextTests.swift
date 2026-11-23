@@ -130,8 +130,8 @@ import RefereeCore
             let setting = parts.joined(separator: "@")
             #expect(ServiceRequests.contactAddress(setting) == nil, "\(parts)")
         }
-        #expect(ServiceRequests.userAgent(contact: nil) == "Referee/0.1.0")
-        #expect(ServiceRequests.userAgent(contact: address) == "Referee/0.1.0 (mailto:\(address))")
+        #expect(ServiceRequests.userAgent(contact: nil) == "HumanInTheLoop/0.1.0")
+        #expect(ServiceRequests.userAgent(contact: address) == "HumanInTheLoop/0.1.0 (mailto:\(address))")
     }
 }
 

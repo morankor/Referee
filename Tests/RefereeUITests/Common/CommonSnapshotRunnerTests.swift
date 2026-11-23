@@ -28,7 +28,7 @@ import TestSupport
 
         // The order of the options does not matter, and the program name may come first, as in CommandLine.arguments.
         #expect(try SnapshotOptions(arguments: ["--dark", "--scene", "a", "--ui-snapshot", "out"]).sceneNames == ["a"])
-        #expect(try SnapshotOptions(arguments: ["/Applications/Referee.app/Contents/MacOS/Referee", "--ui-snapshot", "out", "--dark"]) == (try SnapshotOptions(arguments: ["--ui-snapshot", "out", "--dark"])))
+        #expect(try SnapshotOptions(arguments: ["/Applications/Human in the Loop.app/Contents/MacOS/Human in the Loop", "--ui-snapshot", "out", "--dark"]) == (try SnapshotOptions(arguments: ["--ui-snapshot", "out", "--dark"])))
     }
 
     @Test(arguments: [
