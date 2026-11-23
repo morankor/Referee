@@ -10,33 +10,48 @@ import AppKit
 @MainActor enum ShellMainMenu {
     static let openRecentIdentifier = NSUserInterfaceItemIdentifier("Referee.OpenRecent")
 
-    static func make(appDelegate: ShellAppDelegate) -> NSMenu {
+    /// The menu bar, and the three menus AppKit fills in itself.
+    struct Menus {
+        var main: NSMenu
+        var services: NSMenu
+        var windows: NSMenu
+        var help: NSMenu
+    }
+
+    /// Makes the menu bar the application's.
+    static func install(appDelegate: ShellAppDelegate) {
+        let menus = build(appDelegate: appDelegate)
+        NSApp.mainMenu = menus.main
+        NSApp.servicesMenu = menus.services
+        NSApp.windowsMenu = menus.windows
+        NSApp.helpMenu = menus.help
+    }
+
+    /// The menus of section 9.1, without touching the application (the tests read them).
+    static func build(appDelegate: ShellAppDelegate) -> Menus {
         let main = NSMenu()
-        main.addItem(submenu(applicationMenu(appDelegate)))
+        let services = NSMenu(title: "Services")
+        main.addItem(submenu(applicationMenu(appDelegate, services: services)))
         main.addItem(submenu(fileMenu(appDelegate)))
         main.addItem(submenu(editMenu()))
         main.addItem(submenu(reviewMenu()))
         main.addItem(submenu(viewMenu()))
         let window = windowMenu(appDelegate)
         main.addItem(submenu(window))
-        NSApp.windowsMenu = window
         let help = helpMenu(appDelegate)
         main.addItem(submenu(help))
-        NSApp.helpMenu = help
-        return main
+        return Menus(main: main, services: services, windows: window, help: help)
     }
 
     // ---- the menus ----
 
-    private static func applicationMenu(_ delegate: ShellAppDelegate) -> NSMenu {
+    private static func applicationMenu(_ delegate: ShellAppDelegate, services: NSMenu) -> NSMenu {
         let menu = NSMenu(title: "Referee")
         menu.addItem(item("About Referee", #selector(NSApplication.orderFrontStandardAboutPanel(_:))))
         menu.addItem(.separator())
         menu.addItem(item("Settings…", #selector(ShellAppDelegate.shellShowSettings(_:)), ",", target: delegate))
         menu.addItem(.separator())
-        let services = NSMenu(title: "Services")
         menu.addItem(submenu(services, title: "Services"))
-        NSApp.servicesMenu = services
         menu.addItem(.separator())
         menu.addItem(item("Hide Referee", #selector(NSApplication.hide(_:)), "h"))
         menu.addItem(item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", modifiers: [.command, .option]))

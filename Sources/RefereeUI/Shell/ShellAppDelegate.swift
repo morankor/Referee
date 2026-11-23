@@ -37,7 +37,7 @@ import AppCore
     // ---- launch ----
 
     func applicationWillFinishLaunching(_ notification: Notification) {
-        NSApp.mainMenu = ShellMainMenu.make(appDelegate: self)
+        ShellMainMenu.install(appDelegate: self)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
