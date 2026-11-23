@@ -20,7 +20,9 @@ struct GrokBuildAdapter: CLIAdapter {
     let spec = CLISpec(name: "grok", candidates: ["~/.local/bin/grok", "~/.grok/bin/grok", "/opt/homebrew/bin/grok", "/usr/local/bin/grok"],
                        versionArguments: ["--version"], helpArguments: [["--help"], ["agent", "stdio", "--help"]],
                        environmentOverride: "REFEREE_CLI_PATH_GROK")
-    let installHint = "npm install -g @xai-official/grok"
+    // The installer on xAI's own site. xAI also lists the npm package @xai-official/grok, which names no repository or
+    // homepage (docs/contract-notes/wp5-cliproviders.md), so the app does not offer it.
+    let installHint = "curl -fsSL https://x.ai/cli/install.sh | bash"
     let protectedFlags = ["--sandbox", "--permission-mode", "--disallowed-tools", "--disable-web-search", "--no-subagents", "--no-memory", "--no-plan"]
     let timeouts = CLITimeouts(firstOutput: .seconds(300), idle: .seconds(600))
     let extraEnvironment = ["GROK_SANDBOX": "strict"]

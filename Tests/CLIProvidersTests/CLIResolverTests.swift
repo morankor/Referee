@@ -242,7 +242,7 @@ struct SpecOverride: CLIAdapter {
         host.loginPath = .fixed(harness.root.appendingPathComponent("empty-path").path)
         let provider = CLIProvider(adapter: missing, environment: FakeCLIHarness.providerEnvironment(harness.processEnvironment()), host: host)
         let installs = ["claude": "curl -fsSL https://claude.ai/install.sh | bash", "codex": "npm install -g @openai/codex",
-                        "agy": "curl -fsSL https://antigravity.google/cli/install.sh | bash", "grok": "npm install -g @xai-official/grok"]
+                        "agy": "curl -fsSL https://antigravity.google/cli/install.sh | bash", "grok": "curl -fsSL https://x.ai/cli/install.sh | bash"]
         let availability = await provider.availability()
         guard case .needsSetup(let reason, let hint) = availability else {
             Issue.record("expected .needsSetup, got \(availability)")

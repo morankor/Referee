@@ -112,7 +112,9 @@ These use the subscription you already pay for (Claude Pro or Max; a ChatGPT pla
 | Claude Code | `curl -fsSL https://claude.ai/install.sh \| bash` | run `claude` and type `/login` |
 | Codex (ChatGPT plan) | `npm install -g @openai/codex@latest` (the ChatGPT app's own copy also works) | `codex login` |
 | Antigravity (Google AI plan), experimental | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | follow the tool's own sign-in |
-| Grok Build (xAI), experimental | `npm install -g @xai-official/grok` | `grok login` |
+| Grok Build (xAI), experimental | `curl -fsSL https://x.ai/cli/install.sh \| bash` (the installer on xAI's own site) | `grok login` |
+
+xAI also lists an npm package, `@xai-official/grok`. When Referee was built, that package named no source repository or homepage, so it could not be confirmed as xAI's and was not installed; prefer the installer above.
 
 Then switch the provider on in Settings and press **Send Test Prompt**. Referee finds the program in the usual places (or set **Path** to point at it) and checks that the installed version still has the safety options it needs; if one is missing, the provider shows red with the reason, and stays off. Claude Code receives the PDF itself and Codex receives it as page images (both were tried with the invented fixture paper); Antigravity and Grok Build receive the extracted text.
 
